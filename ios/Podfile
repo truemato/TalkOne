@@ -1,5 +1,5 @@
 # Uncomment this line to define a global platform for your project
-# platform :ios, '12.0'
+platform :ios, '14.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -39,5 +39,44 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    
+    # Fix for Xcode 15 compatibility
+    target.build_configurations.each do |config|
+      # ----- FIX for Xcode "unsupported option '-G'" -------
+      # Some third-party pods inject the obsolete compiler flag '-G'
+      # which clang 16+ no longer accepts. Strip it out.
+      %w[OTHER_CFLAGS OTHER_CPLUSPLUSFLAGS].each do |setting|
+        flags = config.build_settings[setting]
+        next unless flags&.include?('-G')
+        config.build_settings[setting] = flags.gsub('-G', '')
+      end
+      
+      # Fix for gRPC-Core template issue
+      if target.name == 'gRPC-Core'
+        config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+      end
+      
+      # Fix for abseil linking issue
+      if target.name == 'abseil'
+        config.build_settings['ONLY_ACTIVE_ARCH'] = 'NO'
+        config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+      end
+    end
+
+    # Cleanup BoringSSL-GRPC compiler flags
+    if target.name == 'BoringSSL-GRPC'
+      target.source_build_phase.files.each do |file|
+        if file.settings && file.settings['COMPILER_FLAGS']
+          flags = file.settings['COMPILER_FLAGS'].split
+          flags.reject! { |flag| flag == '-GCC_WARN_INHIBIT_ALL_WARNINGS' }
+          file.settings['COMPILER_FLAGS'] = flags.join(' ')
+        end
+      end
+    end
+  end
+  
+  # Fix for architecture issues
+  installer.pods_project.build_configurations.each do |config|
+    config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
   end
 end

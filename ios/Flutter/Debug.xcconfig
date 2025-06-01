@@ -1,2 +1,5 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
 #include "Generated.xcconfig"
+
+DEVELOPMENT_TEAM = 658363YSD7
+PRODUCT_BUNDLE_IDENTIFIER = com.hundlename.flutter_temp
