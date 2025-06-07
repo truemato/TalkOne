@@ -129,7 +129,7 @@ class _ChatScreenState extends State<ChatScreen> {
     // Firebase AI Logic を使った AI モデルの初期化
     // ここで GenerativeModel を初期化します
     // 前回の説明で修正した内容をここに反映
-    _aiModel = FirebaseAI.googleAI().generativeModel(model: 'gemini-2.5-flash-preview-05-20');
+    _aiModel = FirebaseAI.googleAI().generativeModel(model: 'gemini-2.5-pro-preview-06-05');
     _session = _aiModel.startChat(); // 初期化したモデルからチャットセッションを開始
 
     // speech_to_text および flutter_tts の初期化
