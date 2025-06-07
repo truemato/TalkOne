@@ -1,17 +1,24 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+// import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:english_words/english_words.dart';
-import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'package:firebase_ai/firebase_ai.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+// Firebase の初期化を行うための設定
 
-late final String geminiApiKey;
+
+// late final String geminiApiKey;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(); // .env を読み込む
-  geminiApiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+  // await dotenv.load(); // .env を読み込む
+  // geminiApiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
@@ -101,28 +108,39 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  // 必要な変数を宣言（コメントアウトを解除）
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
   final List<({String from, String text})> _messages = [];
-  late final GenerativeModel _model;
+  // Firebase AI Logic に移行後のモデル変数
+  late final GenerativeModel _aiModel; // 名前を変更しました
   late final ChatSession _session;
-  bool _isSending = false;
+  bool _isSending = false; // コメントアウトを解除
 
+  // speech_to_text および flutter_tts の変数も宣言
   late final stt.SpeechToText _speech;
   late final FlutterTts _tts;
-  bool _speechEnabled = false;
+  bool _speechEnabled = false; // コメントアウトを解除
+
+  // クラス定義の直下に書かれていた初期化処理は削除
+  // _speech = stt.SpeechToText ; // <-- これを削除！
+  // _tts = FlutterTts ();      // <-- これを削除！
+  // _initSpeech();            // <-- これを削除！
 
   @override
   void initState() {
-    super.initState();
-    _model = GenerativeModel(
-      model: 'gemini-2.0-flash', // v1beta で利用可能
-      apiKey: geminiApiKey,
-    );
-    _session = _model.startChat();
-    _speech = stt.SpeechToText();
-    _tts = FlutterTts();
-    _initSpeech();
+    super.initState(); // StatefulWidget を使う場合、initState の最初に super.initState() を呼ぶのが慣習的です
+
+    // Firebase AI Logic を使った AI モデルの初期化
+    // ここで GenerativeModel を初期化します
+    // 前回の説明で修正した内容をここに反映
+    _aiModel = FirebaseAI.googleAI().generativeModel(model: 'gemini-2.0-flash');
+    _session = _aiModel.startChat(); // 初期化したモデルからチャットセッションを開始
+
+    // speech_to_text および flutter_tts の初期化
+    _speech = stt.SpeechToText(); // <-- ここに移動
+    _tts = FlutterTts();          // <-- ここに移動
+    _initSpeech();                // <-- ここに移動
   }
 
   Future<void> _initSpeech() async {
