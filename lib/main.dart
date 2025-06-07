@@ -122,11 +122,6 @@ class _ChatScreenState extends State<ChatScreen> {
   late final FlutterTts _tts;
   bool _speechEnabled = false; // コメントアウトを解除
 
-  // クラス定義の直下に書かれていた初期化処理は削除
-  // _speech = stt.SpeechToText ; // <-- これを削除！
-  // _tts = FlutterTts ();      // <-- これを削除！
-  // _initSpeech();            // <-- これを削除！
-
   @override
   void initState() {
     super.initState(); // StatefulWidget を使う場合、initState の最初に super.initState() を呼ぶのが慣習的です
@@ -134,7 +129,7 @@ class _ChatScreenState extends State<ChatScreen> {
     // Firebase AI Logic を使った AI モデルの初期化
     // ここで GenerativeModel を初期化します
     // 前回の説明で修正した内容をここに反映
-    _aiModel = FirebaseAI.googleAI().generativeModel(model: 'gemini-2.0-flash');
+    _aiModel = FirebaseAI.googleAI().generativeModel(model: 'gemini-2.5-flash-preview-05-20');
     _session = _aiModel.startChat(); // 初期化したモデルからチャットセッションを開始
 
     // speech_to_text および flutter_tts の初期化
@@ -145,6 +140,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _initSpeech() async {
     _speechEnabled = await _speech.initialize();
+    
     await _tts.setLanguage('en-US');
     await _tts.setSpeechRate(0.45);
   }
