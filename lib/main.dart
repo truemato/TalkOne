@@ -1,52 +1,95 @@
-// import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:english_words/english_words.dart';
-import 'package:provider/provider.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
-import 'package:firebase_ai/firebase_ai.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
-// Firebase の初期化を行うための設定
+import 'screens/chat_screen.dart';
+import 'services/personality_system.dart';
 
-
-// late final String geminiApiKey;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // await dotenv.load(); // .env を読み込む
-  // geminiApiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  runApp(const MyApp());
+  
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    
+    // 匿名認証を試行
+    try {
+      await FirebaseAuth.instance.signInAnonymously();
+      runApp(const MyApp());
+    } catch (authError) {
+      print('認証エラー: $authError');
+      runApp(ErrorApp(message: '認証に失敗しました: $authError'));
+    }
+  } catch (e) {
+    print('Firebase初期化エラー: $e');
+    runApp(ErrorApp(message: 'アプリの初期化に失敗しました: $e'));
+  }
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => MyAppState(),
-      child: MaterialApp(
-        title: 'Namer App',
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
-        ),
-        home: const MyHomePage(),
+    return MaterialApp(
+      title: 'TalkOne',
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
       ),
+      home: const AuthWrapper(),
     );
   }
 }
 
-class MyAppState extends ChangeNotifier {
-  var current = WordPair.random();
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
 
-  void getNext() {
-    current = WordPair.random();
-    notifyListeners();
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        
+        if (snapshot.hasData) {
+          return const MyHomePage();
+        }
+        
+        return Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('ログインが必要です'),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () async {
+                    try {
+                      await FirebaseAuth.instance.signInAnonymously();
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('ログインエラー: $e')),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('匿名でログイン'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -55,225 +98,134 @@ class MyHomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Namer App')),
-      body: Center(
-        child: ElevatedButton.icon(
-          icon: const Icon(Icons.chat_bubble_outline),
-          label: const Text('Start AI Chat'),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ChatScreen()),
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class BigCard extends StatelessWidget {
-  const BigCard({super.key, required this.pair});
-
-  final WordPair pair;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final style = theme.textTheme.displayMedium!.copyWith(
-      color: theme.colorScheme.onPrimary,
-    );
-
-    return Card(
-      color: theme.colorScheme.primary,
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(
-          pair.asLowerCase,
-          style: style,
-          semanticsLabel: '${pair.first} ${pair.second}',
-        ),
-      ),
-    );
-  }
-}
-
-class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key});
-
-  @override
-  State<ChatScreen> createState() => _ChatScreenState();
-}
-
-class _ChatScreenState extends State<ChatScreen> {
-  // 必要な変数を宣言（コメントアウトを解除）
-  final _controller = TextEditingController();
-  final _scrollController = ScrollController();
-  final List<({String from, String text})> _messages = [];
-  // Firebase AI Logic に移行後のモデル変数
-  late final GenerativeModel _aiModel; // 名前を変更しました
-  late final ChatSession _session;
-  bool _isSending = false; // コメントアウトを解除
-
-  // speech_to_text および flutter_tts の変数も宣言
-  late final stt.SpeechToText _speech;
-  late final FlutterTts _tts;
-  bool _speechEnabled = false; // コメントアウトを解除
-
-  @override
-  void initState() {
-    super.initState(); // StatefulWidget を使う場合、initState の最初に super.initState() を呼ぶのが慣習的です
-
-    // Firebase AI Logic を使った AI モデルの初期化
-    // ここで GenerativeModel を初期化します
-    // 前回の説明で修正した内容をここに反映
-    _aiModel = FirebaseAI.googleAI().generativeModel(model: 'gemini-2.5-pro-preview-06-05');
-    _session = _aiModel.startChat(); // 初期化したモデルからチャットセッションを開始
-
-    // speech_to_text および flutter_tts の初期化
-    _speech = stt.SpeechToText(); // <-- ここに移動
-    _tts = FlutterTts();          // <-- ここに移動
-    _initSpeech();                // <-- ここに移動
-  }
-
-  Future<void> _initSpeech() async {
-    _speechEnabled = await _speech.initialize();
+    final user = FirebaseAuth.instance.currentUser;
     
-    await _tts.setLanguage('en-US');
-    await _tts.setSpeechRate(0.45);
-  }
-
-  Future<void> _sendMessage() async {
-    if (_controller.text.trim().isEmpty || _isSending) return;
-    final userText = _controller.text.trim();
-    setState(() {
-      _messages.add((from: 'me', text: userText));
-      _isSending = true;
-      _controller.clear();
-    });
-    _scrollToBottom();
-
-    try {
-      final response = await _session.sendMessage(Content.text(userText));
-      final aiText = response.text ?? '';
-      setState(() {
-        _messages.add((from: 'ai', text: aiText));
-      });
-      if (aiText.isNotEmpty) {
-        _tts.stop();
-        await _tts.speak(aiText);
-      }
-    } catch (e) {
-      setState(() {
-        _messages.add((from: 'error', text: 'Error: $e'));
-      });
-    } finally {
-      setState(() => _isSending = false);
-      _scrollToBottom();
-    }
-  }
-
-  Future<void> _toggleRecording() async {
-    if (!_speechEnabled) return;
-    if (_speech.isListening) {
-      _speech.stop();
-    } else {
-      _speech.listen(
-        onResult: (result) {
-          _controller.text = result.recognizedWords;
-        },
-      );
-    }
-    setState(() {}); // update UI mic icon
-  }
-
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('AI Conversation')),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final m = _messages[index];
-                final isMe = m.from == 'me';
-                return Align(
-                  alignment:
-                      isMe ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(
-                      vertical: 4,
-                      horizontal: 8,
+      appBar: AppBar(
+        title: const Text('TalkOne'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+            },
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // 人格一覧表示
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '今回選ばれる可能性のあるAIキャラクター',
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: isMe
-                          ? Theme.of(context).colorScheme.primaryContainer
-                          : Theme.of(context).colorScheme.secondaryContainer,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(m.text),
-                  ),
+                    const SizedBox(height: 12),
+                    ...PersonalitySystem.personalities.entries.map((entry) {
+                      final personality = entry.value;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            Text(
+                              personality['emoji'],
+                              style: const TextStyle(fontSize: 20),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    personality['name'],
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  Text(
+                                    personality['description'],
+                                    style: Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.shuffle),
+              label: const Text('ランダムなAIキャラとチャット開始'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ChatScreen()),
                 );
               },
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: Row(
+            const SizedBox(height: 16),
+            if (user != null)
+              Text(
+                'ユーザーID: ${user.uid.substring(0, 8)}...',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ErrorApp extends StatelessWidget {
+  final String message;
+  
+  const ErrorApp({super.key, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    onSubmitted: (_) => _sendMessage(),
-                    decoration: const InputDecoration(
-                      hintText: 'Say something...',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
+                const Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: Colors.red,
                 ),
-                IconButton(
-                  icon: Icon(_speech.isListening ? Icons.mic_off : Icons.mic),
-                  onPressed: _toggleRecording,
+                const SizedBox(height: 16),
+                Text(
+                  'エラーが発生しました',
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: _isSending
-                      ? const CircularProgressIndicator()
-                      : const Icon(Icons.send),
-                  onPressed: _isSending ? null : _sendMessage,
+                const SizedBox(height: 8),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _scrollController.dispose();
-    _speech.stop();
-    _tts.stop();
-    super.dispose();
   }
 }
