@@ -9,7 +9,7 @@ class ConversationMemory {
   
   ConversationMemory() : 
     _summarizerModel = FirebaseAI.googleAI().generativeModel(
-      model: 'gemini-2.5-flash-002',
+      model: 'gemini-1.5-flash',
       systemInstruction: Content.text('あなたはJSON形式のみで応答するアシスタントです。説明や挨拶は不要です。')
     );
   

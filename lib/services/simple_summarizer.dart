@@ -120,7 +120,7 @@ class SimpleSummarizer {
       String summary = '';
       try {
         final model = FirebaseAI.googleAI().generativeModel(
-          model: 'gemini-2.5-flash-002',
+          model: 'gemini-1.5-flash',
         );
         
         final conversation = messages

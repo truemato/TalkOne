@@ -9,7 +9,7 @@ class MessageSummarizer {
   
   MessageSummarizer() : 
     _summarizerModel = FirebaseAI.googleAI().generativeModel(
-      model: 'gemini-2.5-flash-002',
+      model: 'gemini-1.5-flash',
       systemInstruction: Content.text('あなたは会話を1行に要約する専門家です。重要な情報を保持しながら、簡潔に要約してください。')
     );
   

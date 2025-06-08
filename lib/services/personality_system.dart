@@ -3,6 +3,19 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_ai/firebase_ai.dart';
 
+// モッククラス
+ class MockQuerySnapshot implements QuerySnapshot {
+  final List<QueryDocumentSnapshot> _docs;
+  
+  MockQuerySnapshot(this._docs);
+  
+  @override
+  List<QueryDocumentSnapshot> get docs => _docs;
+  
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 class PersonalitySystem {
   static const int personalityCount = 5;
   
@@ -111,22 +124,42 @@ class PersonalitySystem {
   // 特定の人格の過去の会話履歴を取得
   Future<String> getPersonalityMemory(String userId, int personalityId) async {
     try {
-      // 同じ人格の過去の会話履歴を取得
-      final historyQuery = await _db
-          .collection('users')
-          .doc(userId)
-          .collection('conversationHistory')
-          .where('personalityId', isEqualTo: personalityId)
-          .orderBy('timestamp', descending: true)
-          .limit(3) // 最新3回分
-          .get();
+      // 同じ人格の過去の会話履歴を取得（インデックスエラーを回避）
+      QuerySnapshot historyQuery;
+      try {
+        historyQuery = await _db
+            .collection('users')
+            .doc(userId)
+            .collection('conversationHistory')
+            .where('personalityId', isEqualTo: personalityId)
+            .orderBy('timestamp', descending: true)
+            .limit(3)
+            .get();
+      } catch (e) {
+        print('人格フィルタークエリ失敗、全体から取得: $e');
+        // インデックスがない場合は、全体から取得してフィルター
+        final allHistory = await _db
+            .collection('users')
+            .doc(userId)
+            .collection('conversationHistory')
+            .orderBy('timestamp', descending: true)
+            .limit(10)
+            .get();
+        
+        final filteredDocs = allHistory.docs
+            .where((doc) => (doc.data() as Map<String, dynamic>)['personalityId'] == personalityId)
+            .take(3)
+            .toList();
+        
+        historyQuery = MockQuerySnapshot(filteredDocs);
+      }
       
       if (historyQuery.docs.isEmpty) {
         return '';
       }
       
       final histories = historyQuery.docs.map((doc) {
-        final data = doc.data();
+        final data = doc.data() as Map<String, dynamic>;
         return {
           'summary': data['summary'] ?? '',
           'topics': List<String>.from(data['topics'] ?? []),

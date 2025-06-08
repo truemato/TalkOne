@@ -11,6 +11,7 @@ import '../services/message_summarizer.dart';
 import '../services/conversation_memory.dart';
 import '../services/simple_summarizer.dart';
 import '../services/personality_system.dart';
+import '../services/vap_system_v2.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -32,6 +33,7 @@ class _ChatScreenState extends State<ChatScreen> {
   // speech_to_text および flutter_tts の変数も宣言
   late final stt.SpeechToText _speech;
   late final FlutterTts _tts;
+  late final VAPSystemV2 _vapSystem;
 
   // Firestore helpers
   final _repo = ChatRepository();
@@ -52,6 +54,9 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _finished = false;
 
   bool _speechEnabled = false; // コメントアウトを解除
+  VAPState _vapState = VAPState.idle;
+  double _speechProgress = 0.0;
+  bool _isVAPInterrupted = false;
 
   @override
   void initState() {
@@ -64,6 +69,10 @@ class _ChatScreenState extends State<ChatScreen> {
     _speech = stt.SpeechToText(); // <-- ここに移動
     _tts = FlutterTts();          // <-- ここに移動
     _initSpeech();                // <-- ここに移動
+    
+    // VAPシステム初期化
+    _vapSystem = VAPSystemV2(tts: _tts, speech: _speech);
+    _initVAPSystem();
 
     _setupConversation();
   }
@@ -84,7 +93,7 @@ class _ChatScreenState extends State<ChatScreen> {
     print('選択された人格: ${PersonalitySystem.getPersonalityName(_currentPersonalityId!)}');
     
     _aiModel = FirebaseAI.googleAI().generativeModel(
-      model: 'gemini-2.5-pro-preview-06-05',
+      model: 'gemini-1.5-pro',
       systemInstruction: Content.text(systemPrompt),
     );
     _session = _aiModel.startChat();
@@ -97,10 +106,76 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _initSpeech() async {
-    _speechEnabled = await _speech.initialize();
+    try {
+      _speechEnabled = await _speech.initialize(
+        onError: (error) => print('音声認識エラー: $error'),
+        onStatus: (status) => print('音声認識ステータス: $status'),
+      );
+      print('音声認識初期化結果: $_speechEnabled');
+      
+      if (_speechEnabled) {
+        final locales = await _speech.locales();
+        print('利用可能な言語: ${locales.map((l) => l.localeId).join(", ")}');
+      }
+    } catch (e) {
+      print('音声認識初期化エラー: $e');
+      _speechEnabled = false;
+    }
     
-    await _tts.setLanguage('en-US');
-    await _tts.setSpeechRate(0.45);
+    try {
+      await _tts.setLanguage('ja-JP');
+      await _tts.setSpeechRate(0.45);
+      print('TTS初期化完了');
+    } catch (e) {
+      print('TTS初期化エラー: $e');
+    }
+  }
+  
+  void _initVAPSystem() {
+    // VAPシステムのコールバック設定
+    _vapSystem.onStateChanged = (state) {
+      if (mounted) {
+        setState(() {
+          _vapState = state;
+        });
+      }
+    };
+    
+    _vapSystem.onSpeechProgress = (progress) {
+      if (mounted) {
+        setState(() {
+          _speechProgress = progress;
+        });
+      }
+    };
+    
+    _vapSystem.onInterruption = () {
+      print('VAPコールバック: 中断通知受信');
+      if (mounted) {
+        setState(() {
+          _isVAPInterrupted = true;
+        });
+        print('VAP: 音声が中断されました - UI更新完了');
+      }
+    };
+    
+    _vapSystem.onUserSpeech = (userSpeech) {
+      print('VAPコールバック: ユーザー音声受信 - "$userSpeech"');
+      if (mounted) {
+        // 中断後のユーザー音声をテキストフィールドに設定
+        setState(() {
+          _controller.text = userSpeech;
+          _isVAPInterrupted = false;
+        });
+        // 自動的にメッセージ送信
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) {
+            print('VAP: 自動メッセージ送信実行');
+            _sendMessage();
+          }
+        });
+      }
+    };
   }
 
   Future<void> _setupConversation() async {
@@ -119,14 +194,21 @@ class _ChatScreenState extends State<ChatScreen> {
     });
 
     // ② 3分カウントダウン
+    _timer?.cancel(); // 既存タイマーをキャンセル
+    _left = const Duration(minutes: 3); // 3分にリセット
+    _finished = false; // 終了フラグをリセット
+    
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (!mounted) return;
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
       setState(() {
         _left -= const Duration(seconds: 1);
         if (_left <= Duration.zero && !_finished) {
           _finished = true;
           _finishConversation();
-          _timer?.cancel();
+          t.cancel();
         }
       });
     });
@@ -179,8 +261,8 @@ class _ChatScreenState extends State<ChatScreen> {
         }
       }
       if (aiText.isNotEmpty) {
-        _tts.stop();
-        await _tts.speak(aiText);
+        // VAPシステムで音声再生（中断機能付き）
+        await _vapSystem.speakWithVAP(aiText);
       }
     } catch (e) {
       setState(() {
@@ -193,15 +275,49 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _toggleRecording() async {
-    if (!_speechEnabled) return;
+    print('マイクボタンが押されました - _speechEnabled: $_speechEnabled');
+    
+    if (!_speechEnabled) {
+      print('音声認識が無効です');
+      return;
+    }
+    
+    // VAP状態チェック
+    if (_vapState == VAPState.speaking && _vapSystem.canInterrupt) {
+      print('音声再生中で中断可能 - 手動中断実行');
+      _vapSystem.stop();
+      setState(() {
+        _isVAPInterrupted = true;
+        _controller.text = '手動中断テスト';
+      });
+      // 自動送信
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) _sendMessage();
+      });
+      return;
+    }
+    
     if (_speech.isListening) {
+      print('音声認識停止');
       _speech.stop();
     } else {
-      _speech.listen(
-        onResult: (result) {
-          _controller.text = result.recognizedWords;
-        },
-      );
+      print('音声認識開始');
+      try {
+        await _speech.listen(
+          onResult: (result) {
+            print('マイク結果: ${result.recognizedWords} (信頼度: ${result.confidence})');
+            _controller.text = result.recognizedWords;
+          },
+          localeId: 'ja_JP',
+          onSoundLevelChange: (level) {
+            if (level > 0.1) {
+              print('マイク音声レベル: $level');
+            }
+          },
+        );
+      } catch (e) {
+        print('音声認識エラー: $e');
+      }
     }
     setState(() {}); // update UI mic icon
   }
@@ -230,6 +346,24 @@ class _ChatScreenState extends State<ChatScreen> {
               Text(
                 '${PersonalitySystem.getPersonality(_currentPersonalityId!)['emoji']} ${PersonalitySystem.getPersonalityName(_currentPersonalityId!)}',
                 style: const TextStyle(fontSize: 12),
+              ),
+            // VAP状態表示
+            if (_vapState == VAPState.speaking)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.volume_up, size: 12),
+                  const SizedBox(width: 4),
+                  Text(
+                    '音声再生中 ${(_speechProgress * 100).toInt()}%',
+                    style: const TextStyle(fontSize: 10),
+                  ),
+                  if (_vapSystem.canInterrupt)
+                    const Text(
+                      ' (中断可)',
+                      style: TextStyle(fontSize: 10, color: Colors.orange),
+                    ),
+                ],
               ),
           ],
         ),
@@ -324,9 +458,31 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                       ),
                       IconButton(
-                        icon: Icon(_speech.isListening ? Icons.mic_off : Icons.mic),
+                        icon: Icon(
+                          _speech.isListening 
+                              ? Icons.mic_off 
+                              : _vapState == VAPState.speaking && _vapSystem.canInterrupt
+                                  ? Icons.pan_tool // 中断アイコン
+                                  : Icons.mic
+                        ),
+                        color: _vapState == VAPState.speaking && _vapSystem.canInterrupt
+                            ? Colors.orange
+                            : null,
                         onPressed: _toggleRecording,
                       ),
+                      const SizedBox(width: 8),
+                      // VAPテストボタン（音声再生中のみ表示）
+                      if (_vapState == VAPState.speaking)
+                        IconButton(
+                          icon: const Icon(Icons.stop_circle, color: Colors.red),
+                          onPressed: () {
+                            print('手動中断ボタンが押されました');
+                            _vapSystem.stop();
+                            _controller.text = '手動中断テスト';
+                            _sendMessage();
+                          },
+                          tooltip: 'VAP手動中断',
+                        ),
                       const SizedBox(width: 8),
                       _isSending
                           ? const CircularProgressIndicator()
@@ -337,6 +493,32 @@ class _ChatScreenState extends State<ChatScreen> {
                     ],
                   ),
                 ),
+          // VAPプログレスバー
+          if (_vapState == VAPState.speaking)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                children: [
+                  LinearProgressIndicator(
+                    value: _speechProgress,
+                    backgroundColor: Colors.grey[300],
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      _speechProgress <= 0.5 ? Colors.orange : Colors.blue,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _speechProgress <= 0.5 
+                        ? '中断可能期間 (音声で中断できます)'
+                        : '継続再生中',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _speechProgress <= 0.5 ? Colors.orange : Colors.blue,
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -423,6 +605,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollController.dispose();
     _speech.stop();
     _tts.stop();
+    _vapSystem.dispose(); // VAPシステムのリソース解放
     _timer?.cancel();
     if (!_finished && _messages.isNotEmpty) {
       // 中途終了の場合もサマリーを保存
