@@ -50,6 +50,8 @@ class VAPSystemV2 {
     if (text.isEmpty) return;
     
     print('VAP: 音声開始 - "$text"');
+    print('VAP: TTS利用可能: ${await _tts.awaitSpeakCompletion(false)}');
+    print('VAP: 音声認識利用可能: ${_speech.isAvailable}');
     
     _currentSpeechText = text;
     _speechProgress = 0.0;
@@ -57,6 +59,7 @@ class VAPSystemV2 {
     
     // 日本語の読み上げ時間を推定（1文字あたり約150ms）
     _estimatedDuration = (text.length * 150);
+    print('VAP: 推定再生時間: ${_estimatedDuration}ms (${(_estimatedDuration / 1000).toStringAsFixed(1)}秒)');
     
     _setState(VAPState.speaking);
     
@@ -67,7 +70,9 @@ class VAPSystemV2 {
     _startSpeechMonitoring();
     
     // TTS開始
+    print('VAP: TTS開始実行');
     await _tts.speak(text);
+    print('VAP: TTS完了');
   }
   
   // 進行度追跡開始
@@ -108,41 +113,64 @@ class VAPSystemV2 {
       return;
     }
     
+    // まず停止してリセット
+    _speech.stop();
+    
     _isMonitoring = true;
     print('VAP: 音声モニタリング開始 - 音声認識利用可能: ${_speech.isAvailable}');
     print('VAP: 現在の状態: $_currentState, 中断可能: $canInterrupt');
     
-    // 継続的な音声検出
-    _speech.listen(
-      onResult: (result) {
-        print('VAP: 音声結果受信 - "${result.recognizedWords}" (信頼度: ${result.confidence})');
-        print('VAP: 現在の状態: $_currentState, 中断可能: $canInterrupt, 進行度: ${(_speechProgress * 100).toStringAsFixed(1)}%');
-        
-        if (_currentState == VAPState.speaking && canInterrupt) {
-          print('VAP: 中断可能な状態で音声を検出');
-          if (result.hasConfidenceRating && result.confidence > 0.5) { // 閾値を下げる
-            if (result.recognizedWords.trim().length > 0) { // 1文字でも有効
-              print('VAP: ★有効なユーザー発言を検出 - 中断実行★');
-              _executeInterruption(result.recognizedWords);
+    // 短時間待ってから開始
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (!_isMonitoring || _currentState != VAPState.speaking) {
+        return;
+      }
+      
+      try {
+        // より シンプルな設定で音声認識を開始
+        _speech.listen(
+          onResult: (result) {
+            print('VAP: 音声結果受信 - "${result.recognizedWords}" (信頼度: ${result.confidence})');
+            print('VAP: 現在の状態: $_currentState, 中断可能: $canInterrupt, 進行度: ${(_speechProgress * 100).toStringAsFixed(1)}%');
+            
+            if (_currentState == VAPState.speaking && canInterrupt) {
+              print('VAP: 中断可能な状態で音声を検出');
+              // 閾値を大幅に下げて、より敏感に反応
+              if (result.recognizedWords.trim().isNotEmpty) {
+                // 信頼度チェックを緩くする
+                if (!result.hasConfidenceRating || result.confidence > 0.2) {
+                  print('VAP: ★有効なユーザー発言を検出 - 中断実行★');
+                  _executeInterruption(result.recognizedWords);
+                } else {
+                  print('VAP: 信頼度が低すぎます (${result.confidence})');
+                }
+              } else {
+                print('VAP: 認識された文字列が空です');
+              }
             } else {
-              print('VAP: 認識された文字列が短すぎます');
+              print('VAP: 中断不可能な状態です (状態: $_currentState, 中断可能: $canInterrupt)');
             }
-          } else {
-            print('VAP: 信頼度が低すぎます (${result.confidence})');
-          }
-        } else {
-          print('VAP: 中断不可能な状態です (状態: $_currentState, 中断可能: $canInterrupt)');
-        }
-      },
-      listenFor: const Duration(minutes: 5),
-      pauseFor: const Duration(milliseconds: 100), // より短く
-      partialResults: true,
-      onSoundLevelChange: (level) {
-        if (level > 0.1) { // 低い閾値でもログ出力
-          print('VAP: 音声レベル検出 - $level (状態: $_currentState)');
-        }
-      },
-    );
+          },
+          listenFor: const Duration(seconds: 30), // 短縮
+          pauseFor: const Duration(milliseconds: 100),
+          partialResults: true,
+          localeId: 'ja_JP', // 明示的に日本語を指定
+          onSoundLevelChange: (level) {
+            if (level > 0.1) {
+              print('VAP: 音声レベル検出 - $level (状態: $_currentState, 中断可能: $canInterrupt)');
+              // 音声レベルだけでも中断を試行
+              if (_currentState == VAPState.speaking && canInterrupt && level > 0.4) {
+                print('VAP: 高音声レベルで緊急中断試行');
+                _executeInterruption('音声レベル検出による中断');
+              }
+            }
+          },
+        );
+      } catch (e) {
+        print('VAP: 音声認識開始エラー - $e');
+        _isMonitoring = false;
+      }
+    });
   }
   
   // 中断実行

@@ -103,6 +103,13 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() {
       _messages.add((from: 'ai', text: greeting));
     });
+    
+    // 初回挨拶を音声で再生
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted && greeting.isNotEmpty) {
+        _vapSystem.speakWithVAP(greeting);
+      }
+    });
   }
 
   Future<void> _initSpeech() async {
@@ -207,6 +214,10 @@ class _ChatScreenState extends State<ChatScreen> {
         _left -= const Duration(seconds: 1);
         if (_left <= Duration.zero && !_finished) {
           _finished = true;
+          // 音声再生を即座に停止
+          _vapSystem.stop();
+          _tts.stop();
+          print('3分タイマー終了 - 音声再生を強制停止');
           _finishConversation();
           t.cancel();
         }
@@ -238,7 +249,14 @@ class _ChatScreenState extends State<ChatScreen> {
       }
       
       final response = await _session.sendMessage(Content.text(userText));
-      final aiText = response.text ?? '';
+      var aiText = response.text ?? '';
+      
+      // 基本的なプロンプトインジェクション対策
+      if (aiText.length > 500 || aiText.contains('減量') || aiText.contains('ダイエット') || 
+          aiText.contains('医師') || aiText.contains('健康') || aiText.contains('カロリー')) {
+        aiText = '申し訳ありませんが、その話題については詳しくお答えできません。他の楽しい話題にしませんか？';
+      }
+      
       setState(() {
         _messages.add((from: 'ai', text: aiText));
       });
@@ -472,17 +490,40 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                       const SizedBox(width: 8),
                       // VAPテストボタン（音声再生中のみ表示）
-                      if (_vapState == VAPState.speaking)
+                      if (_vapState == VAPState.speaking) ...[
                         IconButton(
                           icon: const Icon(Icons.stop_circle, color: Colors.red),
                           onPressed: () {
                             print('手動中断ボタンが押されました');
                             _vapSystem.stop();
-                            _controller.text = '手動中断テスト';
+                            setState(() {
+                              _controller.text = '手動中断テスト';
+                            });
                             _sendMessage();
                           },
                           tooltip: 'VAP手動中断',
                         ),
+                        // 自動テスト中断ボタン（2秒後に自動中断）
+                        IconButton(
+                          icon: const Icon(Icons.timer, color: Colors.orange),
+                          onPressed: () {
+                            print('自動中断テスト開始 - 2秒後に中断');
+                            Future.delayed(const Duration(seconds: 2), () {
+                              if (_vapState == VAPState.speaking && _vapSystem.canInterrupt) {
+                                print('自動中断テスト実行');
+                                _vapSystem.stop();
+                                setState(() {
+                                  _controller.text = '2秒後自動中断テスト';
+                                });
+                                _sendMessage();
+                              } else {
+                                print('自動中断テスト失敗 - 状態: $_vapState, 中断可能: ${_vapSystem.canInterrupt}');
+                              }
+                            });
+                          },
+                          tooltip: '2秒後自動中断テスト',
+                        ),
+                      ],
                       const SizedBox(width: 8),
                       _isSending
                           ? const CircularProgressIndicator()

@@ -188,12 +188,14 @@ class SimpleSummarizer {
       traits.add('礼儀正しい');
     }
     
-    // メッセージの長さ
-    final avgLength = userMessages.fold(0, (sum, m) => sum + m.text.length) ~/ userMessages.length;
-    if (avgLength > 50) {
-      traits.add('詳細に説明する傾向');
-    } else if (avgLength < 20) {
-      traits.add('簡潔な返答');
+    // メッセージの長さ（ゼロ除算エラー対策）
+    if (userMessages.isNotEmpty) {
+      final avgLength = userMessages.fold(0, (sum, m) => sum + m.text.length) ~/ userMessages.length;
+      if (avgLength > 50) {
+        traits.add('詳細に説明する傾向');
+      } else if (avgLength < 20) {
+        traits.add('簡潔な返答');
+      }
     }
     
     return traits;
