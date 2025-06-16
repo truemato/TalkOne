@@ -1,0 +1,35 @@
+# Flutter開発環境用Dockerfile
+FROM cirrusci/flutter:stable
+
+# 作業ディレクトリを設定
+WORKDIR /app
+
+# システムの更新とAndroid SDK用のパッケージをインストール
+RUN sudo apt-get update && sudo apt-get install -y \
+    git \
+    wget \
+    curl \
+    unzip \
+    lib32stdc++6 \
+    && sudo rm -rf /var/lib/apt/lists/*
+
+# Android SDK設定
+ENV ANDROID_HOME=/opt/android-sdk
+ENV PATH=${PATH}:${ANDROID_HOME}/tools:${ANDROID_HOME}/platform-tools
+
+# Flutter設定
+RUN flutter doctor
+RUN flutter config --enable-web
+
+# プロジェクトファイルをコピー
+COPY pubspec.yaml pubspec.lock ./
+RUN flutter pub get
+
+# 全てのソースコードをコピー
+COPY . .
+
+# ポート8080を公開（Flutter Web用）
+EXPOSE 8080
+
+# デフォルトコマンド
+CMD ["flutter", "run", "-d", "web-server", "--web-hostname", "0.0.0.0", "--web-port", "8080"]

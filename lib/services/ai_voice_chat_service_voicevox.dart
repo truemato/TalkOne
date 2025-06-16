@@ -198,6 +198,26 @@ class AIVoiceChatServiceVoiceVox {
     }
   }
   
+  // テキストから会話を処理（talk_to_ai_screen用）
+  Future<String> processConversation(String text) async {
+    if (!_isInitialized) {
+      throw Exception('AI音声会話が初期化されていません');
+    }
+    
+    _setState(VoiceChatState.processing);
+    
+    try {
+      final response = await _session.sendMessage(Content.text(text));
+      final aiText = response.text ?? 'すみません、もう一度お願いします。';
+      
+      _setState(VoiceChatState.idle);
+      return aiText;
+    } catch (e) {
+      _setState(VoiceChatState.error);
+      throw Exception('AI応答エラー: $e');
+    }
+  }
+  
   // 音声入力をAIに送信
   Future<void> _processSpeechInput(String userText) async {
     if (userText.isEmpty) return;

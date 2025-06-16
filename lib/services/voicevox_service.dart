@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:audioplayers/audioplayers.dart';
+import 'package:path_provider/path_provider.dart';
 
 /// VOICEVOX音声合成サービス
 /// 
@@ -27,7 +29,67 @@ class VoiceVoxService {
     String? host,
     bool useLocalEngine = false,
   }) : _host = host ?? (useLocalEngine ? _localHost : _defaultHost),
-       _useLocalEngine = useLocalEngine;
+       _useLocalEngine = useLocalEngine {
+    _initializeAudioPlayer();
+  }
+  
+  /// AudioPlayer初期化（実機対応）
+  void _initializeAudioPlayer() {
+    // 実機での音声再生を確実にするための設定
+    _audioPlayer.setPlayerMode(PlayerMode.mediaPlayer);
+    _audioPlayer.setReleaseMode(ReleaseMode.stop);
+    
+    // iOS/Android特有の音声設定
+    if (Platform.isIOS || Platform.isAndroid) {
+      _setupAudioSession();
+    }
+    
+    // 音声再生の状態をログ出力
+    _audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
+      print('VOICEVOX AudioPlayer状態変更: $state');
+    });
+    
+    _audioPlayer.onDurationChanged.listen((Duration duration) {
+      print('VOICEVOX 音声長さ: ${duration.inMilliseconds}ms');
+    });
+    
+    _audioPlayer.onPositionChanged.listen((Duration position) {
+      print('VOICEVOX 再生位置: ${position.inMilliseconds}ms');
+    });
+    
+    // エラーハンドリング
+    _audioPlayer.onLog.listen((String message) {
+      print('VOICEVOX AudioPlayer ログ: $message');
+    });
+  }
+  
+  /// 音声セッション設定（iOS/Android）
+  Future<void> _setupAudioSession() async {
+    try {
+      // AudioContextの設定
+      await _audioPlayer.setAudioContext(AudioContext(
+        iOS: AudioContextIOS(
+          category: AVAudioSessionCategory.playback,
+          options: {
+            AVAudioSessionOptions.defaultToSpeaker,
+            AVAudioSessionOptions.allowBluetooth,
+          },
+        ),
+        android: AudioContextAndroid(
+          isSpeakerphoneOn: true,
+          stayAwake: true,
+          contentType: AndroidContentType.speech,
+          usageType: AndroidUsageType.media,
+          audioFocus: AndroidAudioFocus.gain,
+        ),
+      ));
+      
+      print('VOICEVOX: 音声セッション設定完了');
+      
+    } catch (e) {
+      print('音声セッション設定エラー: $e');
+    }
+  }
   
   /// 話者IDを設定
   void setSpeaker(int speakerId) {
@@ -165,12 +227,77 @@ class VoiceVoxService {
         throw Exception('synthesis失敗: ${synthResponse.statusCode}');
       }
       
-      // 4. 音声再生
-      await _audioPlayer.play(BytesSource(synthResponse.bodyBytes));
-      return true;
+      // 4. 音声再生（実機対応版）
+      final success = await _playAudioBytes(synthResponse.bodyBytes);
+      return success;
       
     } catch (e) {
       print('音声合成エラー: $e');
+      return false;
+    }
+  }
+  
+  /// 実機対応音声再生メソッド
+  Future<bool> _playAudioBytes(Uint8List audioBytes) async {
+    try {
+      print('VOICEVOX: 音声データ受信 ${audioBytes.length} bytes');
+      
+      // まず音声を停止
+      await _audioPlayer.stop();
+      
+      // 実機では一時ファイルに保存してから再生
+      if (Platform.isIOS || Platform.isAndroid) {
+        return await _playFromFile(audioBytes);
+      } else {
+        // エミュレータやデスクトップではBytesSourceを使用
+        await _audioPlayer.play(BytesSource(audioBytes));
+        return true;
+      }
+      
+    } catch (e) {
+      print('音声再生エラー: $e');
+      return false;
+    }
+  }
+  
+  /// 一時ファイルから音声再生（実機用）
+  Future<bool> _playFromFile(Uint8List audioBytes) async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final tempFile = File('${tempDir.path}/voicevox_$timestamp.wav');
+      
+      // WAVファイルとして保存
+      await tempFile.writeAsBytes(audioBytes);
+      print('VOICEVOX: 一時ファイル保存 ${tempFile.path} (${audioBytes.length} bytes)');
+      
+      // 音量設定
+      await _audioPlayer.setVolume(1.0);
+      
+      // ファイルから再生
+      await _audioPlayer.play(DeviceFileSource(tempFile.path));
+      
+      // 再生開始を確認するため少し待機
+      await Future.delayed(const Duration(milliseconds: 100));
+      
+      print('VOICEVOX: 再生開始 - 状態: ${_audioPlayer.state}');
+      
+      // 再生完了後にファイル削除（10秒後に延長）
+      Future.delayed(const Duration(seconds: 10), () async {
+        try {
+          if (await tempFile.exists()) {
+            await tempFile.delete();
+            print('VOICEVOX: 一時ファイル削除完了');
+          }
+        } catch (e) {
+          print('一時ファイル削除エラー: $e');
+        }
+      });
+      
+      return true;
+      
+    } catch (e) {
+      print('ファイル再生エラー: $e');
       return false;
     }
   }
@@ -188,6 +315,31 @@ class VoiceVoxService {
     _audioPlayer.dispose();
   }
   
+  /// 実機音声テスト用メソッド
+  Future<bool> testRealDeviceAudio() async {
+    try {
+      print('VOICEVOX: 実機音声テスト開始');
+      
+      // 簡単なテストテキスト
+      const testText = 'こんにちは、四国めたんやで！';
+      
+      // 音声合成
+      final success = await speak(testText);
+      
+      if (success) {
+        print('VOICEVOX: 実機音声テスト成功');
+      } else {
+        print('VOICEVOX: 実機音声テスト失敗');
+      }
+      
+      return success;
+      
+    } catch (e) {
+      print('VOICEVOX: 実機音声テストエラー: $e');
+      return false;
+    }
+  }
+  
   /// 現在の設定を取得
   Map<String, dynamic> getCurrentSettings() {
     return {
@@ -198,6 +350,7 @@ class VoiceVoxService {
       'pitch': _pitch,
       'intonation': _intonation,
       'volume': _volume,
+      'audioPlayerState': _audioPlayer.state.toString(),
     };
   }
 }

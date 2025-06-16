@@ -39,15 +39,16 @@ class AIVoiceChatService {
   AIVoiceChatService({
     required SpeechToText speech,
     required FlutterTts tts,
-  }) : _speech = speech, _tts = tts;
+    int? personalityId,
+  }) : _speech = speech, _tts = tts, _currentPersonalityId = personalityId;
   
   // 初期化
   Future<bool> initialize() async {
     if (_isInitialized) return true;
     
     try {
-      // ランダムに人格を選択
-      _currentPersonalityId = PersonalitySystem.getRandomPersonality();
+      // 人格IDが指定されていない場合はランダムに選択
+      _currentPersonalityId ??= PersonalitySystem.getRandomPersonality();
       
       // AIモデルの初期化
       final user = FirebaseAuth.instance.currentUser;

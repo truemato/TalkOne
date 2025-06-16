@@ -10,19 +10,22 @@ import '../config/agora_config.dart';
 import 'evaluation_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/user_model.dart';
 
 class VideoCallScreen extends StatefulWidget {
   final String channelName;
-  final String callId;
-  final String partnerId;
+  final String? callId;
+  final String? partnerId;
+  final UserModel? remoteUser;
   final bool enableAIFilter;
   final bool privacyMode;
 
   const VideoCallScreen({
     super.key,
     required this.channelName,
-    required this.callId,
-    required this.partnerId,
+    this.callId,
+    this.partnerId,
+    this.remoteUser,
     this.enableAIFilter = false,
     this.privacyMode = false,
   });
@@ -276,7 +279,9 @@ class _VideoCallScreenState extends State<VideoCallScreen>
     _timer?.cancel();
     
     // 通話終了を記録
-    _matchingService.finishCall(widget.callId);
+    if (widget.callId != null) {
+      _matchingService.finishCall(widget.callId!);
+    }
     
     // Agoraから離脱
     _agoraService.leaveChannel();
@@ -289,8 +294,8 @@ class _VideoCallScreenState extends State<VideoCallScreen>
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (context) => EvaluationScreen(
-          callId: widget.callId,
-          partnerId: widget.partnerId,
+          callId: widget.callId ?? '',
+          partnerId: widget.partnerId ?? '',
           isDummyMatch: false,
         ),
       ),

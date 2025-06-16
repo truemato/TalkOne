@@ -1,9 +1,12 @@
 // lib/services/call_matching_service.dart
 import 'dart:async';
 import 'dart:math';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'evaluation_service.dart';
+import '../models/user_model.dart';
 
 enum CallStatus {
   waiting,      // 待機中
@@ -20,6 +23,7 @@ class CallMatchingService {
   
   StreamSubscription? _matchingSubscription;
   String? _currentCallId;
+  String? currentChannelName;
   
   // 通話リクエストを作成（通話ボタンを押したとき）
   Future<String> createCallRequest({
@@ -27,6 +31,10 @@ class CallMatchingService {
     bool enableAIFilter = false,
     bool privacyMode = false,
   }) async {
+    print('=== マッチング開始 ===');
+    print('UserID: $_userId');
+    print('Device: ${Platform.isAndroid ? "Android" : "iOS"} ${kIsWeb ? "Web" : "Native"}');
+    
     // まず古い自分のリクエストをクリーンアップ
     await _cleanupOldRequests();
     
@@ -45,8 +53,10 @@ class CallMatchingService {
       'forceAIMatch': forceAIMatch,
       'enableAIFilter': enableAIFilter,
       'privacyMode': privacyMode,
+      'deviceInfo': '${Platform.isAndroid ? "Android" : "iOS"}_${kIsWeb ? "Web" : "Native"}',
     });
     
+    print('通話リクエスト作成: ${callRequestRef.id} (Rating: $userRating)');
     _currentCallId = callRequestRef.id;
     return callRequestRef.id;
   }
@@ -69,7 +79,26 @@ class CallMatchingService {
   }
   
   // マッチング待機を開始
-  Stream<CallMatch?> startMatching(String callRequestId) {
+  Future<void> startMatching({
+    bool isVideoCall = false,
+    required Function(UserModel) onMatchFound,
+    required Function() onTimeExpired,
+  }) async {
+    String callRequestId = await createCallRequest();
+    _startMatchingStream(callRequestId, isVideoCall, onMatchFound, onTimeExpired);
+  }
+  
+  // キャンセル処理
+  Future<void> cancelMatching() async {
+    if (_currentCallId != null) {
+      await _db.collection('callRequests').doc(_currentCallId).update({
+        'status': CallStatus.cancelled.name,
+      });
+    }
+    dispose();
+  }
+  
+  Stream<CallMatch?> _startMatchingStream(String callRequestId, bool isVideoCall, Function(UserModel) onMatchFound, Function() onTimeExpired) {
     final controller = StreamController<CallMatch?>();
     
     // 他の待機中のリクエストを検索してマッチング
@@ -90,18 +119,24 @@ class CallMatchingService {
       final status = CallStatus.values.byName(data['status']);
       
       if (status == CallStatus.matched) {
-        final match = CallMatch(
-          callId: callRequestId,
-          partnerId: data['matchedWith'],
-          channelName: data['channelName'],
-          status: status,
-          enableAIFilter: data['enableAIFilter'] ?? false,
-          privacyMode: data['privacyMode'] ?? false,
-        );
-        controller.add(match);
+        currentChannelName = data['channelName'];
+        // パートナー情報を取得
+        _db.collection('users').doc(data['matchedWith']).get().then((partnerDoc) {
+          if (partnerDoc.exists) {
+            final partner = UserModel.fromFirestore(partnerDoc);
+            onMatchFound(partner);
+          }
+        });
       } else if (status == CallStatus.cancelled || status == CallStatus.finished) {
         controller.add(null);
         controller.close();
+      }
+    });
+    
+    // タイムアウト処理
+    Timer(const Duration(seconds: 30), () {
+      if (_currentCallId != null) {
+        onTimeExpired();
       }
     });
     
@@ -340,6 +375,15 @@ class CallMatchingService {
     
     _matchingSubscription?.cancel();
     _currentCallId = null;
+  }
+  
+  // 待機中のユーザー数をリアルタイムで取得
+  Stream<int> getWaitingUsersCount() {
+    return _db
+        .collection('callRequests')
+        .where('status', isEqualTo: CallStatus.waiting.name)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
   }
   
   // リソース解放

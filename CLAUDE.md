@@ -34,15 +34,17 @@ TalkOneの核心機能であるレーティングシステムの仕組み：
 
 ### AI Bot救済機能（懲罰部屋システム）
 - **対象者**: 評価が急激に下がった人、レート偏差値が著しく低い人
-- **AI相手**: 最新のAI（Gemini 2.5 Pro）との3分間会話
-- **音声**: VOICEVOX担当、キャラクターの人格に合わせた応答
+- **AI相手**: 最新のAI（Gemini 2.5 Pro）との3分間音声会話
+- **音声合成**: VOICEVOX四国めたん専用（speaker_uuid: 7ffcb7ce-00ec-4bdc-82cd-45a8889e43ff）
+- **音声認識**: STT (speech_to_text) でユーザー音声をリアルタイム認識
+- **会話ログ**: 全ての会話内容（平文）をFirebase Firestoreに自動保存
 - **学習機能**: AIがユーザーを記憶し、話題の幅が広がる
 
 ## 主要機能
 1. **音声通話・ビデオ通話**: Agoraを使用したリアルタイム通信
 2. **レーティングベースマッチング**: 評価による相手選択システム
 3. **AI Bot マッチング**: 低評価ユーザー向け救済措置
-4. **VOICEVOX統合**: AI音声にキャラクター性を付与（2025年6月実装）
+4. **VOICEVOX統合**: 四国めたんによるリアルタイム音声AI会話（2025年6月実装完了）
 5. **アメニティ機能**: レート上昇による追加機能解放
 6. **ユーザーページ**: プロフィール・通報機能
 
@@ -81,6 +83,8 @@ TalkOne/
 - `lib/services/ai_voice_chat_service_voicevox.dart` - VOICEVOX統合AI音声チャット
 - `lib/services/voicevox_service.dart` - VOICEVOX音声合成サービス
 - `lib/services/personality_system.dart` - AI人格システム
+- `lib/services/conversation_data_service.dart` - 会話ログFirebase保存
+- `lib/services/shikoku_metan_chat_service.dart` - 四国めたん専用リアルタイム音声チャット
 
 ### 設定・デプロイ
 - `cloud_run/voicevox_engine/` - VOICEVOX Engineのクラウドデプロイ設定
@@ -132,7 +136,7 @@ docker run --rm -d --name voicevox-engine -p 127.0.0.1:50021:50021 voicevox/voic
 
 ## アプリ固有の制約・設計思想
 - **匿名性重視**: 相手には個人情報が一切渡らない
-- **ユーザーの会話はすべて文字に**: STT機能により、ユーザーデータはFirebaseに保存され、AIとの会話において品質向上を行う
+- **ユーザーの会話はすべて文字に**: STT機能により、ユーザー音声とAI応答の全文がFirebaseに保存され、AIとの会話において品質向上を行う
 - **3分間制限**: 集中した質の高い会話を促進
 - **評価の強制**: 必ず相手を評価する仕組み
 - **通報機能**: 相手が誹謗中傷を行った場合はユーザーページから通報が可能
@@ -143,6 +147,9 @@ docker run --rm -d --name voicevox-engine -p 127.0.0.1:50021:50021 voicevox/voic
 - **カメラ権限**: `UICameraControlIntents` - StealthCameraCaptureIntent設定
 - **レート計算**: 星1-5で-2〜+3ポイント変動
 - **AI人格**: 5種類の人格とVOICEVOX話者のマッピング
+- **四国めたん専用設定**: speaker_id=2 (ノーマル), UUID=7ffcb7ce-00ec-4bdc-82cd-45a8889e43ff
+- **リアルタイム音声処理**: STT → Gemini → VOICEVOX → 音声再生の低遅延パイプライン
+- **会話ログ構造**: { timestamp, user_text, ai_response, session_id, user_id }
 - **マッチング拡大**: 10秒後±100ポイント、20秒後AI提案
 - **Agora設定**: 本番・テストモード切り替え対応
 
