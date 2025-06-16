@@ -95,6 +95,38 @@ class _VoiceVoxTestScreenState extends State<VoiceVoxTestScreen> {
     await _voiceVoxService.stop();
     setState(() => _isPlaying = false);
   }
+  
+  Future<void> _testRealDeviceAudio() async {
+    setState(() => _isPlaying = true);
+    
+    try {
+      // 四国めたんに切り替えてテスト
+      _voiceVoxService.setSpeaker(2); // 四国めたん ノーマル
+      
+      final success = await _voiceVoxService.testRealDeviceAudio();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success ? '実機音声テスト成功！' : '実機音声テスト失敗'),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+      }
+      
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('テストエラー: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() => _isPlaying = false);
+    }
+  }
 
   void _onSpeakerChanged(VoiceVoxSpeaker? speaker) {
     setState(() {
@@ -288,6 +320,19 @@ class _VoiceVoxTestScreenState extends State<VoiceVoxTestScreen> {
                   child: const Text('停止'),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isEngineAvailable ? _testRealDeviceAudio : null,
+                icon: const Icon(Icons.smartphone),
+                label: const Text('実機音声テスト'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                ),
+              ),
             ),
           ],
         ),

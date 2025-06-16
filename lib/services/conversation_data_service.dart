@@ -6,7 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 /// ユーザーの会話内容をSTTで文字化してFirestoreに保存し、
 /// AI機能の品質向上とデータ分析に活用します。
 class ConversationDataService {
-  static const FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   
   /// 新しい会話セッションを開始
   Future<String> startConversationSession({
@@ -106,6 +106,65 @@ class ConversationDataService {
       print('AI応答保存完了: セッション $sessionId');
     } catch (e) {
       print('AI応答保存エラー: $e');
+      rethrow;
+    }
+  }
+  
+  /// 四国めたん専用：会話ペアを保存
+  Future<void> saveConversation({
+    required String sessionId,
+    required String userId,
+    required String userText,
+    required String aiResponse,
+    required String aiCharacter,
+    Map<String, dynamic>? metadata,
+  }) async {
+    try {
+      final timestamp = DateTime.now();
+      final conversationData = {
+        'session_id': sessionId,
+        'user_id': userId,
+        'timestamp': FieldValue.serverTimestamp(),
+        'user_text': userText,
+        'ai_response': aiResponse,
+        'ai_character': aiCharacter,
+        'conversation_pair_id': '${sessionId}_${timestamp.millisecondsSinceEpoch}',
+        'metadata': metadata ?? {},
+        'created_at': FieldValue.serverTimestamp(),
+      };
+      
+      // 個別の会話ペアとして保存
+      await _firestore
+          .collection('ai_conversations')
+          .add(conversationData);
+      
+      // 既存の音声メッセージ保存も併用
+      await saveVoiceMessage(
+        sessionId: sessionId,
+        speakerId: userId,
+        transcribedText: userText,
+        confidence: 1.0,
+        timestamp: timestamp,
+        metadata: {'source': 'stt_recognition'},
+      );
+      
+      await saveAIResponse(
+        sessionId: sessionId,
+        aiResponse: aiResponse,
+        aiPersonalityId: 'shikoku_metan',
+        voiceCharacter: aiCharacter,
+        aiMetadata: {
+          'voicevox_speaker_id': '2',
+          'voicevox_speaker_uuid': '7ffcb7ce-00ec-4bdc-82cd-45a8889e43ff',
+          'source': 'gemini_ai',
+          ...?metadata,
+        },
+      );
+      
+      print('四国めたん会話ペア保存完了: $sessionId');
+      
+    } catch (e) {
+      print('四国めたん会話保存エラー: $e');
       rethrow;
     }
   }

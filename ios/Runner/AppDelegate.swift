@@ -1,5 +1,7 @@
 import Flutter
 import UIKit
+import FirebaseCore
+import FirebaseFirestore
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -10,6 +12,13 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // Firebase初期化
+    FirebaseApp.configure()
+    
+    // Firebase Cache Index設定
+    let db = Firestore.firestore()
+    db.persistentCacheIndexManager?.enableIndexAutoCreation()
+    
     GeneratedPluginRegistrant.register(with: self)
     
     // Set up Flutter method channel safely

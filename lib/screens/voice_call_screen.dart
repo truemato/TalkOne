@@ -10,17 +10,20 @@ import '../services/gemini_live_voice_service.dart';
 import '../services/audio_stream_service.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import '../models/user_model.dart';
 
 class VoiceCallScreen extends StatefulWidget {
   final String channelName;
-  final String callId;
-  final String partnerId;
+  final String? callId;
+  final String? partnerId;
+  final UserModel? remoteUser;
 
   const VoiceCallScreen({
     super.key,
     required this.channelName,
-    required this.callId,
-    required this.partnerId,
+    this.callId,
+    this.partnerId,
+    this.remoteUser,
   });
 
   @override
@@ -59,6 +62,11 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   @override
   void initState() {
     super.initState();
+    
+    // AI通話かどうかを最初に判定
+    _isAICall = widget.partnerId?.startsWith('ai_practice_') == true || 
+                widget.partnerId?.startsWith('dummy_') == true ||
+                widget.remoteUser?.isAI == true;
     
     // パルスアニメーション設定
     _pulseController = AnimationController(
@@ -183,7 +191,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     }
     
     // AI通話の場合は即座にタイマー開始とAI音声会話初期化
-    if (widget.partnerId.startsWith('ai_practice_') || widget.partnerId.startsWith('dummy_')) {
+    if (widget.partnerId?.startsWith('ai_practice_') == true || widget.partnerId?.startsWith('dummy_') == true) {
       setState(() {
         _isAICall = true;
         _partnerJoined = true;
@@ -198,9 +206,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   
   // AI音声会話の初期化
   Future<void> _initializeAIVoiceChat() async {
+    // メタデータから人格IDを取得
+    final personalityId = widget.remoteUser?.metadata?['personalityId'] ?? 0;
+    print('AI音声会話初期化: personalityId=$personalityId, name=${widget.remoteUser?.displayName}');
+    
     _aiVoiceChatService = AIVoiceChatService(
       speech: _speech,
       tts: _tts,
+      personalityId: personalityId,
     );
 
     // コールバック設定
@@ -331,13 +344,37 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     }
     
     // 通話終了を記録
-    _matchingService.finishCall(widget.callId);
+    if (widget.callId != null) {
+      _matchingService.finishCall(widget.callId!);
+    }
     
     // Agoraから離脱
     _agoraService.leaveChannel();
     
     // 評価画面に直接遷移
     _navigateToEvaluation();
+  }
+  
+  // AI通話専用の終了処理（戻るボタン用）
+  void _endAICall() {
+    if (_callEnded) return;
+    _callEnded = true;
+    
+    print('AI通話終了処理開始（戻るボタン）');
+    _timer?.cancel();
+    
+    // AI音声会話を停止
+    if (_aiVoiceChatService != null) {
+      _aiVoiceChatService!.stopSpeaking();
+      _aiVoiceChatService!.stopListening();
+      _aiVoiceChatService!.dispose();
+    }
+    
+    // Agoraから離脱
+    _agoraService.leaveChannel();
+    
+    // ホーム画面に直接戻る（評価画面をスキップ）
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
   
   void _cancelCall() {
@@ -354,7 +391,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     }
     
     // 通話キャンセルを記録
-    _matchingService.cancelCallRequest(widget.callId);
+    if (widget.callId != null) {
+      _matchingService.cancelCallRequest(widget.callId!);
+    }
     
     // Agoraから離脱
     _agoraService.leaveChannel();
@@ -368,10 +407,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (context) => EvaluationScreen(
-          callId: widget.callId,
-          partnerId: widget.partnerId,
-          isDummyMatch: widget.partnerId.startsWith('dummy_') || 
-                       widget.partnerId.startsWith('ai_practice_'),
+          callId: widget.callId ?? '',
+          partnerId: widget.partnerId ?? '',
+          isDummyMatch: widget.partnerId?.startsWith('dummy_') == true || 
+                       widget.partnerId?.startsWith('ai_practice_') == true,
         ),
       ),
       (route) => false, // 全ての前の画面を削除
@@ -415,7 +454,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         title: Text(_connectionStatus),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => _cancelCall(),
+          onPressed: () {
+            if (_isAICall) {
+              _endAICall();
+            } else {
+              _cancelCall();
+            }
+          },
         ),
       ),
       body: SafeArea(

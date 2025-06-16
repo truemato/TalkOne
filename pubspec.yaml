@@ -15,8 +15,9 @@ dependencies:
   # Firebase & AI
   firebase_core: ^3.13.1
   firebase_ai: ^2.0.0
-  cloud_firestore: ^ 5.6.8
+  cloud_firestore: ^5.6.8
   firebase_auth: ^5.0.0
+  google_generative_ai: ^0.4.6
   
   # 音声機能
   speech_to_text: ^7.0.0
@@ -36,6 +37,9 @@ dependencies:
   
   # HTTP通信
   http: ^1.1.0
+  
+  # ファイルシステム
+  path_provider: ^2.1.1
   
   # ネットワーク接続確認
   connectivity_plus: ^6.0.2
