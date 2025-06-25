@@ -326,7 +326,7 @@ class _HomeScreenState extends State<HomeScreen>
       children: [
         const SizedBox(height: 40),
         _buildTitle(),
-        SizedBox(height: screenHeight * 0.20),
+        SizedBox(height: screenHeight * 0.15),
         Center(
           child: Stack(
             clipBehavior: Clip.none,
