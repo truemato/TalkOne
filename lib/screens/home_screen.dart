@@ -189,6 +189,7 @@ class _HomeScreenState extends State<HomeScreen>
       backgroundColor: theme.backgroundColor,
       body: Stack(
         children: [
+          Positioned.fill(child: Container(color: theme.backgroundColor)),
           SafeArea(child: Center(child: _buildContent(context, theme))),
           // ユーザーID表示（メニューバーの上）
           Positioned(
@@ -655,7 +656,8 @@ class _HomeScreenState extends State<HomeScreen>
   // 設定画面へのスライド遷移
   Route _createSettingsRoute() {
     return PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) => const SettingsScreen(),
+      opaque: true,
+      pageBuilder: (context, animation, secondaryAnimation) => SettingsScreen(initialThemeIndex: _selectedThemeIndex),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         const begin = Offset(1.0, 0.0);
         const end = Offset.zero;
@@ -673,8 +675,9 @@ class _HomeScreenState extends State<HomeScreen>
   // 履歴画面へのスライド遷移
   Route _createHistoryRoute() {
     return PageRouteBuilder(
+      opaque: true,
       pageBuilder: (context, animation, secondaryAnimation) =>
-          const HistoryScreen(),
+          HistoryScreen(initialThemeIndex: _selectedThemeIndex),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         const begin = Offset(-1.0, 0.0);
         const end = Offset.zero;
@@ -692,8 +695,9 @@ class _HomeScreenState extends State<HomeScreen>
   // 通知画面へのスライド遷移
   Route _createNotificationRoute() {
     return PageRouteBuilder(
+      opaque: true,
       pageBuilder: (context, animation, secondaryAnimation) =>
-          const NotificationScreen(),
+          NotificationScreen(initialThemeIndex: _selectedThemeIndex),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         const begin = Offset(0.0, -1.0);
         const end = Offset.zero;

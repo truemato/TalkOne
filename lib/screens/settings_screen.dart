@@ -9,7 +9,9 @@ import '../utils/theme_utils.dart';
 
 // 設定画面本体
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final int initialThemeIndex;
+  const SettingsScreen({Key? key, required this.initialThemeIndex})
+      : super(key: key);
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -17,11 +19,12 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final UserProfileService _userProfileService = UserProfileService();
-  int _selectedThemeIndex = 0;
+  late int _selectedThemeIndex;
 
   @override
   void initState() {
     super.initState();
+    _selectedThemeIndex = widget.initialThemeIndex;
     _loadUserProfile();
   }
 
