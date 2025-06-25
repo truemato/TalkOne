@@ -5,15 +5,15 @@ import '../services/user_profile_service.dart';
 
 // 通知画面（仮）
 class NotificationScreen extends StatefulWidget {
-  const NotificationScreen({super.key});
-
+  final int initialThemeIndex;
+  const NotificationScreen({Key? key,required this.initialThemeIndex,}) : super(key: key);
   @override
   State<NotificationScreen> createState() => _NotificationScreenState();
 }
 
 class _NotificationScreenState extends State<NotificationScreen> {
   final UserProfileService _userProfileService = UserProfileService();
-  int _selectedThemeIndex = 0;
+  late int _selectedThemeIndex;
 
   // テーマカラー配列
   final List<Color> _themeColors = [
@@ -27,6 +27,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedThemeIndex = widget.initialThemeIndex;
     _loadUserTheme();
   }
 
@@ -67,12 +68,22 @@ class _NotificationScreenState extends State<NotificationScreen> {
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
-        body: Platform.isAndroid
-            ? SafeArea(child: _buildContent())
-            : _buildContent(),
+        body: Stack(
+          children: [
+            // 最下層：テーマ色で画面全体を塗りつぶす
+            Positioned.fill(
+              child: Container(color: _currentThemeColor),
+            ),
+            // メインコンテンツ
+            Platform.isAndroid
+                ? SafeArea(child: _buildContent())
+                : _buildContent(),
+          ],
+        ),
       ),
     );
   }
+
 
   Widget _buildContent() {
     return const Column(

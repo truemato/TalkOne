@@ -8,7 +8,8 @@ import '../services/user_profile_service.dart';
 import '../utils/theme_utils.dart';
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key});
+  final int initialThemeIndex;
+  const HistoryScreen({super.key, required this.initialThemeIndex});
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -17,12 +18,13 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   final CallHistoryService _callHistoryService = CallHistoryService();
   final UserProfileService _userProfileService = UserProfileService();
-  
-  int _selectedThemeIndex = 0;
+
+  late int _selectedThemeIndex;
 
   @override
   void initState() {
     super.initState();
+    _selectedThemeIndex = widget.initialThemeIndex;
     _loadUserTheme();
   }
 
@@ -226,9 +228,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: Platform.isAndroid 
-          ? SafeArea(child: _buildContent())
-          : _buildContent(),
+        body: Stack(
+            children: [
+            // ① 最下層：テーマ色で画面全体を塗りつぶす
+                 Positioned.fill(
+                   child: Container(color: _currentThemeColor),
+                 ),
+          // ② メインコンテンツ
+              Platform.isAndroid
+                ? SafeArea(child: _buildContent())
+                : _buildContent(),
+        ],
+      ),
     );
   }
 

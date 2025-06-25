@@ -6,6 +6,8 @@ import '../services/user_profile_service.dart';
 import 'profile_setting_screen.dart';
 import 'credit_screen.dart';
 import '../utils/theme_utils.dart';
+import '../screens/profile_screen.dart';
+
 
 // 設定画面本体
 class SettingsScreen extends StatefulWidget {
@@ -122,14 +124,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () {
                   Navigator.of(context).push(
                     PageRouteBuilder(
+                      opaque: true,
                       pageBuilder: (context, animation, secondaryAnimation) =>
-                          const ProfileSettingScreen(),
+                      // ProfileScreen ではなく ProfileSettingScreen へ遷移し、
+                      // テーマインデックスを渡す
+                      ProfileSettingScreen(
+                        initialThemeIndex: _selectedThemeIndex,  // ← 追加
+                      ),
                       transitionsBuilder: (context, animation, secondaryAnimation, child) {
                         const begin = Offset(1.0, 0.0);
                         const end = Offset.zero;
                         const curve = Curves.ease;
-                        final tween = Tween(begin: begin, end: end)
-                            .chain(CurveTween(curve: curve));
+                        final tween =
+                        Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
                         return SlideTransition(
                           position: animation.drive(tween),
                           child: child,
@@ -147,8 +154,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () {
                   Navigator.of(context).push(
                     PageRouteBuilder(
+                      opaque: true,
                       pageBuilder: (context, animation, secondaryAnimation) =>
-                          const CreditScreen(),
+                          CreditScreen(initialThemeIndex: _selectedThemeIndex),
                       transitionsBuilder: (context, animation, secondaryAnimation, child) {
                         const begin = Offset(1.0, 0.0);
                         const end = Offset.zero;
