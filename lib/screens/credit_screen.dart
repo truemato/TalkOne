@@ -5,7 +5,8 @@ import '../services/user_profile_service.dart';
 
 // クレジット表記画面
 class CreditScreen extends StatefulWidget {
-  const CreditScreen({super.key});
+  final int initialThemeIndex;
+  const CreditScreen({ Key? key, required this.initialThemeIndex,}) : super(key: key);
 
   @override
   State<CreditScreen> createState() => _CreditScreenState();
@@ -13,7 +14,7 @@ class CreditScreen extends StatefulWidget {
 
 class _CreditScreenState extends State<CreditScreen> {
   final UserProfileService _userProfileService = UserProfileService();
-  int _selectedThemeIndex = 0;
+  late int _selectedThemeIndex;
 
   // テーマカラー配列
   final List<Color> _themeColors = [
@@ -27,6 +28,7 @@ class _CreditScreenState extends State<CreditScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedThemeIndex = widget.initialThemeIndex;
     _loadUserTheme();
   }
 
@@ -45,19 +47,28 @@ class _CreditScreenState extends State<CreditScreen> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onHorizontalDragEnd: (details) {
-        // 左から右へのスワイプ（正の速度）でホーム画面に戻る
         if (details.primaryVelocity! > 0) {
           Navigator.pop(context);
         }
       },
       child: Scaffold(
         backgroundColor: _currentThemeColor,
-        body: Platform.isAndroid
-            ? SafeArea(child: _buildContent())
-            : _buildContent(),
+        body: Stack(
+          children: [
+            // 背景にテーマカラーを敷く
+            Positioned.fill(
+              child: Container(color: _currentThemeColor),
+            ),
+            // メインコンテンツ
+            Platform.isAndroid
+                ? SafeArea(child: _buildContent())
+                : _buildContent(),
+          ],
+        ),
       ),
     );
   }
+
 
   Widget _buildContent() {
     return Column(

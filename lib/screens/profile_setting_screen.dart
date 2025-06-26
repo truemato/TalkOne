@@ -5,7 +5,11 @@ import '../services/user_profile_service.dart';
 
 // プロフィール設定画面（iOS風のUI）
 class ProfileSettingScreen extends StatefulWidget {
-  const ProfileSettingScreen({super.key});
+  final int initialThemeIndex;
+  const ProfileSettingScreen({
+    Key? key,
+    required this.initialThemeIndex,  // ← 追加
+  }) : super(key: key);
 
   @override
   State<ProfileSettingScreen> createState() => _ProfileSettingScreenState();
@@ -19,7 +23,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
   
   String? _selectedGender;
   DateTime? _selectedDate;
-  int _selectedThemeIndex = 0;
+  late int _selectedThemeIndex;
   bool _isLoading = false;
   
   final List<String> _genders = ['男性', '女性', '回答しない'];
@@ -36,6 +40,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedThemeIndex = widget.initialThemeIndex;
     _loadUserProfile();
   }
 

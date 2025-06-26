@@ -4,7 +4,8 @@ import 'dart:io' show Platform;
 import '../services/user_profile_service.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final int initialThemeIndex;
+  const ProfileScreen({Key? key,required this.initialThemeIndex,}) : super(key: key);
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -16,7 +17,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // フォームのコントローラー
   final TextEditingController _nicknameController = TextEditingController();
   final TextEditingController _aiMemoryController = TextEditingController();
-  
   // 選択項目
   String? _selectedGender;
   DateTime? _selectedBirthday;
@@ -29,13 +29,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     const Color(0xFFFF9800), // オレンジ
     const Color(0xFF9C27B0), // 紫
   ];
-  int _selectedThemeIndex = 0;
+  late int _selectedThemeIndex;
   
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
+    _selectedThemeIndex = widget.initialThemeIndex;
     _loadUserProfile();
   }
 
@@ -119,9 +120,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _currentThemeColor,
-      body: Platform.isAndroid 
-          ? SafeArea(child: _buildContent())
-          : _buildContent(),
+      body: Stack(
+        children: [
+          // 最下層：テーマ色で全画面を塗りつぶし
+          Positioned.fill(
+            child: Container(color: _currentThemeColor),
+          ),
+          // メインコンテンツ
+          Platform.isAndroid
+              ? SafeArea(child: _buildContent())
+              : _buildContent(),
+        ],
+      ),
     );
   }
 
