@@ -1,0 +1,79 @@
+name: TalkOne
+description: 1対1でキューを入れてマッチングできる、トークアプリ。会話後に相手を評価できる。AIとマッチングすることもある。
+
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 0.6.0+6
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase & AI
+  firebase_core: ^3.13.1
+  firebase_ai: ^2.1.0
+  cloud_firestore: ^5.6.8
+  firebase_auth: ^5.0.0
+  google_sign_in: ^6.2.1
+  sign_in_with_apple: ^5.0.0
+  
+  # UI & Design
+  google_fonts: ^6.1.0
+  lottie: ^3.1.0
+  flutter_svg: ^2.0.7
+  
+  # 状態管理・ユーティリティ
+  provider: ^6.1.1
+  shared_preferences: ^2.2.2
+  path_provider: ^2.1.1
+  intl: ^0.19.0
+  
+  # 音声機能
+  speech_to_text: ^7.0.0
+  flutter_tts: ^4.2.2
+  audioplayers: ^6.4.0  # VOICEVOX音声再生用
+  
+  # リアルタイム通信
+  web_socket_channel: ^3.0.1
+  
+  # 音声処理
+  flutter_sound: ^9.2.13
+  record: ^5.0.5
+  
+  # P2P通話機能
+  agora_rtc_engine: ^6.3.2
+  permission_handler: ^11.3.1
+  
+  # HTTP通信
+  http: ^1.1.0
+  
+  # ネットワーク接続確認
+  connectivity_plus: ^6.0.2
+  
+  # 環境変数管理
+  flutter_dotenv: ^5.1.0
+  
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.14.3   # ← 追加（最新版を推奨）
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
+    - aseets/
+    - aseets/animations/
+    - aseets/icons/
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: assets/icon/app_icon.png   # さっき置いた画像
+  min_sdk_android: 24                   # 21 以上なら OK
+  # iOS App Store requires no transparency in 1024x1024 icon
+  remove_alpha_ios: true

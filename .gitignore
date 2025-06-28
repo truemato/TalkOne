@@ -1,0 +1,120 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+# ===== プライベート情報・機密ファイル =====
+
+# プロジェクト内部ドキュメント
+CLAUDE.md
+README.md
+
+# Firebase設定ファイル（API キー、プロジェクトID等含む）
+lib/firebase_options.dart
+/lib/firebase_options.dart
+**/firebase_options.dart
+android/app/google-services.json
+/android/app/google-services.json
+**/google-services.json
+ios/Runner/GoogleService-Info.plist
+/ios/Runner/GoogleService-Info.plist
+**/GoogleService-Info.plist
+
+# 環境変数・設定ファイル
+.env
+.env.*
+*.env
+!.env.template
+config.dart
+config.json
+
+# Apple Developer関連
+ios/Runner/Info.plist.backup
+ios/Runner/*.entitlements
+*.mobileprovision
+*.p12
+ios/Pods/
+ios/build/
+ios/Runner.xcworkspace/xcuserdata/
+ios/Runner.xcodeproj/xcuserdata/
+ios/Runner.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Android証明書・キー
+android/key.properties
+*.keystore
+*.jks
+android/app/debug/
+android/app/profile/
+android/app/release/
+android/build/
+
+# ビルド成果物
+/build/
+/ios/build/
+/android/build/
+
+# ログファイル
+*.log
+logs/
+
+# 一時ファイル・キャッシュ
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# IDE設定
+.vscode/
+.idea/
+*.iml
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# 各種キャッシュ
+.pub-cache/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
