@@ -8,8 +8,8 @@ class ConversationMemory {
   final GenerativeModel _summarizerModel;
   
   ConversationMemory() : 
-    _summarizerModel = FirebaseAI.googleAI().generativeModel(
-      model: 'gemini-1.5-flash',
+    _summarizerModel = FirebaseAI.vertexAI().generativeModel(
+      model: 'gemini-2.0-flash-lite',
       systemInstruction: Content.text('あなたはJSON形式のみで応答するアシスタントです。説明や挨拶は不要です。')
     );
   

@@ -7,7 +7,6 @@ import 'dart:io' show Platform;
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    // Androidでのテスト用設定
     scopes: ['email', 'profile'],
   );
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -24,14 +23,6 @@ class AuthService {
       print('=== Google Sign In Debug Start ===');
       print('Google Sign In開始');
       print('GoogleSignIn設定: ${_googleSignIn.toString()}');
-      
-      // Google Play Services の可用性を確認
-      try {
-        final isAvailable = await _googleSignIn.isSignedIn();
-        print('Google Sign In Service 状態: $isAvailable');
-      } catch (e) {
-        print('Google Sign In Service 確認エラー: $e');
-      }
       
       // Google認証フローを開始
       print('Google認証フロー開始...');
@@ -88,58 +79,108 @@ class AuthService {
   Future<UserCredential?> signInWithApple() async {
     try {
       print('=== Apple Sign In Debug Start ===');
-      print('Apple Sign In開始');
+      print('Platform: ${Platform.operatingSystem}');
+      print('Platform version: ${Platform.operatingSystemVersion}');
       
       // Apple認証が利用可能かチェック
-      if (!Platform.isIOS) {
-        print('❌ Apple Sign InはiOSでのみ利用可能です');
-        return null;
+      if (!Platform.isIOS && !Platform.isAndroid) {
+        print('❌ Apple Sign InはiOSとAndroidでのみ利用可能です');
+        throw Exception('Apple Sign InはiOSとAndroidでのみ利用可能です');
       }
       
+      print('🔍 Apple Sign In可用性チェック中...');
       final isAvailable = await SignInWithApple.isAvailable();
+      print('Apple Sign In可用性: $isAvailable');
+      
       if (!isAvailable) {
         print('❌ Apple Sign Inが利用できません');
-        return null;
+        if (Platform.isAndroid) {
+          print('Android用Apple Sign In要件:');
+          print('1. Android 6.0 (API 23) 以上');
+          print('2. Google Play Services');
+          print('3. 適切なManifest設定');
+          print('4. Apple Developer設定');
+        }
+        throw Exception('Apple Sign Inが利用できません');
       }
       
       // Apple認証フローを開始
-      print('Apple認証フロー開始...');
+      print('🍎 Apple認証フロー開始...');
+      print('要求スコープ: email, fullName');
+      
       final appleCredential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
           AppleIDAuthorizationScopes.fullName,
         ],
+        webAuthenticationOptions: Platform.isAndroid ? WebAuthenticationOptions(
+          clientId: 'com.truemato.TalkOne.signinwithapple',
+          redirectUri: Uri.parse('https://myproject-c8034.firebaseapp.com/__/auth/handler'),
+        ) : null,
       );
       
-      print('✅ Apple認証成功: ${appleCredential.email ?? 'メールアドレス未取得'}');
+      print('✅ Apple認証レスポンス受信');
       print('ユーザーID: ${appleCredential.userIdentifier}');
-      print('表示名: ${appleCredential.givenName} ${appleCredential.familyName}');
+      print('Email: ${appleCredential.email ?? 'メールアドレス未取得'}');
+      print('名前: ${appleCredential.givenName} ${appleCredential.familyName}');
+      print('Identity Token有無: ${appleCredential.identityToken != null}');
+      print('Authorization Code有無: ${appleCredential.authorizationCode != null}');
+      
+      // トークンの詳細確認
+      if (appleCredential.identityToken?.isEmpty ?? true) {
+        print('❌ Identity Tokenが取得できませんでした');
+        throw Exception('Apple認証でIdentity Tokenが取得できませんでした');
+      }
+      
+      if (appleCredential.authorizationCode?.isEmpty ?? true) {
+        print('❌ Authorization Codeが取得できませんでした');
+        throw Exception('Apple認証でAuthorization Codeが取得できませんでした');
+      }
       
       // Firebase認証用のクレデンシャルを作成
+      print('🔑 Firebase認証用クレデンシャル作成中...');
       final oauthCredential = OAuthProvider("apple.com").credential(
         idToken: appleCredential.identityToken,
         accessToken: appleCredential.authorizationCode,
       );
       
+      print('Firebase認証試行中...');
       // Firebaseにサインイン
       final UserCredential userCredential = await _auth.signInWithCredential(oauthCredential);
+      
+      print('Firebase認証成功! UID: ${userCredential.user?.uid}');
+      print('Email: ${userCredential.user?.email}');
+      print('Display Name: ${userCredential.user?.displayName}');
+      print('Provider Data: ${userCredential.user?.providerData.map((p) => p.providerId).toList()}');
       
       // 既存プロフィールの確認（上書きを絶対に防ぐ）
       await _ensureUserProfileExists(userCredential.user!);
       
-      print('✅ Firebase認証成功: ${userCredential.user?.uid}');
+      print('✅ Apple Sign In完全成功: ${userCredential.user?.uid}');
       print('=== Apple Sign In Debug End ===');
       return userCredential;
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ Apple Sign Inエラー: $e');
       print('エラータイプ: ${e.runtimeType}');
+      print('スタックトレース: $stackTrace');
+      
+      // 詳細なエラー分析
       if (e.toString().contains('SignInWithAppleAuthorizationError')) {
         print('👤 AUTHORIZATION_ERROR: ユーザーがサインインをキャンセルしました');
       } else if (e.toString().contains('NotSupported')) {
         print('⚠️ NOT_SUPPORTED: Apple Sign Inがサポートされていません');
+      } else if (e.toString().contains('InvalidCredential')) {
+        print('🔑 INVALID_CREDENTIAL: 認証情報が無効です');
+      } else if (e.toString().contains('NetworkError')) {
+        print('🌐 NETWORK_ERROR: ネットワーク接続の問題です');
+      } else if (e.toString().contains('UserNotFound')) {
+        print('👤 USER_NOT_FOUND: ユーザーが見つかりません');
+      } else {
+        print('❓ 未知のエラー: $e');
       }
+      
       print('=== Apple Sign In Debug End ===');
-      return null;
+      rethrow; // エラーを再度投げて詳細情報をUIに表示
     }
   }
 
@@ -160,7 +201,7 @@ class AuthService {
     }
   }
 
-  // 匿名アカウントをGoogleアカウントにリンク
+  // 匿名アカウントをGoogleアカウントにリンク（データ保持）
   Future<UserCredential?> linkAnonymousWithGoogle() async {
     try {
       if (currentUser == null || !currentUser!.isAnonymous) {
@@ -168,7 +209,13 @@ class AuthService {
         return null;
       }
 
-      print('匿名アカウントをGoogleアカウントにリンク開始');
+      print('=== 匿名アカウントからGoogleアカウントへの移行開始 ===');
+      final String anonymousUid = currentUser!.uid;
+      print('匿名UID: $anonymousUid');
+      
+      // 匿名ユーザーのデータをバックアップ
+      print('📦 匿名ユーザーデータのバックアップ中...');
+      final guestData = await _backupAnonymousUserData(anonymousUid);
 
       // Google認証フローを開始
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -190,18 +237,144 @@ class AuthService {
       // 匿名アカウントにGoogleアカウントをリンク
       final UserCredential userCredential = await currentUser!.linkWithCredential(credential);
       
-      print('アカウントリンク成功: ${userCredential.user?.uid}');
+      print('✅ アカウントリンク成功: ${userCredential.user?.uid}');
+      
+      // データが保持されているか確認（UIDは変わらないはず）
+      if (guestData != null) {
+        print('✅ ゲストデータが保持されました');
+        await _markDataAsMigrated(userCredential.user!.uid);
+      }
+      
       return userCredential;
     } catch (e) {
-      print('アカウントリンクエラー: $e');
+      print('❌ アカウントリンクエラー: $e');
       
       // 既に同じメールアドレスでアカウントが存在する場合の処理
       if (e is FirebaseAuthException && e.code == 'credential-already-in-use') {
-        print('既存のGoogleアカウントに移行します');
-        return await signInWithGoogle();
+        print('🔄 既存のGoogleアカウントに移行します');
+        
+        // 現在の匿名データをバックアップ
+        final anonymousUid = currentUser?.uid;
+        Map<String, dynamic>? guestData;
+        if (anonymousUid != null) {
+          guestData = await _backupAnonymousUserData(anonymousUid);
+        }
+        
+        // 既存アカウントでサインイン
+        final existingUserCredential = await signInWithGoogle();
+        
+        // ゲストデータがあれば、既存ユーザーデータと統合
+        if (existingUserCredential != null && guestData != null) {
+          await _mergeGuestDataToExistingUser(existingUserCredential.user!.uid, guestData);
+        }
+        
+        return existingUserCredential;
       }
       
       return null;
+    }
+  }
+  
+  // 匿名ユーザーデータのバックアップ
+  Future<Map<String, dynamic>?> _backupAnonymousUserData(String anonymousUid) async {
+    try {
+      print('📋 匿名ユーザーデータ読み取り: $anonymousUid');
+      
+      // プロフィールデータ取得
+      final profileDoc = await _firestore.collection('userProfiles').doc(anonymousUid).get();
+      final ratingDoc = await _firestore.collection('userRatings').doc(anonymousUid).get();
+      
+      if (!profileDoc.exists) {
+        print('ℹ️ 匿名ユーザーのプロフィールデータが見つかりません');
+        return null;
+      }
+      
+      final profileData = profileDoc.data() as Map<String, dynamic>;
+      final ratingData = ratingDoc.exists ? ratingDoc.data() as Map<String, dynamic> : null;
+      
+      print('✅ バックアップ完了 - プロフィール: ${profileData.keys}, レーティング: ${ratingData?.keys}');
+      
+      return {
+        'profile': profileData,
+        'rating': ratingData,
+        'originalUid': anonymousUid,
+      };
+    } catch (e) {
+      print('❌ 匿名ユーザーデータバックアップエラー: $e');
+      return null;
+    }
+  }
+  
+  // データ移行完了フラグの設定
+  Future<void> _markDataAsMigrated(String uid) async {
+    try {
+      await _firestore.collection('userProfiles').doc(uid).update({
+        'migratedFromGuest': true,
+        'migrationTimestamp': FieldValue.serverTimestamp(),
+      });
+      print('✅ データ移行フラグ設定完了');
+    } catch (e) {
+      print('❌ 移行フラグ設定エラー: $e');
+    }
+  }
+  
+  // ゲストデータを既存ユーザーにマージ
+  Future<void> _mergeGuestDataToExistingUser(String existingUid, Map<String, dynamic> guestData) async {
+    try {
+      print('🔀 ゲストデータを既存ユーザーにマージ開始: $existingUid');
+      
+      final guestProfile = guestData['profile'] as Map<String, dynamic>?;
+      final guestRating = guestData['rating'] as Map<String, dynamic>?;
+      
+      if (guestProfile == null) return;
+      
+      // 既存ユーザーデータを確認
+      final existingProfileDoc = await _firestore.collection('userProfiles').doc(existingUid).get();
+      final existingRatingDoc = await _firestore.collection('userRatings').doc(existingUid).get();
+      
+      // 設定可能なデータのみマージ（重要なデータは既存を優先）
+      Map<String, dynamic> mergeData = {};
+      
+      // AIメモリがあれば統合
+      if (guestProfile['aiMemory'] != null && guestProfile['aiMemory'].toString().isNotEmpty) {
+        mergeData['aiMemory'] = guestProfile['aiMemory'];
+      }
+      
+      // テーマ設定があれば適用
+      if (guestProfile['themeIndex'] != null) {
+        mergeData['themeIndex'] = guestProfile['themeIndex'];
+      }
+      
+      // アイコン設定があれば適用
+      if (guestProfile['iconPath'] != null && guestProfile['iconPath'] != 'aseets/icons/Woman 1.svg') {
+        mergeData['iconPath'] = guestProfile['iconPath'];
+      }
+      
+      if (mergeData.isNotEmpty) {
+        mergeData['lastMergedFromGuest'] = FieldValue.serverTimestamp();
+        await _firestore.collection('userProfiles').doc(existingUid).update(mergeData);
+        print('✅ プロフィールデータマージ完了: ${mergeData.keys}');
+      }
+      
+      // レーティングデータの統合（より高い方を採用）
+      if (guestRating != null && existingRatingDoc.exists) {
+        final existingRatingData = existingRatingDoc.data() as Map<String, dynamic>;
+        final guestRatingValue = guestRating['rating'] as int? ?? 1000;
+        final existingRatingValue = existingRatingData['rating'] as int? ?? 1000;
+        
+        if (guestRatingValue > existingRatingValue) {
+          await _firestore.collection('userRatings').doc(existingUid).update({
+            'rating': guestRatingValue,
+            'mergedFromGuest': FieldValue.serverTimestamp(),
+          });
+          print('✅ より高いゲストレーティングを適用: $guestRatingValue');
+        }
+      }
+      
+      print('✅ ゲストデータマージ完了');
+      
+    } catch (e) {
+      print('❌ ゲストデータマージエラー: $e');
     }
   }
 
@@ -220,54 +393,102 @@ class AuthService {
     }
   }
 
-  // 既存プロフィールの確認（絶対に上書きしない）
+  // データベースのユーザーデータ確認と適切な移行処理
   Future<void> _ensureUserProfileExists(User user) async {
     try {
+      print('=== ユーザーデータ確認・移行処理開始 ===');
+      print('ユーザーUID: ${user.uid}');
+      print('匿名ユーザー: ${user.isAnonymous}');
+      
       final userDoc = _firestore.collection('userProfiles').doc(user.uid);
       final docSnapshot = await userDoc.get();
       
-      if (!docSnapshot.exists) {
-        // 新規ユーザーのみ、空のプロフィールで初期化
-        print('新規ユーザー検出: ${user.uid}');
-        
-        await userDoc.set({
-          'nickname': null,
-          'email': null, // メールアドレスも保存しない
-          'iconPath': 'aseets/icons/Woman 1.svg',
-          'gender': null,
-          'birthday': null,
-          'comment': null,
-          'aiMemory': null,
-          'themeIndex': 0,
-          'createdAt': FieldValue.serverTimestamp(),
-          'lastUpdated': FieldValue.serverTimestamp(),
-          'isAnonymous': user.isAnonymous,
-        });
-
-        // レーティング初期化（新規ユーザーのみ）
-        final ratingDoc = _firestore.collection('userRatings').doc(user.uid);
-        final ratingSnapshot = await ratingDoc.get();
-        
-        if (!ratingSnapshot.exists) {
-          await ratingDoc.set({
-            'rating': 1000, // 初期レーティング
-            'totalGames': 0,
-            'winStreak': 0,
-            'maxWinStreak': 0,
-            'lastGameAt': null,
-            'createdAt': FieldValue.serverTimestamp(),
-          });
-        }
-
-        print('新規ユーザープロフィール初期化完了: ${user.uid}');
-      } else {
-        // 既存ユーザーの場合は何もしない（絶対に上書きしない）
-        print('既存ユーザー検出: ${user.uid} - プロフィール保持');
+      if (docSnapshot.exists) {
+        // 既存ユーザーデータが存在する場合
+        print('✅ 既存ユーザーデータが見つかりました: ${user.uid}');
         final existingData = docSnapshot.data() as Map<String, dynamic>;
         print('既存ニックネーム: ${existingData['nickname'] ?? '未設定'}');
+        print('既存レーティング確認中...');
+        
+        // レーティングデータも確認
+        final ratingDoc = _firestore.collection('userRatings').doc(user.uid);
+        final ratingSnapshot = await ratingDoc.get();
+        if (ratingSnapshot.exists) {
+          final ratingData = ratingSnapshot.data() as Map<String, dynamic>;
+          print('既存レーティング: ${ratingData['rating'] ?? 1000}');
+        }
+        
+        print('既存データを使用します');
+        return;
       }
+      
+      // 新規ユーザーの場合：ゲストデータがあれば移行、なければ新規作成
+      print('🆕 新規ユーザーです。ゲストデータの確認を行います...');
+      
+      // 現在のデバイスの匿名ユーザーからデータを移行する機能
+      await _migrateFromGuestIfNeeded(user);
+      
     } catch (e) {
-      print('プロフィール確認エラー: $e');
+      print('❌ ユーザーデータ確認エラー: $e');
+    }
+  }
+  
+  // ゲストユーザーからのデータ移行処理
+  Future<void> _migrateFromGuestIfNeeded(User newUser) async {
+    try {
+      print('📦 ゲストデータ移行処理開始');
+      
+      // 現在ローカルに保存されている可能性のあるデータを確認
+      // まずは新規プロフィールを作成してから、後でローカルデータで上書きする戦略
+      
+      await _createNewUserProfile(newUser);
+      
+      print('✅ 新規ユーザープロフィール作成完了');
+      print('💡 ヒント: ローカルデータがある場合は、設定画面から手動で移行してください');
+      
+    } catch (e) {
+      print('❌ ゲストデータ移行エラー: $e');
+    }
+  }
+  
+  // 新規ユーザープロフィール作成
+  Future<void> _createNewUserProfile(User user) async {
+    try {
+      print('🎯 新規プロフィール作成: ${user.uid}');
+      
+      // プロフィール作成
+      final userDoc = _firestore.collection('userProfiles').doc(user.uid);
+      await userDoc.set({
+        'nickname': null,
+        'email': null,
+        'iconPath': 'aseets/icons/Woman 1.svg',
+        'gender': null,
+        'birthday': null,
+        'comment': null,
+        'aiMemory': null,
+        'themeIndex': 0,
+        'createdAt': FieldValue.serverTimestamp(),
+        'lastUpdated': FieldValue.serverTimestamp(),
+        'isAnonymous': user.isAnonymous,
+        'migratedFromGuest': false, // 移行フラグ
+      });
+
+      // レーティング初期化
+      final ratingDoc = _firestore.collection('userRatings').doc(user.uid);
+      await ratingDoc.set({
+        'rating': 1000, // 初期レーティング
+        'totalGames': 0,
+        'winStreak': 0,
+        'maxWinStreak': 0,
+        'lastGameAt': null,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      
+      print('✅ 新規プロフィール・レーティング作成完了');
+      
+    } catch (e) {
+      print('❌ 新規プロフィール作成エラー: $e');
+      rethrow;
     }
   }
 

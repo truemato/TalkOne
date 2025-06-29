@@ -87,7 +87,9 @@ android/app/debug/
 android/app/profile/
 android/app/release/
 android/build/
-
+/android/myproject-c8034-cda63f6bcdf9.json
+/ios/Runner/GoogleService-Info.plist
+/android/app/google-services.json
 # ビルド成果物
 /build/
 /ios/build/
@@ -118,3 +120,6 @@ Thumbs.db
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
+
+# 不適切語句フィルターデータ（機密情報）
+/lib/utils/profanity_filter_data.dart

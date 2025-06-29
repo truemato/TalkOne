@@ -77,17 +77,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 
-                // バージョン情報
-                Text(
-                  'Ver 0.6',
-                  style: GoogleFonts.notoSans(
-                    color: Colors.white.withOpacity(0.7),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w300,
-                    letterSpacing: 1,
-                  ),
-                ),
-                const SizedBox(height: 16),
                 
                 // キャッチフレーズ
                 Text(
@@ -113,11 +102,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 _buildGoogleSignInButton(),
                 const SizedBox(height: 16),
                 
-                // Apple IDサインインボタン（iOSのみ）
-                if (Platform.isIOS) ...[
-                  _buildAppleSignInButton(),
-                  const SizedBox(height: 16),
-                ],
+                // Apple IDサインインボタン（iOS、Android両方で表示）
+                _buildAppleSignInButton(),
+                const SizedBox(height: 16),
                 
                 // ゲストでプレイボタン
                 _buildAnonymousSignInButton(),
@@ -125,9 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 
                 // 説明テキスト
                 Text(
-                  Platform.isIOS 
-                    ? 'GoogleまたはApple IDでサインインすると、\n機種変更時もAIとの会話履歴が\n引き継がれます'
-                    : 'Googleアカウントでサインインすると、\n機種変更時もAIとの会話履歴が\n引き継がれます',
+                  'GoogleまたはApple IDでサインインすると、\n機種変更時もAIとの会話履歴が\n引き継がれます',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.notoSans(
                     color: Colors.white.withOpacity(0.7),

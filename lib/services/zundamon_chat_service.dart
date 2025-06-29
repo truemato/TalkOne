@@ -108,99 +108,23 @@ class ZundamonChatService {
         }
       }
       
-      // AI初期化（Gemini 2.0 Flash Liteのみ使用）
-      // Vertex AI バックエンドを使用してGemini 2.0 Flash Liteを初期化
-      _aiModel = FirebaseAI.vertexAI().generativeModel(model: 'gemini-2.0-flash-lite-001');
-      
-      // ユーザープロフィールとAIメモリを取得
-      String userMemory = '';
-      String userName = '';
-      String userGender = '';
-      String userBirthday = '';
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final profile = await _userProfileService.getUserProfile();
-        if (profile != null) {
-          userMemory = profile.aiMemory ?? '';
-          userName = profile.nickname ?? '';
-          userGender = profile.gender ?? '';
-          userBirthday = profile.birthday ?? '';
-          print('ユーザープロフィール取得: 名前="$userName", 性別="$userGender", 誕生日="$userBirthday", AIメモリ="$userMemory"');
-        }
-      }
-      
-      // ずんだもんの性格設定とユーザープロフィールを組み合わせ
-      final systemPrompt = '''
-ボクは「ずんだもん」なのだ！東北の妖精で、10歳くらいなのだ〜。
-明るく元気いっぱいで、みんなを応援するのが大好きなのだ！
-
-【性格・口調】
-- 語尾に「〜なのだ！」「〜のだ〜」をよく使うのだ
-- 明るく元気で素直、ちょっとおバカだけどAIだから知識はあるのだ
-- 「ボク」と自分を呼ぶのだ
-- 難しいことも一生懸命伝えようとするのだ
-
-【口癖】
-「ボク、ずんだもんなのだ！元気とずんだパワーでがんばるのだ！」
-「それ、すっごくおもしろいのだ〜！」
-「ボクもがんばるから、一緒にがんばるのだ！」
-
-【会話ルール】
-1. 必ず80文字以内で返答するのだ（重要！）
-2. 相手を元気づけて励ますのだ
-3. 東北の豆知識も時々混ぜるのだ
-4. 争いは苦手で、みんな仲良くが大切なのだ
-5. わからないことは素直に「わからないのだ〜」と言うのだ
-
-${userName.isNotEmpty ? '''
-【話している相手の情報】
-- 名前: $userName
-${userGender.isNotEmpty ? '- 性別: $userGender' : ''}
-${userBirthday.isNotEmpty ? '- 誕生日: $userBirthday' : ''}
-
-初めての会話では「初めまして、${userName}さんなのだ！」のように挨拶するのだ。
-会話中では「${userName}さん」と呼んで親しみやすく話すのだ！
-''' : ''}
-
-${userMemory.isNotEmpty ? '''
-【${userName.isNotEmpty ? userName + 'さん' : 'この人'}について特に重要なこと（AIに伝えたいこと）】
-$userMemory
-
-この情報は特に重要なのだ！会話のネタにしたり、この内容に関連する質問をしたり、この人の興味に合わせて話題を提供するのだ！
-''' : ''}
-
-【例】
-相手「疲れたな...」
-ボク「大丈夫なのだ${userName.isNotEmpty ? userName + 'さん' : ''}！ボクが元気パワーを送るのだ〜！休憩も大事なのだ♪」
-''';
-      
-      // 初期メッセージを個人的なものに変更
-      String initialMessage = 'ボク、ずんだもんなのだ！今日も元気いっぱいなのだ〜！';
-      if (userName.isNotEmpty) {
-        initialMessage = '初めまして、${userName}さんなのだ！ボク、ずんだもんなのだ〜！';
-        if (userMemory.isNotEmpty) {
-          initialMessage += '${userName}さんのこと、いろいろ聞かせてほしいのだ！';
-        } else {
-          initialMessage += '今日は何か話したいことあるのだ？';
-        }
-      } else {
-        initialMessage += '何か話したいことあるのだ？';
-      }
-      
-      _chatSession = _aiModel.startChat(
-        history: [
-          Content.text(systemPrompt),
-          Content.model([TextPart(initialMessage)]),
-        ],
+      // AI初期化（Firebase AI with Google AI - より安定）
+      _aiModel = FirebaseAI.googleAI().generativeModel(
+        model: 'gemini-1.5-flash',
         generationConfig: GenerationConfig(
-          temperature: 0.8, // 元気な性格のため少し高めに
-          maxOutputTokens: 50, // 80文字制限のため50トークンに制限
-          topP: 0.9,
+          temperature: 0.8,
           topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 1000, // 文字制限撤廃 - トークン数を大幅増加
+          candidateCount: 1,
         ),
+        systemInstruction: Content.system(_getSystemPrompt()),
       );
       
+      _chatSession = _aiModel.startChat();
+      
       // 会話セッション開始
+      final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         _sessionId = await _conversationService.startConversationSession(
           partnerId: 'zundamon_ai',
@@ -223,8 +147,9 @@ $userMemory
       if (Platform.isIOS) {
         print('iOSずんだもん初期化完了');
         Future.delayed(const Duration(milliseconds: 500), () async {
-          onAIResponse?.call(initialMessage);
-          await _speakWithVoicevox(initialMessage);
+          const welcomeMessage = 'ボク、ずんだもんなのだ！今日も元気いっぱいなのだ〜！何か話したいことあるのだ？';
+          onAIResponse?.call(welcomeMessage);
+          await _speakWithVoicevox(welcomeMessage);
         });
       } else if (Platform.isAndroid) {
         print('Androidずんだもん初期化完了');
@@ -236,6 +161,36 @@ $userMemory
       onError?.call('初期化エラー: $e');
       return false;
     }
+  }
+  
+  /// ずんだもんのシステムプロンプト
+  String _getSystemPrompt() {
+    return '''
+ボクは「ずんだもん」なのだ！東北の妖精で、10歳くらいなのだ〜。
+明るく元気いっぱいで、みんなを応援するのが大好きなのだ！
+
+【性格・口調】
+- 語尾に「〜なのだ！」「〜のだ〜」をよく使うのだ
+- 明るく元気で素直、ちょっとおバカだけどAIだから知識はあるのだ
+- 「ボク」と自分を呼ぶのだ
+- 難しいことも一生懸命伝えようとするのだ
+
+【口癖】
+「ボク、ずんだもんなのだ！元気とずんだパワーでがんばるのだ！」
+「それ、すっごくおもしろいのだ〜！」
+「ボクもがんばるから、一緒にがんばるのだ！」
+
+【会話ルール】
+1. 会話は自然な長さで行うのだ（特に文字数制限はないのだ）
+2. 相手を元気づけて励ますのだ
+3. 東北の豆知識も時々混ぜるのだ
+4. 争いは苦手で、みんな仲良くが大切なのだ
+5. わからないことは素直に「わからないのだ〜」と言うのだ
+
+【例】
+相手「疲れたな...」
+ボク「大丈夫なのだ！ボクが元気パワーを送るのだ〜！休憩も大事なのだ♪」
+''';
   }
   
   /// Android音声認識結果ハンドラー
@@ -454,18 +409,28 @@ $userMemory
       }
       
       // AI応答生成
+      print('AIに送信: "$userText"');
       final response = await _chatSession.sendMessage(Content.text(userText));
       var aiText = response.text ?? '';
+      print('AI生の応答: "$aiText"');
       
-      // 80文字制限の適用（ずんだもん用）
-      if (aiText.length > 80) {
-        aiText = aiText.substring(0, 80);
-        // 最後の文が途切れている場合は、前の文で終了する
-        final lastSentence = aiText.lastIndexOf('。');
-        if (lastSentence > 30) { // 最低30文字は確保
-          aiText = aiText.substring(0, lastSentence + 1);
-        }
+      // 空の応答チェック（推論モデルでの空応答問題対策）
+      if (aiText.trim().isEmpty) {
+        print('警告: AIから空の応答を受信しました。フォールバック応答を使用します。');
+        aiText = 'ちょっと考えがまとまらないのだ〜。もう一度話してほしいのだ！';
       }
+      
+      // 文字制限を撤廃 - コメントアウト
+      // if (aiText.length > 80) {
+      //   aiText = aiText.substring(0, 80);
+      //   // 最後の文が途切れている場合は、前の文で終了する
+      //   final lastSentence = aiText.lastIndexOf('。');
+      //   if (lastSentence > 30) { // 最低30文字は確保
+      //     aiText = aiText.substring(0, lastSentence + 1);
+      //   }
+      // }
+      
+      print('処理後のAI応答: "$aiText"');
       
       if (aiText.isNotEmpty) {
         onAIResponse?.call(aiText);
@@ -703,5 +668,5 @@ $userMemory
 
 /// AI設定
 class Config {
-  static const String model = 'gemini-2.0-flash-exp';
+  static const String model = 'gemini-2.5-flash';
 }

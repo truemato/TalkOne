@@ -343,32 +343,9 @@ class AgoraCallService {
       
       String? agoraToken;
       
-      // 本番環境でトークン認証を使用する場合
-      if (AgoraConfig.useTokenAuthentication) {
-        print('Agora: 本番モード - トークンを取得中...');
-        agoraToken = await AgoraTokenService.getToken(
-          channelName: channelName,
-          uid: uid,
-          callType: _isVideoEnabled ? 'video' : 'voice',
-        );
-        
-        if (agoraToken == null) {
-          print('Agora: トークン取得に失敗しました');
-          _setConnectionState(AgoraConnectionState.failed);
-          onError?.call('認証に失敗しました。ネットワーク接続を確認してください。');
-          return false;
-        }
-        
-        _currentToken = agoraToken;
-        print('Agora: トークン取得成功');
-        
-        // トークンの自動更新タイマーを開始（50分後に更新）
-        _startTokenRefreshTimer();
-      } else {
-        // テストモード
-        print('Agora: テストモード - トークン不要');
-        agoraToken = AgoraConfig.tempToken;
-      }
+      // 強制的にテストモード（トークンなし）で接続
+      print('Agora: テストモード - トークンなしで接続');
+      agoraToken = null;
       
       print('Agora: チャンネル参加試行 - Channel: $channelName, UID: $uid, Token: ${agoraToken == null ? "null" : "設定済み"}');
       

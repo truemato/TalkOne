@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'screens/page_view_container.dart';
 import 'screens/login_screen.dart';
-import 'screens/permission_denied_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'utils/permission_util.dart';
 import 'services/auth_service.dart';
@@ -26,6 +26,18 @@ Future<void> main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    
+    // Firebase App Check 初期化（AI用）
+    try {
+      await FirebaseAppCheck.instance.activate(
+        webProvider: ReCaptchaV3Provider('recaptcha-v3-site-key'),
+        androidProvider: AndroidProvider.debug,
+        appleProvider: AppleProvider.debug,
+      );
+      print('Firebase App Check初期化完了');
+    } catch (e) {
+      print('Firebase App Check初期化エラー（スキップ）: $e');
+    }
 
     // 初回起動時の権限処理
     print('main: 権限処理を開始します');
@@ -59,7 +71,7 @@ class MyApp extends StatelessWidget {
       ),
       home: permissionGranted
           ? AuthWrapper() // 権限が許可されていれば認証チェック
-          : const PermissionDeniedScreen(), // 権限が拒否されていれば案内画面へ
+          : const LoginScreen(), // 権限が拒否されていればログイン画面へ
     );
   }
 }

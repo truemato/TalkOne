@@ -119,8 +119,8 @@ class SimpleSummarizer {
       // Geminiを使った簡単な要約（フォールバック付き）
       String summary = '';
       try {
-        final model = FirebaseAI.googleAI().generativeModel(
-          model: 'gemini-1.5-flash',
+        final model = FirebaseAI.vertexAI().generativeModel(
+          model: 'gemini-2.0-flash-lite',
         );
         
         final conversation = messages

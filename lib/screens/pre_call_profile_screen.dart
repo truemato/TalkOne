@@ -124,7 +124,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
         }
         
         final defaultProfile = UserProfile(
-          nickname: 'ずんだもん',
+          nickname: '名前をください',
           gender: '回答しない',
           themeIndex: 0,
           rating: actualRating,
@@ -147,7 +147,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
       } else {
         // プロフィールが存在する場合、不足している値にデフォルト値を設定
         final updatedProfile = UserProfile(
-          nickname: profile.nickname ?? 'ずんだもん',
+          nickname: profile.nickname ?? '名前をください',
           gender: profile.gender ?? '回答しない',
           birthday: profile.birthday,
           aiMemory: profile.aiMemory,
@@ -200,7 +200,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
       
       setState(() {
         _partnerProfile = UserProfile(
-          nickname: 'ずんだもん',
+          nickname: '名前をください',
           gender: '回答しない',
           themeIndex: 0,
           rating: actualRating,
@@ -481,7 +481,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
               ),
               const SizedBox(height: 8),
               Text(
-                _partnerProfile?.nickname ?? 'ずんだもん',
+                _partnerProfile?.nickname ?? '名前をください',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 24,

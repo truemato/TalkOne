@@ -22,6 +22,26 @@ class _PageViewContainerState extends State<PageViewContainer> {
     super.dispose();
   }
 
+  // ホーム画面に戻る関数
+  void _navigateToHome() {
+    // 縦方向のPageViewがホーム画面(index 1)にない場合、まず縦方向を戻す
+    if (_verticalPageController.page?.round() != 1) {
+      _verticalPageController.animateToPage(
+        1,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.ease,
+      );
+    }
+    // 横方向のPageViewをホーム画面(index 1)に戻す
+    if (_horizontalPageController.page?.round() != 1) {
+      _horizontalPageController.animateToPage(
+        1,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.ease,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -30,13 +50,13 @@ class _PageViewContainerState extends State<PageViewContainer> {
         scrollDirection: Axis.vertical,
         children: [
           // 上にスワイプで表示される通知画面
-          const NotificationScreen(),
+          NotificationScreenWrapper(onNavigateToHome: _navigateToHome),
           // メインの横スクロールページ
           PageView(
             controller: _horizontalPageController,
             scrollDirection: Axis.horizontal,
             children: [
-              const HistoryScreen(),
+              HistoryScreenWrapper(onNavigateToHome: _navigateToHome),
               HomeScreenWrapper(
                 onNavigateToHistory: () {
                   _horizontalPageController.animateToPage(
@@ -60,7 +80,7 @@ class _PageViewContainerState extends State<PageViewContainer> {
                   );
                 },
               ),
-              const SettingsScreen(),
+              SettingsScreenWrapper(onNavigateToHome: _navigateToHome),
             ],
           ),
         ],
@@ -89,5 +109,50 @@ class HomeScreenWrapper extends StatelessWidget {
       onNavigateToSettings: onNavigateToSettings,
       onNavigateToNotification: onNavigateToNotification,
     );
+  }
+}
+
+// HistoryScreenをラップして、ホーム戻り機能を提供
+class HistoryScreenWrapper extends StatelessWidget {
+  final VoidCallback onNavigateToHome;
+
+  const HistoryScreenWrapper({
+    super.key,
+    required this.onNavigateToHome,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return HistoryScreen(onNavigateToHome: onNavigateToHome);
+  }
+}
+
+// SettingsScreenをラップして、ホーム戻り機能を提供
+class SettingsScreenWrapper extends StatelessWidget {
+  final VoidCallback onNavigateToHome;
+
+  const SettingsScreenWrapper({
+    super.key,
+    required this.onNavigateToHome,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SettingsScreen(onNavigateToHome: onNavigateToHome);
+  }
+}
+
+// NotificationScreenをラップして、ホーム戻り機能を提供
+class NotificationScreenWrapper extends StatelessWidget {
+  final VoidCallback onNavigateToHome;
+
+  const NotificationScreenWrapper({
+    super.key,
+    required this.onNavigateToHome,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return NotificationScreen(onNavigateToHome: onNavigateToHome);
   }
 }

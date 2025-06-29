@@ -9,7 +9,9 @@ import '../utils/theme_utils.dart';
 import 'partner_profile_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key});
+  final VoidCallback? onNavigateToHome;
+  
+  const HistoryScreen({super.key, this.onNavigateToHome});
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -215,31 +217,41 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return GestureDetector(
       onHorizontalDragEnd: (details) {
         // 右から左へのスワイプ（負の速度）でホーム画面に戻る
-        if (details.primaryVelocity! < 0) {
-          Navigator.pop(context);
+        if (details.primaryVelocity! < 0 && mounted) {
+          if (widget.onNavigateToHome != null) {
+            widget.onNavigateToHome!();
+          } else {
+            Navigator.of(context).pop();
+          }
         }
       },
       child: Scaffold(
-        backgroundColor: _currentThemeColor,
-        appBar: AppBar(
-          title: Text(
-            '通話履歴',
-            style: GoogleFonts.notoSans(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+          backgroundColor: _currentThemeColor,
+          appBar: AppBar(
+            title: Text(
+              '通話履歴',
+              style: GoogleFonts.notoSans(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () {
+                if (widget.onNavigateToHome != null) {
+                  widget.onNavigateToHome!();
+                } else {
+                  Navigator.of(context).pop();
+                }
+              },
             ),
           ),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
+          body: Platform.isAndroid 
+              ? SafeArea(child: _buildContent())
+              : _buildContent(),
         ),
-        body: Platform.isAndroid 
-            ? SafeArea(child: _buildContent())
-            : _buildContent(),
-      ),
     );
   }
 

@@ -11,6 +11,8 @@ class UserProfile {
   final int themeIndex;
   final int rating;
   final int streakCount; // -10から+5までのストリークカウント
+  final bool useVoicevox; // VOICEVOX使用設定（true: VOICEVOX, false: Flutter TTS）
+  final int aiPersonalityId; // AIペルソナID（0-4）
 
   UserProfile({
     this.nickname,
@@ -22,6 +24,8 @@ class UserProfile {
     this.themeIndex = 0,
     this.rating = 1000,
     this.streakCount = 0,
+    this.useVoicevox = false,
+    this.aiPersonalityId = 1, // デフォルトはずんだもん
   });
 
   Map<String, dynamic> toMap() {
@@ -35,6 +39,8 @@ class UserProfile {
       'themeIndex': themeIndex,
       'rating': rating,
       'streakCount': streakCount,
+      'useVoicevox': useVoicevox,
+      'aiPersonalityId': aiPersonalityId,
       'updatedAt': FieldValue.serverTimestamp(),
     };
   }
@@ -52,6 +58,8 @@ class UserProfile {
       themeIndex: map['themeIndex'] ?? 0,
       rating: map['rating'] ?? 1000,
       streakCount: map['streakCount'] ?? 0,
+      useVoicevox: map['useVoicevox'] ?? false,
+      aiPersonalityId: map['aiPersonalityId'] ?? 1,
     );
   }
 
@@ -65,6 +73,8 @@ class UserProfile {
     int? themeIndex,
     int? rating,
     int? streakCount,
+    bool? useVoicevox,
+    int? aiPersonalityId,
   }) {
     return UserProfile(
       nickname: nickname ?? this.nickname,
@@ -76,6 +86,8 @@ class UserProfile {
       themeIndex: themeIndex ?? this.themeIndex,
       rating: rating ?? this.rating,
       streakCount: streakCount ?? this.streakCount,
+      useVoicevox: useVoicevox ?? this.useVoicevox,
+      aiPersonalityId: aiPersonalityId ?? this.aiPersonalityId,
     );
   }
 }
@@ -145,6 +157,8 @@ class UserProfileService {
     String? aiMemory,
     String? iconPath,
     int? themeIndex,
+    bool? useVoicevox,
+    int? aiPersonalityId,
   }) async {
     if (_userId == null) {
       throw Exception('ユーザーが認証されていません');
@@ -160,6 +174,8 @@ class UserProfileService {
       if (aiMemory != null) updateData['aiMemory'] = aiMemory;
       if (iconPath != null) updateData['iconPath'] = iconPath;
       if (themeIndex != null) updateData['themeIndex'] = themeIndex;
+      if (useVoicevox != null) updateData['useVoicevox'] = useVoicevox;
+      if (aiPersonalityId != null) updateData['aiPersonalityId'] = aiPersonalityId;
       
       updateData['updatedAt'] = FieldValue.serverTimestamp();
       

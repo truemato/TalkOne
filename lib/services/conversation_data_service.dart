@@ -110,6 +110,33 @@ class ConversationDataService {
     }
   }
   
+  /// 簡単な会話保存（ずんだもんチャット用）
+  Future<void> saveConversation({
+    required String userId,
+    required String userText,
+    required String aiResponse,
+    required String sessionId,
+  }) async {
+    try {
+      final conversationData = {
+        'userId': userId,
+        'userText': userText,
+        'aiResponse': aiResponse,
+        'sessionId': sessionId,
+        'timestamp': FieldValue.serverTimestamp(),
+        'type': 'zundamon_chat',
+      };
+      
+      await _firestore
+          .collection('conversations')
+          .add(conversationData);
+      
+      print('ずんだもん会話保存完了: $sessionId');
+    } catch (e) {
+      print('会話保存エラー: $e');
+    }
+  }
+
   /// 会話セッション終了
   Future<void> endConversationSession({
     required String sessionId,

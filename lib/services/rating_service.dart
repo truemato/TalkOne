@@ -345,4 +345,171 @@ class RatingService {
       'ratingDifference': data.currentRating - defaultRating,
     };
   }
+
+  // 【TEMPORARY DEBUG FUNCTION】- 特定のユーザーのレーティングを1に設定
+  // 使用後は必ず削除してください
+  Future<bool> debugSetUserRatingToOne(String targetEmail) async {
+    try {
+      print('=== DEBUG: レーティング1設定開始 ===');
+      print('対象メール: $targetEmail');
+      
+      // 1. userProfilesコレクションでメールアドレスから該当ユーザーを検索
+      final querySnapshot = await _db.collection('userProfiles')
+          .where('email', isEqualTo: targetEmail)
+          .get();
+      
+      if (querySnapshot.docs.isEmpty) {
+        // メールアドレスでの検索で見つからない場合、Firebase Authで検索を試みる
+        print('userProfilesでメールが見つかりません。Firebase Auth経由で検索中...');
+        
+        // Firebase Authではメールアドレスで直接検索できないため、
+        // 全てのuserProfilesを取得してFirebase Authのemailと照合する必要がある
+        // これは効率が悪いので、まずは手動でUIDを特定することを推奨
+        
+        print('❌ ユーザーが見つかりません: $targetEmail');
+        print('💡 手動でUIDを特定してdebugSetUserRatingToOneByUid()を使用してください');
+        return false;
+      }
+      
+      // 2. 見つかったユーザーのUIDを取得
+      final userDoc = querySnapshot.docs.first;
+      final userId = userDoc.id;
+      final currentData = userDoc.data() as Map<String, dynamic>;
+      
+      print('✅ ユーザー発見: $userId');
+      print('現在のプロフィール: ${currentData['nickname'] ?? '未設定'}');
+      
+      // 3. 現在のレーティングを確認
+      final currentRatingData = await getRatingData(userId);
+      print('現在のレーティング: ${currentRatingData.currentRating}');
+      
+      // 4. レーティングを1に設定
+      final newRatingData = RatingData(
+        currentRating: 1,
+        consecutiveUp: 0,
+        consecutiveDown: 0,
+        lastUpdated: DateTime.now(),
+      );
+      
+      // 5. データベースに保存
+      await _saveRatingData(newRatingData, userId);
+      
+      print('✅ レーティング更新完了: ${currentRatingData.currentRating} → 1');
+      print('=== DEBUG: レーティング1設定完了 ===');
+      
+      return true;
+    } catch (e) {
+      print('❌ DEBUG: レーティング設定エラー: $e');
+      return false;
+    }
+  }
+
+  // 【TEMPORARY DEBUG FUNCTION】- UIDを直接指定してレーティングを1に設定
+  // より確実な方法。使用後は必ず削除してください
+  Future<bool> debugSetUserRatingToOneByUid(String userId) async {
+    try {
+      print('=== DEBUG: UID指定レーティング1設定開始 ===');
+      print('対象UID: $userId');
+      
+      // 1. ユーザーの存在確認
+      final userDoc = await _db.collection('userProfiles').doc(userId).get();
+      if (!userDoc.exists) {
+        print('❌ ユーザーが見つかりません: $userId');
+        return false;
+      }
+      
+      final userData = userDoc.data() as Map<String, dynamic>;
+      print('✅ ユーザー確認: ${userData['nickname'] ?? '未設定'} (${userData['email'] ?? 'メール未設定'})');
+      
+      // 2. 現在のレーティングを確認
+      final currentRatingData = await getRatingData(userId);
+      print('現在のレーティング: ${currentRatingData.currentRating}');
+      
+      // 3. レーティングを1に設定
+      final newRatingData = RatingData(
+        currentRating: 1,
+        consecutiveUp: 0,
+        consecutiveDown: 0,
+        lastUpdated: DateTime.now(),
+      );
+      
+      // 4. データベースに保存
+      await _saveRatingData(newRatingData, userId);
+      
+      print('✅ レーティング更新完了: ${currentRatingData.currentRating} → 1');
+      print('=== DEBUG: UID指定レーティング1設定完了 ===');
+      
+      return true;
+    } catch (e) {
+      print('❌ DEBUG: UID指定レーティング設定エラー: $e');
+      return false;
+    }
+  }
+
+  // 【TEMPORARY DEBUG FUNCTION】- 全ユーザーのメールアドレスとUIDを表示
+  // serveman520@gmail.comのUIDを特定するのに使用。使用後は必ず削除してください
+  Future<void> debugListAllUsersWithEmail() async {
+    try {
+      print('=== DEBUG: 全ユーザーリスト表示開始 ===');
+      
+      final querySnapshot = await _db.collection('userProfiles').get();
+      
+      print('総ユーザー数: ${querySnapshot.docs.length}');
+      print('--- ユーザーリスト ---');
+      
+      for (final doc in querySnapshot.docs) {
+        final userData = doc.data();
+        final uid = doc.id;
+        final email = userData['email'] ?? 'メール未設定';
+        final nickname = userData['nickname'] ?? '未設定';
+        
+        print('UID: $uid');
+        print('Email: $email');
+        print('Nickname: $nickname');
+        print('---');
+        
+        // 特定のメールアドレスを強調表示
+        if (email == 'serveman520@gmail.com') {
+          print('🎯 TARGET FOUND! UID: $uid');
+          print('🎯 TARGET EMAIL: $email');
+          print('🎯 TARGET NICKNAME: $nickname');
+        }
+      }
+      
+      print('=== DEBUG: 全ユーザーリスト表示完了 ===');
+    } catch (e) {
+      print('❌ DEBUG: ユーザーリスト取得エラー: $e');
+    }
+  }
+  
+  // デバッグ用: レーティングを直接設定
+  Future<void> setRating(int newRating) async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) {
+        throw Exception('ユーザーが認証されていません');
+      }
+      
+      // userRatingsコレクションに直接設定
+      final ratingData = RatingData(
+        currentRating: newRating,
+        consecutiveUp: 0,
+        consecutiveDown: 0,
+        lastUpdated: DateTime.now(),
+      );
+      
+      await _db.collection('userRatings').doc(userId).set(ratingData.toMap());
+      
+      // userProfilesコレクションも同期
+      await _db.collection('userProfiles').doc(userId).set({
+        'rating': newRating,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      
+      print('レーティングを$newRatingに直接設定しました');
+    } catch (e) {
+      print('レーティング直接設定エラー: $e');
+      rethrow;
+    }
+  }
 }

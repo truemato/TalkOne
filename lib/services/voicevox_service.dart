@@ -33,6 +33,23 @@ class VoiceVoxService {
   /// 話者IDを設定
   void setSpeaker(int speakerId) {
     _speakerId = speakerId;
+    print('VOICEVOX話者変更: ID $_speakerId');
+  }
+  
+  /// キャラクターIDに基づいて話者を設定
+  void setSpeakerByCharacter(int characterId) {
+    // キャラクターIDに対応するVOICEVOX話者IDマッピング
+    final speakerMapping = {
+      0: 8,  // 春日部つむぎ
+      1: 3,  // ずんだもん
+      2: 2,  // 四国めたん
+      3: 13, // 雨晴はう
+      4: 10, // 青山龍星
+      5: 2,  // 冥鳴ひまり（四国めたんの声を使用）
+    };
+    
+    final voicevoxSpeakerId = speakerMapping[characterId] ?? 3; // デフォルト: ずんだもん
+    setSpeaker(voicevoxSpeakerId);
   }
   
   /// 音声パラメータを設定

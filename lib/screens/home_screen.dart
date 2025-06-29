@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'matching_screen.dart';
-import 'profile_screen.dart';
 import 'history_screen.dart';
 import 'zundamon_chat_screen.dart';
 import 'settings_screen.dart';
@@ -218,16 +217,20 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     final AppThemePalette theme = getAppTheme(_selectedThemeIndex);
     return Scaffold(
-      backgroundColor: theme.backgroundColor,
+        backgroundColor: theme.backgroundColor,
       body: GestureDetector(
         onHorizontalDragEnd: (details) {
+          if (!mounted) return;
+          
           // 右から左へのスワイプ（負の速度）で設定画面
           if (details.primaryVelocity! < -500) {
             if (widget.onNavigateToSettings != null) {
               widget.onNavigateToSettings!();
             } else {
               Navigator.of(context).push(_createSettingsRoute()).then((_) {
-                _loadUserRating(); // 設定画面から戻った時にテーマを更新
+                if (mounted) {
+                  _loadUserRating(); // 設定画面から戻った時にテーマを更新
+                }
               });
             }
           }
@@ -241,6 +244,8 @@ class _HomeScreenState extends State<HomeScreen>
           }
         },
         onVerticalDragEnd: (details) {
+          if (!mounted) return;
+          
           // 上から下へのスワイプ（正の速度）で通知画面
           if (details.primaryVelocity! > 500) {
             if (widget.onNavigateToNotification != null) {
@@ -552,7 +557,7 @@ class _HomeScreenState extends State<HomeScreen>
         ),
         const SizedBox(height: 8),
         Text(
-          'Ver 0.6',
+          'Ver 0.8',
           style: GoogleFonts.notoSans(
             color: const Color(0xFF4E3B7A).withOpacity(0.7),
             fontSize: 16,
@@ -562,10 +567,10 @@ class _HomeScreenState extends State<HomeScreen>
         ),
         const SizedBox(height: 4),
         Text(
-          'AI: Gemini 2.0 Flash Lite',
+          'Powered By AI Gemini 2.5 Flash',
           style: GoogleFonts.notoSans(
             color: const Color(0xFF4E3B7A).withOpacity(0.6),
-            fontSize: 12,
+            fontSize: 10,
             fontWeight: FontWeight.w300,
           ),
         ),

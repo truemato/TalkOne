@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:io' show Platform;
+import 'dart:async';
 import '../services/user_profile_service.dart';
 import '../services/auth_service.dart';
 import '../utils/validation_util.dart';
@@ -472,7 +473,12 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
     });
 
     try {
-      final userCredential = await _authService.linkAnonymousWithGoogle();
+      final userCredential = await _authService.linkAnonymousWithGoogle().timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw TimeoutException('Google Sign In timeout', const Duration(seconds: 30));
+        },
+      );
       
       if (userCredential != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -500,10 +506,19 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
       }
     } catch (e) {
       if (mounted) {
+        String errorMessage = 'アップグレードに失敗しました';
+        if (e is TimeoutException) {
+          errorMessage = 'ログインがタイムアウトしました。再度お試しください。';
+        } else if (e.toString().contains('SIGN_IN_CANCELLED')) {
+          errorMessage = 'ログインがキャンセルされました';
+        } else {
+          errorMessage = 'ログインに失敗しました: ${e.toString().length > 50 ? e.toString().substring(0, 50) + '...' : e.toString()}';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'アップグレードに失敗しました: $e',
+              errorMessage,
               style: GoogleFonts.notoSans(color: Colors.white),
             ),
             backgroundColor: Colors.red,

@@ -3,24 +3,26 @@ import 'dart:io' show Platform;
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:firebase_ai/firebase_ai.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_ai/firebase_ai.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'conversation_data_service.dart';
 import 'user_profile_service.dart';
+import 'voicevox_service.dart';
 
-/// Gemini 2.0 Flash Lite専用リアルタイム音声チャットサービス
+/// Vertex AI Gemini 2.5 Flash専用リアルタイム音声チャットサービス
 /// 
 /// 仕様:
 /// - 音声合成: デフォルト女性音声（FlutterTTS）
 /// - 音声認識: STT (speech_to_text) でユーザー音声をリアルタイム認識
 /// - 会話ログ: 全ての会話内容（平文）をFirebase Firestoreに自動保存
-/// - AI: Gemini 2.0 Flash Lite（ユーザーメモリベース）
-class GeminiChatService {
+/// - AI: Vertex AI Gemini 2.5 Flash（Firebase AI SDK経由）
+class VertexAIChatService {
   // サービス
   final SpeechToText _speech = SpeechToText(); // iOS用
   static const MethodChannel _androidSpeechChannel = MethodChannel('android_speech_recognizer'); // Android用
   final FlutterTts _tts = FlutterTts(); // デフォルト女性音声
+  final VoiceVoxService _voiceVoxService = VoiceVoxService(); // VOICEVOX音声合成
   final ConversationDataService _conversationService = ConversationDataService();
   final UserProfileService _userProfileService = UserProfileService();
   
@@ -33,6 +35,8 @@ class GeminiChatService {
   Timer? _listeningTimer;
   String _accumulatedSpeech = '';
   int _androidRetryCount = 0;
+  bool _useVoicevox = false; // VOICEVOX使用フラグ
+  int _characterId = 1; // デフォルト: ずんだもん
   
   // コールバック
   Function(String)? onUserSpeech;
@@ -94,8 +98,8 @@ class GeminiChatService {
         }
       }
       
-      // AI初期化（Vertex AIバックエンドを使用）
-      print('Gemini AI初期化開始: ${Config.model}');
+      // Gemini AI初期化（Vertex AI バックエンド）
+      print('Gemini 2.5 Flash初期化開始');
       try {
         // Firebase初期化状態を確認
         if (Firebase.apps.isEmpty) {
@@ -104,16 +108,19 @@ class GeminiChatService {
           return false;
         }
         
-        _aiModel = FirebaseAI.vertexAI().generativeModel(model: Config.model);
-        print('✅ Gemini AI初期化完了');
-      } catch (e) {
-        print('❌ Vertex AI初期化失敗: $e');
-        if (e.toString().contains('DEFAULT already exists')) {
-          print('Firebase重複初期化エラーを検出');
-          onError?.call('Firebase設定エラー：アプリを再起動してください');
-          return false;
+        // Vertex AI (優先)
+        try {
+          _aiModel = FirebaseAI.vertexAI().generativeModel(model: 'gemini-2.5-flash');
+          print('✅ Vertex AI Gemini 2.5 Flash初期化完了');
+        } catch (vertexError) {
+          print('Vertex AI失敗、Google AIにフォールバック: $vertexError');
+          // Google AI (フォールバック)
+          _aiModel = FirebaseAI.googleAI().generativeModel(model: 'gemini-1.5-flash');
+          print('✅ Google AI Gemini 1.5 Flash初期化完了');
         }
-        onError?.call('AI初期化エラー: Vertex AIに接続できません');
+      } catch (e) {
+        print('❌ AI初期化失敗: $e');
+        onError?.call('AI初期化エラー: ${e.toString()}');
         return false;
       }
       
@@ -130,13 +137,15 @@ class GeminiChatService {
           userName = profile.nickname ?? '';
           userGender = profile.gender ?? '';
           userBirthday = profile.birthday?.toString() ?? '';
-          print('ユーザープロフィール取得: 名前="$userName", 性別="$userGender", 誕生日="$userBirthday", AIメモリ="$userMemory"');
+          _useVoicevox = profile.useVoicevox;
+          _characterId = profile.aiPersonalityId;
+          print('ユーザープロフィール取得: 名前="$userName", 性別="$userGender", 誕生日="$userBirthday", AIメモリ="$userMemory", VOICEVOX="$_useVoicevox", キャラクター="$_characterId"');
         }
       }
       
-      // Gemini 2.0 Flash Liteの性格設定とユーザープロフィールを組み合わせ
+      // システムプロンプトの設定
       final systemPrompt = '''
-私はGemini 2.0 Flash Liteです。親しみやすく、知的でありながら温かみのあるアシスタントとして会話します。
+私はGemini 2.5 Flashです。親しみやすく、知的でありながら温かみのあるアシスタントとして会話します。
 
 【性格・口調】
 - 丁寧語を基本とし、親しみやすく話しかけます
@@ -176,7 +185,7 @@ $userMemory
       // 初期メッセージを個人的なものに変更
       String initialMessage = 'こんにちは！今日はどんなことをお話ししましょうか？';
       if (userName.isNotEmpty) {
-        initialMessage = '初めまして、${userName}さん！私はGemini 2.0 Flash Liteです。';
+        initialMessage = '初めまして、${userName}さん！私はGemini 2.5 Flashです。';
         if (userMemory.isNotEmpty) {
           initialMessage += '${userName}さんのこと、ぜひお聞かせください。';
         } else {
@@ -204,31 +213,46 @@ $userMemory
         rethrow;
       }
       
+      print('✅ Vertex AI初期化完了');
+      
       // 会話セッション開始
       if (user != null) {
         _sessionId = await _conversationService.startConversationSession(
-          partnerId: 'gemini_ai',
+          partnerId: 'vertex_ai_gemini_25_pro',
           type: ConversationType.voice,
           isAIPartner: true,
         );
       }
       
-      // FlutterTTS設定（デフォルト女性音声）
-      await _tts.setLanguage('ja-JP');
-      await _tts.setSpeechRate(0.6);
-      await _tts.setPitch(1.0);
+      // 音声合成設定
+      if (_useVoicevox) {
+        _voiceVoxService.setSpeakerByCharacter(_characterId);
+        final isAvailable = await _voiceVoxService.isEngineAvailable();
+        print('VOICEVOX Engine利用可能: $isAvailable');
+        if (!isAvailable) {
+          print('VOICEVOX利用不可、FlutterTTSにフォールバック');
+          _useVoicevox = false;
+        }
+      }
+      
+      if (!_useVoicevox) {
+        // FlutterTTS設定（デフォルト女性音声）
+        await _tts.setLanguage('ja-JP');
+        await _tts.setSpeechRate(0.6);
+        await _tts.setPitch(1.0);
+      }
       
       _isInitialized = true;
       
       // プラットフォーム別の初期化後処理
       if (Platform.isIOS) {
-        print('iOS Gemini初期化完了');
+        print('iOS Vertex AI初期化完了');
         Future.delayed(const Duration(milliseconds: 500), () async {
           onAIResponse?.call(initialMessage);
           await _speakWithTts(initialMessage);
         });
       } else if (Platform.isAndroid) {
-        print('Android Gemini初期化完了');
+        print('Android Vertex AI初期化完了');
       }
       
       return true;
@@ -438,7 +462,7 @@ $userMemory
     }
     
     _isProcessing = true; // 処理開始
-    print('AI処理開始: $userText');
+    print('Vertex AI処理開始: $userText');
     
     try {
       // 会話ログ保存
@@ -453,13 +477,13 @@ $userMemory
       }
       
       // AI応答生成
-      print('Gemini APIにリクエスト送信: "$userText"');
+      print('Firebase AI (Vertex AI) にリクエスト送信: "$userText"');
       final response = await _chatSession.sendMessage(Content.text(userText));
       var aiText = response.text ?? '';
-      print('Gemini APIからの応答: "$aiText"');
+      print('Firebase AI (Vertex AI) からの応答: "$aiText"');
       
       if (aiText.isEmpty) {
-        print('❌ Gemini応答が空です');
+        print('❌ AI応答が空です');
         aiText = 'すみません、応答を生成できませんでした。もう一度お試しください。';
       }
       
@@ -482,7 +506,7 @@ $userMemory
       if (_sessionId != null) {
         await _conversationService.saveVoiceMessage(
           sessionId: _sessionId!,
-          speakerId: 'gemini_ai',
+          speakerId: 'vertex_ai_gemini_25_pro',
           transcribedText: aiText,
           confidence: 1.0,
           timestamp: DateTime.now(),
@@ -493,20 +517,21 @@ $userMemory
       // 音声合成
       await _speakWithTts(aiText);
     } catch (e) {
-      print('❌ Gemini AI応答エラー: $e');
+      print('❌ Vertex AI応答エラー: $e');
       onError?.call('AI応答エラー: $e');
       // フォールバック
       await _speakWithTts('申し訳ありません、応答に問題が発生しました。');
     } finally {
       _isProcessing = false; // 処理完了
-      print('AI処理完了');
+      print('Vertex AI処理完了');
     }
   }
   
-  /// FlutterTTS音声合成（デフォルト女性音声）
+  
+  /// 音声合成（VOICEVOX/FlutterTTS）
   Future<void> _speakWithTts(String text) async {
     try {
-      print('Gemini音声合成開始: $text');
+      print('音声合成開始: $text (VOICEVOX: $_useVoicevox)');
       
       // 音声認識を確実に停止
       if (_isListening) {
@@ -514,21 +539,32 @@ $userMemory
         await Future.delayed(const Duration(milliseconds: 300));
       }
       
-      await _tts.speak(text);
+      bool success = false;
+      if (_useVoicevox) {
+        // VOICEVOX音声合成を試行
+        success = await _voiceVoxService.speak(text);
+        if (!success) {
+          print('VOICEVOX失敗、FlutterTTSにフォールバック');
+        }
+      }
       
-      // 音声再生の待機
-      final waitTime = (text.length * 100).clamp(2000, 8000);
-      await Future.delayed(Duration(milliseconds: waitTime));
+      if (!success) {
+        // FlutterTTS音声合成
+        await _tts.speak(text);
+        // 音声再生の待機
+        final waitTime = (text.length * 100).clamp(2000, 8000);
+        await Future.delayed(Duration(milliseconds: waitTime));
+      }
       
       // 音声認識再開（両プラットフォーム対応）
       if (_isInitialized && !_isListening) {
-        print('Gemini音声合成後の音声認識再開');
+        print('音声合成後の音声認識再開');
         await Future.delayed(const Duration(milliseconds: 500));
         _androidRetryCount = 0; // Android再試行カウンターリセット
         await startListening();
       }
     } catch (e) {
-      print('Gemini音声合成エラー: $e');
+      print('音声合成エラー: $e');
       onError?.call('音声合成エラー: $e');
     }
   }
@@ -551,6 +587,7 @@ $userMemory
     }
     
     _tts.stop();
+    _voiceVoxService.dispose();
     
     // 会話セッション終了
     if (_sessionId != null) {
@@ -561,9 +598,4 @@ $userMemory
       );
     }
   }
-}
-
-/// AI設定
-class Config {
-  static const String model = 'gemini-2.0-flash-lite';
 }

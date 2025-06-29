@@ -262,7 +262,7 @@ class _MatchingScreenState extends State<MatchingScreen>
       curve: Curves.easeInBack,
     ));
     
-    // プログレスバーアニメーション初期化
+    // プログレスバーアニメーション初期化（無限ループ）
     _progressController = AnimationController(
       duration: const Duration(seconds: 60),
       vsync: this,
@@ -276,14 +276,12 @@ class _MatchingScreenState extends State<MatchingScreen>
       curve: Curves.linear,
     ));
     
-    // プログレスバー開始
-    _progressController.forward();
+    // プログレスバー開始（無限ループ）
+    _progressController.repeat();
     
-    // 60秒後にAI会話を開始するタイマー
-    _progressTimer = Timer(const Duration(seconds: 60), () {
-      if (!_isMatchFound && mounted) {
-        _startAIConversation();
-      }
+    // 60秒後のタイマーは削除（マッチングを続ける）
+    _progressTimer = Timer(const Duration(seconds: 1), () {
+      // 何もしない（プレースホルダー）
     });
     
     _loadUserRating();

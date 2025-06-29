@@ -3,7 +3,7 @@ description: 1対1でキューを入れてマッチングできる、トーク�
 
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 0.6.0+6
+version: 0.8.0+8
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
@@ -15,6 +15,7 @@ dependencies:
   # Firebase & AI
   firebase_core: ^3.13.1
   firebase_ai: ^2.1.0
+  firebase_app_check: ^0.3.2-7
   cloud_firestore: ^5.6.8
   firebase_auth: ^5.0.0
   google_sign_in: ^6.2.1
@@ -41,7 +42,7 @@ dependencies:
   
   # 音声処理
   flutter_sound: ^9.2.13
-  record: ^5.0.5
+  record: ^5.0.0
   
   # P2P通話機能
   agora_rtc_engine: ^6.3.2
@@ -69,6 +70,11 @@ flutter:
     - aseets/
     - aseets/animations/
     - aseets/icons/
+
+dependency_overrides:
+  record_platform_interface: 1.2.0
+  record_linux: 0.7.1
+  sign_in_with_apple: 7.0.1
 
 flutter_icons:
   android: true

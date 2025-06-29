@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'profanity_filter_data.dart';
 
 /// バリデーションユーティリティクラス
 /// 各種入力フィールドのバリデーションと正規表現パターンを提供
@@ -19,17 +20,54 @@ class ValidationUtil {
     unicode: true,
   );
   
-  // 禁止ワードパターン（基本的な不適切な単語）
-  static final RegExp _inappropriatePattern = RegExp(
-    r'(死ね|殺す|バカ|アホ|クソ|fuck|shit|damn)',
-    caseSensitive: false,
-  );
+  // 包括的な不適切語句チェック
+  static bool _containsProfanity(String text) {
+    final normalizedText = _normalizeLeetSpeak(text.toLowerCase());
+    
+    // URL・リンクチェック
+    for (final pattern in ProfanityFilterData.urlPatterns) {
+      if (pattern.hasMatch(normalizedText)) return true;
+    }
+    
+    // 英語不適切語句チェック
+    for (final word in ProfanityFilterData.englishProfanity) {
+      if (normalizedText.contains(word.toLowerCase())) return true;
+    }
+    
+    // 日本語不適切語句チェック
+    for (final word in ProfanityFilterData.japaneseProfanity) {
+      if (normalizedText.contains(word)) return true;
+    }
+    
+    // 特殊パターンチェック
+    for (final pattern in ProfanityFilterData.obfuscationPatterns) {
+      if (pattern.hasMatch(normalizedText)) return true;
+    }
+    
+    // 危険なパターンチェック
+    for (final pattern in ProfanityFilterData.dangerousPatterns) {
+      if (pattern.hasMatch(text)) return true; // 大小文字保持
+    }
+    
+    return false;
+  }
   
-  // SQLインジェクション対策パターン
-  static final RegExp _sqlInjectionPattern = RegExp(
-    r"(';|--;|\/\*|\*\/|xp_|sp_|<script|<\/script|javascript:|onerror=|onload=)",
-    caseSensitive: false,
-  );
+  // リートスピーク正規化
+  static String _normalizeLeetSpeak(String text) {
+    String normalized = text;
+    ProfanityFilterData.leetReplacements.forEach((key, value) {
+      normalized = normalized.replaceAll(key, value);
+    });
+    return normalized;
+  }
+  
+  // SQLインジェクション対策チェック
+  static bool _containsSqlInjection(String text) {
+    for (final pattern in ProfanityFilterData.sqlInjectionPatterns) {
+      if (pattern.hasMatch(text)) return true;
+    }
+    return false;
+  }
   
   // 空白のみのパターン
   static final RegExp _whitespaceOnlyPattern = RegExp(r'^\s*$');
@@ -52,11 +90,11 @@ class ValidationUtil {
       return ValidationResult(false, '使用できない文字が含まれています');
     }
     
-    if (_inappropriatePattern.hasMatch(value)) {
-      return ValidationResult(false, '不適切な言葉が含まれています');
+    if (_containsProfanity(value)) {
+      return ValidationResult(false, '不適切な内容が含まれています');
     }
     
-    if (_sqlInjectionPattern.hasMatch(value)) {
+    if (_containsSqlInjection(value)) {
       return ValidationResult(false, '使用できない文字列が含まれています');
     }
     
@@ -77,11 +115,11 @@ class ValidationUtil {
       return ValidationResult(false, '使用できない文字が含まれています');
     }
     
-    if (_inappropriatePattern.hasMatch(value)) {
-      return ValidationResult(false, '不適切な言葉が含まれています');
+    if (_containsProfanity(value)) {
+      return ValidationResult(false, '不適切な内容が含まれています');
     }
     
-    if (_sqlInjectionPattern.hasMatch(value)) {
+    if (_containsSqlInjection(value)) {
       return ValidationResult(false, '使用できない文字列が含まれています');
     }
     
@@ -102,11 +140,11 @@ class ValidationUtil {
       return ValidationResult(false, '使用できない文字が含まれています');
     }
     
-    if (_inappropriatePattern.hasMatch(value)) {
-      return ValidationResult(false, '不適切な言葉が含まれています');
+    if (_containsProfanity(value)) {
+      return ValidationResult(false, '不適切な内容が含まれています');
     }
     
-    if (_sqlInjectionPattern.hasMatch(value)) {
+    if (_containsSqlInjection(value)) {
       return ValidationResult(false, '使用できない文字列が含まれています');
     }
     
@@ -136,10 +174,8 @@ class ValidationUtil {
   static List<TextInputFormatter> getNicknameFormatters() {
     return [
       LengthLimitingTextInputFormatter(20),
-      // 特殊文字を除外するフィルター
-      FilteringTextInputFormatter.allow(
-        RegExp(r'[a-zA-Z0-9ぁ-んァ-ヶー一-龯々〆〤\s]'),
-      ),
+      // 特殊文字を除外するフィルター（日本語入力を阻害しないよう変更）
+      FilteringTextInputFormatter.deny(RegExp(r'''[<>&"'`]''')),
     ];
   }
   

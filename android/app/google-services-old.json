@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "198779252752",
+    "project_id": "myproject-c8034",
+    "storage_bucket": "myproject-c8034.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:198779252752:android:abc123def456",
+        "android_client_info": {
+          "package_name": "com.truemato"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "198779252752-60mgsm14vm51gki0jc73bse0j7ok71ls.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_JstbnpPd1ecTYwg1oRiNDGtMvXxMcqQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "198779252752-9omqgco8p14ughks41d5tojn9gn0pkc6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
