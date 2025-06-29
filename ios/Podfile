@@ -46,11 +46,30 @@ post_install do |installer|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
       config.build_settings['ENABLE_BITCODE'] = 'NO'
       
-      # Agora SDKのdSYM生成を無効化してApp Store Connect問題を回避
+      # Release構成でdSYM生成を強制的に有効化
+      if config.name == 'Release' || config.name == 'Profile'
+        config.build_settings['DEBUG_INFORMATION_FORMAT'] = 'dwarf-with-dsym'
+        config.build_settings['DWARF_DSYM_FOLDER_PATH'] = '$(BUILT_PRODUCTS_DIR)'
+        config.build_settings['DWARF_DSYM_FILE_NAME'] = '$(PRODUCT_NAME).app.dSYM'
+        config.build_settings['ONLY_ACTIVE_ARCH'] = 'NO'
+        config.build_settings['GENERATE_INFOPLIST_FILE'] = 'NO' if target.name == 'Runner'
+      end
+      
+      # Agora SDKのdSYM生成問題を回避（全ての構成で無効化）
       if target.name.start_with?('Agora') || target.name == 'aosl' || target.name.start_with?('video_')
         config.build_settings['DEBUG_INFORMATION_FORMAT'] = 'dwarf'
         config.build_settings['DWARF_DSYM_FOLDER_PATH'] = ''
         config.build_settings['DWARF_DSYM_FILE_NAME'] = ''
+        config.build_settings['STRIP_INSTALLED_PRODUCT'] = 'NO'
+        config.build_settings['COPY_PHASE_STRIP'] = 'NO'
+        config.build_settings['STRIP_STYLE'] = 'non-global'
+      end
+      
+      # leveldb-library のヘッダ問題を修正
+      if target.name == 'leveldb-library'
+        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+        config.build_settings['DEFINES_MODULE'] = 'NO'
+        config.build_settings['SWIFT_INCLUDE_PATHS'] = ''
       end
       
       # Preprocessor definitions for permission_handler

@@ -17,7 +17,7 @@ import FirebaseAI
     // Initialize Firebase AI with Vertex AI backend
     do {
       let ai = FirebaseAI.firebaseAI(backend: .vertexAI())
-      geminiModel = ai.generativeModel(modelName: "gemini-2.0-flash-lite-001")
+      geminiModel = ai.generativeModel(modelName: "gemini-2.0-flash-lite")
       print("iOS Firebase AI with Vertex AI backend initialized successfully")
     } catch {
       print("iOS Firebase AI initialization error: \(error)")
