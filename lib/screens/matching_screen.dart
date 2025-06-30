@@ -239,6 +239,7 @@ class _MatchingScreenState extends State<MatchingScreen>
   late Timer _timer;
   int _dotCount = 0;
   int _userRating = 1000; // デフォルトレーティング値
+  int _aiPersonalityId = 0; // デフォルト: ずんだもん
   int _onlineUsers = 0;
   String? _callRequestId;
   StreamSubscription? _matchingSubscription;
@@ -318,7 +319,8 @@ class _MatchingScreenState extends State<MatchingScreen>
           setState(() {
             _userRating = profile.rating;
             _selectedThemeIndex = profile.themeIndex ?? 0;
-            print('MatchingScreen: UserProfileからレーティング読み込み完了 - $_userRating');
+            _aiPersonalityId = profile.aiPersonalityId;
+            print('MatchingScreen: UserProfileからレーティング読み込み完了 - $_userRating, AI性格ID: $_aiPersonalityId');
           });
         }
         return;
@@ -365,46 +367,37 @@ class _MatchingScreenState extends State<MatchingScreen>
   }
 
   void _startOnlineUsersListener() {
-    // オンラインユーザー数をリアルタイムで監視
+    // キューイング中のユーザー数をリアルタイムで監視
     _onlineUsersSubscription = FirebaseFirestore.instance
         .collection('callRequests')
+        .where('status', isEqualTo: 'waiting') // waiting状態のみをカウント
         .snapshots()
         .listen((snapshot) {
       if (mounted) {
-        // マッチング待ちのユーザー数をカウント
-        final waitingUsers = snapshot.docs.where((doc) {
+        // 実際にマッチング待機中のユーザー数のみをカウント（自分を除く）
+        final currentUserId = _userProfileService.getCurrentUserId();
+        final queueingUsers = snapshot.docs.where((doc) {
           final data = doc.data();
+          final userId = data['userId'] as String? ?? '';
           final status = data['status'] as String? ?? '';
-          return status == 'waiting' || status == 'matched';
+          final forceAIMatch = data['forceAIMatch'] as bool? ?? false;
+          
+          // waiting状態で、AI強制マッチ以外で、自分以外のユーザーをカウント
+          return status == 'waiting' && 
+                 !forceAIMatch && 
+                 userId.isNotEmpty && 
+                 userId != currentUserId;
         }).length;
 
-        // 会話中のユーザー数をカウント（activeCalls コレクションから）
-        _getActiveCalls().then((activeCalls) {
-          if (mounted) {
-            final totalOnlineUsers = waitingUsers + (activeCalls * 2); // 通話は2人1組
-            setState(() {
-              _onlineUsers = totalOnlineUsers;
-            });
-          }
+        setState(() {
+          _onlineUsers = queueingUsers;
         });
+        
+        print('キューイング中のユーザー数: $queueingUsers');
       }
     });
   }
 
-  Future<int> _getActiveCalls() async {
-    try {
-      // アクティブな通話数を取得
-      final activeCallsSnapshot = await FirebaseFirestore.instance
-          .collection('activeCalls')
-          .where('status', isEqualTo: 'active')
-          .get();
-      
-      return activeCallsSnapshot.docs.length;
-    } catch (e) {
-      print('アクティブ通話数取得エラー: $e');
-      return 0;
-    }
-  }
 
   Future<void> _startMatching() async {
     try {
@@ -474,6 +467,7 @@ class _MatchingScreenState extends State<MatchingScreen>
             callId: match.callId,
             channelName: match.channelName,
             isVideoCall: widget.isVideoCall,
+            personalityId: _aiPersonalityId,
           ),
         ),
       );
@@ -530,6 +524,7 @@ class _MatchingScreenState extends State<MatchingScreen>
           callId: 'gemini_chat_${DateTime.now().millisecondsSinceEpoch}',
           channelName: 'gemini_channel',
           isVideoCall: widget.isVideoCall,
+          personalityId: _aiPersonalityId,
         ),
       ),
     );
@@ -673,7 +668,7 @@ class _MatchingScreenState extends State<MatchingScreen>
 
   Widget _buildOnlineUsers() {
     return Text(
-      'オンラインのユーザー ：$_onlineUsers人',
+      'マッチング待ちのユーザー：$_onlineUsers人',
       style: GoogleFonts.catamaran(
         fontSize: 15,
         fontWeight: FontWeight.w800,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:io' show Platform;
 import '../services/user_profile_service.dart';
+import '../services/version_notification_service.dart';
 import '../utils/theme_utils.dart';
 
 // 通知画面（仮）
@@ -16,12 +17,16 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
   final UserProfileService _userProfileService = UserProfileService();
+  final VersionNotificationService _versionService = VersionNotificationService();
   int _selectedThemeIndex = 0;
+  List<VersionNotification> _notifications = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _loadUserTheme();
+    _loadNotifications();
   }
 
   Future<void> _loadUserTheme() async {
@@ -31,6 +36,17 @@ class _NotificationScreenState extends State<NotificationScreen> {
         _selectedThemeIndex = profile.themeIndex;
       });
     }
+  }
+  
+  void _loadNotifications() {
+    _versionService.getUserNotifications().listen((notifications) {
+      if (mounted) {
+        setState(() {
+          _notifications = notifications;
+          _isLoading = false;
+        });
+      }
+    });
   }
 
   Color get _currentThemeColor => getAppTheme(_selectedThemeIndex).backgroundColor;
@@ -79,17 +95,183 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   Widget _buildContent() {
-    return const Column(
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      );
+    }
+    
+    return Column(
       children: [
-        Expanded(
-          child: Center(
-            child: Text(
-              '通知画面（仮）',
-              style: TextStyle(color: Colors.white),
+        // テスト用ボタン（開発環境でのみ表示）
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          child: ElevatedButton(
+            onPressed: () async {
+              await _versionService.createTestVersionNotification();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('テスト通知を作成しました')),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white.withOpacity(0.2),
+              foregroundColor: Colors.white,
             ),
+            child: const Text('テスト用バージョン通知作成'),
           ),
         ),
+        
+        Expanded(
+          child: _notifications.isEmpty 
+              ? _buildEmptyState()
+              : _buildNotificationList(),
+        ),
       ],
+    );
+  }
+  
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.notifications_off_outlined,
+            size: 64,
+            color: Colors.white.withOpacity(0.6),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            '通知はありません',
+            style: GoogleFonts.notoSans(
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+              color: Colors.white.withOpacity(0.8),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '新しい通知が届くとここに表示されます',
+            style: GoogleFonts.notoSans(
+              fontSize: 14,
+              color: Colors.white.withOpacity(0.6),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildNotificationList() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _notifications.length,
+      itemBuilder: (context, index) {
+        final notification = _notifications[index];
+        return _buildNotificationCard(notification);
+      },
+    );
+  }
+  
+  Widget _buildNotificationCard(VersionNotification notification) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: notification.isVersionUpdate 
+                ? Colors.green.withOpacity(0.1)
+                : Colors.blue.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            notification.isVersionUpdate 
+                ? Icons.system_update
+                : Icons.notifications,
+            color: notification.isVersionUpdate ? Colors.green : Colors.blue,
+          ),
+        ),
+        title: Text(
+          notification.title,
+          style: GoogleFonts.notoSans(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Text(
+              notification.message,
+              style: GoogleFonts.notoSans(
+                fontSize: 14,
+                color: Colors.black54,
+              ),
+            ),
+            if (notification.isVersionUpdate && 
+                notification.fromVersion != null && 
+                notification.toVersion != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  '${notification.fromVersion} → ${notification.toVersion}',
+                  style: GoogleFonts.notoSans(
+                    fontSize: 12,
+                    color: Colors.green[700],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 8),
+            Text(
+              notification.relativeTime,
+              style: GoogleFonts.notoSans(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+        trailing: !notification.isRead 
+            ? Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+              )
+            : null,
+        onTap: () async {
+          if (!notification.isRead) {
+            await _versionService.markAsRead(notification.id);
+          }
+        },
+      ),
     );
   }
 }

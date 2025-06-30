@@ -53,6 +53,7 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
   // 音声合成関連
   final VoiceVoxService _voiceVoxService = VoiceVoxService();
   final FlutterTts _flutterTts = FlutterTts();
+  bool _isSpeaking = false; // 音声合成中フラグ（重複防止）
   
   // サービス
   final UserProfileService _userProfileService = UserProfileService();
@@ -80,7 +81,7 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
   
   // UI状態
   String _userSpeechText = '';
-  String _aiResponseText = 'こんにちは！Gemini 2.5 Flash です。何かお話ししましょう！';
+  String _aiResponseText = ''; // 空文字で初期化
   String _errorMessage = '';
   
   // チャット履歴機能（talk_to_ai_screen.dartから統合）
@@ -116,14 +117,14 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
     _initializeGeminiChat();
     _startChatTimer();
     
-    // 初期化後に自動で音声認識開始
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted && !_chatEnded) {
-          _startListening();
-        }
-      });
-    });
+    // プッシュトゥトークモード：自動音声認識開始を無効化
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   Future.delayed(const Duration(seconds: 2), () {
+    //     if (mounted && !_chatEnded) {
+    //       _startListening();
+    //     }
+    //   });
+    // });
   }
   
   @override
@@ -188,7 +189,7 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
         'icon': 'aseets/icons/Guy 1.svg',
         'backgroundColor': const Color(0xFF81C784), // 薄緑
         'speakerId': 3,
-        'greeting': 'ずんだもんなのだ。',
+        'greeting': 'ボク、ずんだもんなのだ！元気とずんだパワーでがんばるのだ〜！',
       },
       {
         'name': '春日部つむぎ',
@@ -225,8 +226,7 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
     // VOICEVOXの話者IDを設定
     _voiceVoxService.setSpeaker(_personalityData['speakerId']);
     
-    // 初期挨拶メッセージを設定
-    _aiResponseText = _personalityData['greeting'];
+    // 初期設定（挨拶はinitializeGeminiChat()で設定される）
   }
 
   // ユーザー設定を読み込み
@@ -353,10 +353,12 @@ $_userPublicComment
       // 新しいチャットセッションを開始
       _chatSession = _aiModel.startChat();
       
-      // 新しいペルソナでの初期挨拶
+      // 新しいペルソナでの初期挨拶（重複防止チェック）
       String newGreeting = _getPersonalityGreeting(_aiPersonalityId);
       _addMessage('AI', newGreeting);
-      await _speakAI(newGreeting);
+      if (!_isSpeaking) {
+        await _speakAI(newGreeting);
+      }
       
       print('AIペルソナ変更完了: ${_getPersonalityName(_aiPersonalityId)}');
     } catch (e) {
@@ -547,7 +549,7 @@ ${_userFeatures.map((feature) => '- $feature').join('\n')}
       
       case 1: // ずんだもん
         basePrompt = '''ずんだもん：
-ボクはずんだもんなのだ。最初はあまり喋らないのだ。
+あなたはずんだもんという可愛い妖精の役を演じてください。
 
 【性格】
 - 初対面では警戒心が強く、素っ気ない態度を取る
@@ -739,10 +741,15 @@ ${_userFeatures.map((feature) => '- $feature').join('\n')}
       String initialMessage = _personalityData['greeting'] ?? 'こんにちは！';
       _addMessage('AI', initialMessage);
       
-      // 初期挨拶を音声で再生（少し遅延）
+      // _aiResponseTextも設定
+      setState(() {
+        _aiResponseText = initialMessage;
+      });
+      
+      // 初期挨拶を音声で再生（重複防止のため十分な遅延）
       if (mounted && !_chatEnded) {
-        Future.delayed(const Duration(milliseconds: 1000), () {
-          if (mounted && !_chatEnded) {
+        Future.delayed(const Duration(milliseconds: 2000), () {
+          if (mounted && !_chatEnded && !_isSpeaking) {
             _speakAI(initialMessage);
           }
         });
@@ -809,11 +816,21 @@ ${_userFeatures.map((feature) => '- $feature').join('\n')}
       _giveAIRatingToUser();
     }
     
-    // 3秒後にホーム画面に戻る
+    // 3秒後にホーム画面に戻る（右にスクロール）
     Timer(const Duration(seconds: 3), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              // 右から左へのスライド遷移（右にスクロール）
+              const begin = Offset(-1.0, 0.0); // 左から入ってくる（右にスクロール効果）
+              const end = Offset.zero;
+              const curve = Curves.ease;
+              final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+              return SlideTransition(position: animation.drive(tween), child: child);
+            },
+          ),
         );
       }
     });
@@ -970,16 +987,16 @@ ${_userFeatures.map((feature) => '- $feature').join('\n')}
     print('音声認識エラー (リトライ回数: $_speechRetryCount)');
     
     if (_speechRetryCount < 3) {
-      // 3回までリトライ
-      Timer(const Duration(milliseconds: 500), () {
-        if (!_chatEnded && mounted) {
-          _startListening();
-        }
-      });
+      // プッシュトゥトークモード：自動リトライを無効化
+      // Timer(const Duration(milliseconds: 500), () {
+      //   if (!_chatEnded && mounted) {
+      //     _startListening();
+      //   }
+      // });
     } else {
       setState(() {
         _isListening = false;
-        _errorMessage = '音声認識に問題が発生しました。画面をタップして再試行してください。';
+        _errorMessage = 'プッシュトゥトークボタンで音声入力してください。';
       });
       _listeningController.stop();
       _speechRetryCount = 0;
@@ -1051,12 +1068,12 @@ ${_userFeatures.map((feature) => '- $feature').join('\n')}
         });
         await _speakAI(_aiResponseText);
         
-        // エラー後も音声認識を再開
-        Future.delayed(const Duration(seconds: 1), () {
-          if (mounted && !_chatEnded && !_isListening && !_isProcessing) {
-            _startListening();
-          }
-        });
+        // プッシュトゥトークモード：自動再開を無効化
+        // Future.delayed(const Duration(seconds: 1), () {
+        //   if (mounted && !_chatEnded && !_isListening && !_isProcessing) {
+        //     _startListening();
+        //   }
+        // });
       }
     } finally {
       if (!_chatEnded && mounted) {
@@ -1064,22 +1081,29 @@ ${_userFeatures.map((feature) => '- $feature').join('\n')}
           _isProcessing = false;
         });
         
-        // 処理完了後、音声認識を再開（リトライカウントリセット）
+        // プッシュトゥトークモード：自動再開を無効化
         _speechRetryCount = 0; // リトライカウントリセット
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted && !_chatEnded && !_isListening && !_isProcessing) {
-            print('AI処理完了後の音声認識再開試行');
-            _startListening();
-          }
-        });
+        // Future.delayed(const Duration(seconds: 2), () {
+        //   if (mounted && !_chatEnded && !_isListening && !_isProcessing) {
+        //     print('AI処理完了後の音声認識再開試行');
+        //     _startListening();
+        //   }
+        // });
       }
     }
   }
 
   Future<void> _speakAI(String text) async {
-    if (_chatEnded) return;
+    if (_chatEnded || _isSpeaking) {
+      print('音声合成スキップ: _chatEnded=$_chatEnded, _isSpeaking=$_isSpeaking');
+      return;
+    }
     
     try {
+      setState(() {
+        _isSpeaking = true;
+      });
+      
       // VOICEVOXのみ使用（フォールバックなし）
       print('VOICEVOX音声合成開始: $text');
       
@@ -1100,6 +1124,14 @@ ${_userFeatures.map((feature) => '- $feature').join('\n')}
       }
     } catch (e) {
       print('音声合成エラー: $e（音声なしで継続）');
+    } finally {
+      // 短時間での重複を防ぐため、少し待機してからフラグを解除
+      await Future.delayed(const Duration(milliseconds: 1500));
+      if (mounted) {
+        setState(() {
+          _isSpeaking = false;
+        });
+      }
     }
   }
 
@@ -1137,7 +1169,21 @@ ${_userFeatures.map((feature) => '- $feature').join('\n')}
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: _endChat,
+          onPressed: () {
+            // 右にスクロールして戻る
+            Navigator.of(context).pushReplacement(
+              PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  const begin = Offset(-1.0, 0.0); // 右にスクロール
+                  const end = Offset.zero;
+                  const curve = Curves.ease;
+                  final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                  return SlideTransition(position: animation.drive(tween), child: child);
+                },
+              ),
+            );
+          },
         ),
       ),
       body: Column(
@@ -1328,7 +1374,7 @@ ${_userFeatures.map((feature) => '- $feature').join('\n')}
     );
   }
 
-  // 入力エリア（talk_to_ai_screen.dartから統合）
+  // 入力エリア（push-to-talk対応）
   Widget _buildInputArea() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1351,7 +1397,7 @@ ${_userFeatures.map((feature) => '- $feature').join('\n')}
                         ? '🎤 音声認識中...' 
                         : _isProcessing 
                             ? '🤖 AI思考中...' 
-                            : 'AIとチャットしてみよう...')
+                            : 'メッセージを入力または長押しで音声...')
                     : '初期化中...',
                 hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
                 filled: true,
@@ -1385,12 +1431,62 @@ ${_userFeatures.map((feature) => '- $feature').join('\n')}
             ),
           ),
           const SizedBox(width: 8),
+          // プッシュトゥトーク音声ボタン
+          GestureDetector(
+            onTapDown: (_) {
+              if (_isInitialized && !_isLoading && !_isProcessing) {
+                _startListening();
+              }
+            },
+            onTapUp: (_) {
+              if (_isListening) {
+                _stopListening();
+              }
+            },
+            onTapCancel: () {
+              if (_isListening) {
+                _stopListening();
+              }
+            },
+            child: Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: _isListening ? Colors.red : Colors.green,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: (_isListening ? Colors.red : Colors.green).withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: AnimatedBuilder(
+                  animation: _bounceAnimation,
+                  builder: (context, child) {
+                    return Transform.scale(
+                      scale: _isListening ? _bounceAnimation.value : 1.0,
+                      child: Icon(
+                        _isListening ? Icons.mic : Icons.mic_none,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
           // 終了ボタン
           Container(
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: Colors.red,
+              color: Colors.red.shade700,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(

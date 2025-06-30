@@ -4,18 +4,20 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:async';
 import 'zundamon_chat_screen.dart';
 
-/// AI（ずんだもん）専用プリコール画面
-/// レート850以下のユーザーがAIとマッチングしたときに表示される
+/// AI専用プリコール画面（5種類のペルソナ対応）
+/// レート880以下のユーザーがAIとマッチングしたときに表示される
 class AiPreCallScreen extends StatefulWidget {
   final String callId;
   final String channelName;
   final bool isVideoCall;
+  final int personalityId; // AI性格ID追加
 
   const AiPreCallScreen({
     super.key,
     required this.callId,
     required this.channelName,
     this.isVideoCall = false,
+    this.personalityId = 0, // デフォルト: ずんだもん
   });
 
   @override
@@ -28,10 +30,10 @@ class _AiPreCallScreenState extends State<AiPreCallScreen>
   late Animation<double> _pulseAnimation;
   Timer? _transitionTimer;
   
-  // ずんだもんの固定情報
-  final String _zundamonIcon = 'aseets/icons/Guy 1.svg'; // ずんだもん用アイコン
-  final String _zundamonName = 'ずんだもん';
-  final int _zundamonThemeIndex = 2; // 緑系テーマ
+  // AI性格情報（動的）
+  late String _aiIcon;
+  late String _aiName;
+  late Color _aiBackgroundColor;
   
   // テーマカラー（AppThemePalette準拠）
   final List<Color> _themeColors = [
@@ -45,6 +47,9 @@ class _AiPreCallScreenState extends State<AiPreCallScreen>
   @override
   void initState() {
     super.initState();
+    
+    // AI性格データを設定
+    _loadPersonalityData();
     
     // パルスアニメーション設定
     _pulseController = AnimationController(
@@ -75,11 +80,46 @@ class _AiPreCallScreenState extends State<AiPreCallScreen>
     super.dispose();
   }
 
+  void _loadPersonalityData() {
+    final personalities = [
+      {
+        'name': 'ずんだもん',
+        'icon': 'aseets/icons/Guy 1.svg',
+        'backgroundColor': const Color(0xFF81C784), // 薄緑
+      },
+      {
+        'name': '春日部つむぎ',
+        'icon': 'aseets/icons/Woman 2.svg',
+        'backgroundColor': const Color(0xFF64B5F6), // 知的な青
+      },
+      {
+        'name': '四国めたん',
+        'icon': 'aseets/icons/Woman 3.svg',
+        'backgroundColor': const Color(0xFFFFB74D), // 明るい橙
+      },
+      {
+        'name': '青山龍星',
+        'icon': 'aseets/icons/Guy 2.svg',
+        'backgroundColor': const Color(0xFF7986CB), // 力強い青紫
+      },
+      {
+        'name': '冥鳴ひまり',
+        'icon': 'aseets/icons/Woman 4.svg',
+        'backgroundColor': const Color(0xFFBA68C8), // ミステリアス紫
+      },
+    ];
+    
+    final personalityData = personalities[widget.personalityId];
+    _aiName = personalityData['name'] as String;
+    _aiIcon = personalityData['icon'] as String;
+    _aiBackgroundColor = personalityData['backgroundColor'] as Color;
+  }
+
   void _navigateToZundamonChat() {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => const ZundamonChatScreen(),
+        builder: (context) => ZundamonChatScreen(personalityId: widget.personalityId),
       ),
     );
   }
@@ -90,7 +130,7 @@ class _AiPreCallScreenState extends State<AiPreCallScreen>
     final screenWidth = MediaQuery.of(context).size.width;
     
     return Scaffold(
-      backgroundColor: const Color(0xFF81C784), // ずんだもんカラー（薄緑）
+      backgroundColor: _aiBackgroundColor, // 動的AI背景色
       body: SafeArea(
         child: Stack(
           children: [
@@ -101,8 +141,8 @@ class _AiPreCallScreenState extends State<AiPreCallScreen>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    const Color(0xFF81C784),
-                    const Color(0xFF66BB6A).withOpacity(0.8),
+                    _aiBackgroundColor,
+                    _aiBackgroundColor.withOpacity(0.8),
                   ],
                 ),
               ),
@@ -167,7 +207,7 @@ class _AiPreCallScreenState extends State<AiPreCallScreen>
                           child: Padding(
                             padding: const EdgeInsets.all(20),
                             child: SvgPicture.asset(
-                              _zundamonIcon,
+                              _aiIcon,
                               fit: BoxFit.contain,
                             ),
                           ),
@@ -178,9 +218,9 @@ class _AiPreCallScreenState extends State<AiPreCallScreen>
                   
                   SizedBox(height: screenHeight * 0.04),
                   
-                  // ずんだもん名前
+                  // AI名前
                   Text(
-                    _zundamonName,
+                    _aiName,
                     style: GoogleFonts.notoSans(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -218,47 +258,7 @@ class _AiPreCallScreenState extends State<AiPreCallScreen>
                     ),
                   ),
                   
-                  SizedBox(height: screenHeight * 0.06),
-                  
-                  // 励ましメッセージ
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    margin: const EdgeInsets.symmetric(horizontal: 40),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.favorite,
-                          color: const Color(0xFF81C784),
-                          size: 24,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'ボクと一緒にがんばるのだ〜！',
-                          style: GoogleFonts.notoSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF2E7D32),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'ずんだパワーで元気いっぱいにするのだ！',
-                          style: GoogleFonts.notoSans(
-                            fontSize: 13,
-                            color: Colors.grey[700],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  SizedBox(height: screenHeight * 0.06),
+                  SizedBox(height: screenHeight * 0.08),
                   
                   // カウントダウン表示
                   StreamBuilder<int>(

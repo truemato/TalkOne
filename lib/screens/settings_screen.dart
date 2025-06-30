@@ -5,6 +5,7 @@ import '../services/user_profile_service.dart';
 import '../services/rating_service.dart';
 import 'profile_setting_screen.dart';
 import 'credit_screen.dart';
+import 'voicevox_test_screen.dart';
 import '../utils/theme_utils.dart';
 
 // 設定画面本体
@@ -681,6 +682,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     PageRouteBuilder(
                       pageBuilder: (context, animation, secondaryAnimation) =>
                           const ProfileSettingScreen(),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        const begin = Offset(1.0, 0.0);
+                        const end = Offset.zero;
+                        const curve = Curves.ease;
+                        final tween = Tween(begin: begin, end: end)
+                            .chain(CurveTween(curve: curve));
+                        return SlideTransition(
+                          position: animation.drive(tween),
+                          child: child,
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+              // VOICEVOX テスト画面
+              ListTile(
+                leading: const Icon(Icons.mic, color: Colors.white),
+                title: const Text('VOICEVOX テスト', style: TextStyle(color: Colors.white)),
+                trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+                onTap: () {
+                  Navigator.of(context).push(
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) =>
+                          const VoicevoxTestScreen(),
                       transitionsBuilder: (context, animation, secondaryAnimation, child) {
                         const begin = Offset(1.0, 0.0);
                         const end = Offset.zero;

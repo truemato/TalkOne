@@ -3,6 +3,7 @@ import 'home_screen.dart';
 import 'history_screen.dart';
 import 'settings_screen.dart';
 import 'notification_screen.dart';
+import '../services/version_notification_service.dart';
 
 class PageViewContainer extends StatefulWidget {
   const PageViewContainer({super.key});
@@ -14,12 +15,29 @@ class PageViewContainer extends StatefulWidget {
 class _PageViewContainerState extends State<PageViewContainer> {
   final PageController _horizontalPageController = PageController(initialPage: 1);
   final PageController _verticalPageController = PageController(initialPage: 1);
+  final VersionNotificationService _versionService = VersionNotificationService();
+  
+  @override
+  void initState() {
+    super.initState();
+    // アプリ起動時にバージョンチェックを実行
+    _checkVersionOnStartup();
+  }
   
   @override
   void dispose() {
     _horizontalPageController.dispose();
     _verticalPageController.dispose();
     super.dispose();
+  }
+  
+  /// アプリ起動時のバージョンチェック
+  Future<void> _checkVersionOnStartup() async {
+    try {
+      await _versionService.checkVersionOnStartup();
+    } catch (e) {
+      print('バージョンチェックエラー: $e');
+    }
   }
 
   // ホーム画面に戻る関数
