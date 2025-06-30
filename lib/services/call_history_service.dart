@@ -40,10 +40,22 @@ class CallHistory {
 
   factory CallHistory.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    
+    // ニックネームの処理を改善
+    String partnerNickname = data['partnerNickname'] ?? '';
+    if (partnerNickname.trim().isEmpty) {
+      final partnerId = data['partnerId'] ?? '';
+      if (partnerId.isNotEmpty) {
+        partnerNickname = 'ユーザー${partnerId.substring(0, partnerId.length >= 6 ? 6 : partnerId.length)}';
+      } else {
+        partnerNickname = 'ユーザー';
+      }
+    }
+    
     return CallHistory(
       callId: data['callId'] ?? '',
       partnerId: data['partnerId'] ?? '',
-      partnerNickname: data['partnerNickname'] ?? 'Unknown',
+      partnerNickname: partnerNickname,
       partnerIconPath: data['partnerIconPath'] ?? 'aseets/icons/Woman 1.svg',
       callDateTime: (data['callDateTime'] as Timestamp).toDate(),
       callDuration: data['callDuration'] ?? 0,
@@ -94,6 +106,42 @@ class CallHistoryService {
     } catch (e) {
       print('Error getting call history: $e');
       return [];
+    }
+  }
+
+  // Unknownになっている履歴を修正
+  Future<void> fixUnknownNicknames() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      final snapshot = await _firestore
+          .collection('callHistories')
+          .doc(user.uid)
+          .collection('calls')
+          .where('partnerNickname', isEqualTo: 'Unknown')
+          .get();
+
+      print('✅ Unknownニックネームの履歴${snapshot.docs.length}件を修正中...');
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final partnerId = data['partnerId'] ?? '';
+        
+        if (partnerId.isNotEmpty) {
+          final newNickname = 'ユーザー${partnerId.substring(0, partnerId.length >= 6 ? 6 : partnerId.length)}';
+          
+          await doc.reference.update({
+            'partnerNickname': newNickname,
+          });
+          
+          print('✅ ${doc.id}: Unknown -> $newNickname');
+        }
+      }
+      
+      print('✅ Unknownニックネームの修正完了');
+    } catch (e) {
+      print('❌ Unknownニックネーム修正エラー: $e');
     }
   }
 

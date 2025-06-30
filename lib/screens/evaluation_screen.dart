@@ -207,6 +207,7 @@ class _EvaluationScreenState extends State<EvaluationScreen>
               partnerId: widget.partnerId,
               callId: widget.callId,
               isDummyMatch: widget.isDummyMatch,
+              showReportButton: true, // 評価画面からの遷移時は通報ボタンを表示
             ),
           ),
         );

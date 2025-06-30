@@ -27,6 +27,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
   void initState() {
     super.initState();
     _loadUserTheme();
+    // Unknownニックネームを修正
+    _callHistoryService.fixUnknownNicknames();
   }
 
   Future<void> _loadUserTheme() async {

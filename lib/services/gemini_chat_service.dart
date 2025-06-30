@@ -117,11 +117,12 @@ class GeminiChatService {
         return false;
       }
       
-      // ユーザープロフィールとAIメモリを取得
+      // 完全なユーザープロフィール情報を取得
       String userMemory = '';
       String userName = '';
       String userGender = '';
       String userBirthday = '';
+      String userPublicComment = '';
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final profile = await _userProfileService.getUserProfile();
@@ -130,7 +131,8 @@ class GeminiChatService {
           userName = profile.nickname ?? '';
           userGender = profile.gender ?? '';
           userBirthday = profile.birthday?.toString() ?? '';
-          print('ユーザープロフィール取得: 名前="$userName", 性別="$userGender", 誕生日="$userBirthday", AIメモリ="$userMemory"');
+          userPublicComment = profile.comment ?? '';
+          print('ユーザープロフィール取得: 名前="$userName", 性別="$userGender", 誕生日="$userBirthday", AIメモリ="$userMemory", みんなに一言="$userPublicComment"');
         }
       }
       
@@ -168,9 +170,20 @@ $userMemory
 この情報は非常に重要です。会話の中でこの内容を話題にしたり、この方の興味や関心に合わせて適切な質問やアドバイスを提供してください。
 ''' : ''}
 
+${userPublicComment.isNotEmpty ? '''
+【${userName.isNotEmpty ? userName + 'さん' : 'この方'}の「みんなに一言」（本来は他のユーザー向け）】
+$userPublicComment
+
+※これは本来他のアプリユーザー向けのメッセージですが、AIも知っています。
+この内容からユーザーの性格や興味を推測して会話に活かしてください。
+''' : ''}
+
 【例】
 相手「最近疲れて...」
 私「お疲れさまです${userName.isNotEmpty ? '、' + userName + 'さん' : ''}。何か大変なことがあったのでしょうか？話してくださったら、少しでもお役に立てるかもしれません。」
+
+【重要：出力制限ルール】
+アスタリスク、米印、絵文字、アスキーアートのような記号を出力せずに、日本語と感嘆符と句点、読点のみを出力するように。音声読み上げで記号が読まれないようにするため、*、※、♪、☆、★、◆、■、→、←、↑、↓、♡、♥、(^_^)、(笑)、www、ｗｗｗなどの記号類は一切使用しないでください。
 ''';
       
       // 初期メッセージを個人的なものに変更

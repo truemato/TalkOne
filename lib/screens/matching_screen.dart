@@ -408,10 +408,18 @@ class _MatchingScreenState extends State<MatchingScreen>
 
   Future<void> _startMatching() async {
     try {
-      // レート850以下の場合はAI強制フラグを表示
-      bool isLowRating = _userRating <= 850;
-      if (isLowRating) {
-        print('レート${_userRating}が850以下のため、AI（ずんだもん）とのマッチングを開始します');
+      // 多段階AI救済システムの判定
+      bool isAIRescueMode = _userRating <= 880;
+      if (isAIRescueMode) {
+        String rescueLevel = '';
+        if (_userRating <= 550) rescueLevel = 'レベル3（550以下）';
+        else if (_userRating <= 580) rescueLevel = 'レベル3継続中（550-580）';
+        else if (_userRating <= 700) rescueLevel = 'レベル2（700以下）';
+        else if (_userRating <= 730) rescueLevel = 'レベル2継続中（700-730）';
+        else if (_userRating <= 850) rescueLevel = 'レベル1（850以下）';
+        else rescueLevel = 'レベル1継続中（850-880）';
+        
+        print('レート${_userRating}: AI救済モード $rescueLevel でずんだもんとのマッチングを開始します');
       }
       
       // 通話リクエストを作成（レート850以下は自動でAI判定）
@@ -598,31 +606,34 @@ class _MatchingScreenState extends State<MatchingScreen>
                       _buildOnlineUsers(),
                       SizedBox(
                           height: contentHeight * 0.04), // オンラインユーザーとマッチング中の間（4%）
-                      // レート850以下の場合、AI通知を表示
-                      if (_userRating <= 850) ...[
+                      // 多段階AI救済システムの通知を表示
+                      if (_userRating <= 880) ...[
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                           margin: const EdgeInsets.symmetric(horizontal: 20),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF81C784).withOpacity(0.9), // ずんだもんカラー
+                            color: _getAINotificationColor().withOpacity(0.9),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: Colors.white.withOpacity(0.3)),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(
-                                Icons.smart_toy,
+                              Icon(
+                                _getAINotificationIcon(),
                                 color: Colors.white,
                                 size: 20,
                               ),
                               const SizedBox(width: 8),
-                              Text(
-                                'AI（ずんだもん）とマッチング中',
-                                style: GoogleFonts.notoSans(
-                                  fontSize: 14,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
+                              Flexible(
+                                child: Text(
+                                  _getAINotificationMessage(),
+                                  style: GoogleFonts.notoSans(
+                                    fontSize: 14,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  textAlign: TextAlign.center,
                                 ),
                               ),
                             ],
@@ -767,5 +778,48 @@ class _MatchingScreenState extends State<MatchingScreen>
         ),
       ),
     );
+  }
+
+  // 多段階AI救済システム用の通知ヘルパーメソッド
+  Color _getAINotificationColor() {
+    if (_userRating <= 550) {
+      return const Color(0xFFFF5722); // 深いオレンジ赤（レベル3）
+    } else if (_userRating <= 580) {
+      return const Color(0xFFFF5722); // 深いオレンジ赤（レベル3継続）
+    } else if (_userRating <= 700) {
+      return const Color(0xFFFF9800); // オレンジ（レベル2）
+    } else if (_userRating <= 730) {
+      return const Color(0xFFFF9800); // オレンジ（レベル2継続）
+    } else if (_userRating <= 850) {
+      return const Color(0xFF81C784); // ずんだもんカラー（レベル1）
+    } else {
+      return const Color(0xFF81C784); // ずんだもんカラー（レベル1継続）
+    }
+  }
+
+  IconData _getAINotificationIcon() {
+    if (_userRating <= 550) {
+      return Icons.emergency; // 緊急レベル
+    } else if (_userRating <= 700) {
+      return Icons.medical_services; // 医療レベル
+    } else {
+      return Icons.smart_toy; // AI通常レベル
+    }
+  }
+
+  String _getAINotificationMessage() {
+    if (_userRating <= 550) {
+      return 'AI救済モード（レベル3）- ずんだもんとマッチング';
+    } else if (_userRating <= 580) {
+      return 'AI救済継続中（レベル3）- ずんだもんとマッチング';
+    } else if (_userRating <= 700) {
+      return 'AI救済モード（レベル2）- ずんだもんとマッチング';
+    } else if (_userRating <= 730) {
+      return 'AI救済継続中（レベル2）- ずんだもんとマッチング';
+    } else if (_userRating <= 850) {
+      return 'AI救済モード（レベル1）- ずんだもんとマッチング';
+    } else {
+      return 'AI救済継続中（レベル1）- ずんだもんとマッチング';
+    }
   }
 }

@@ -24,6 +24,64 @@ class VoiceVoxService {
   double _intonation = 1.0;
   double _volume = 1.0;
   
+  // キャラクターごとの話者情報
+  static const Map<String, dynamic> voicevoxSpeakers = {
+    '春日部つむぎ': {
+      'uuid': '35b2c544-660e-401e-b503-0e14c635303a',
+      'styles': {
+        'ノーマル': 8,
+      }
+    },
+    'ずんだもん': {
+      'uuid': '388f246b-8c41-4ac1-8e2d-5d79f3ff56d9',
+      'styles': {
+        'ノーマル': 3,
+        'あまあま': 1,
+        'ツンツン': 7,
+        'セクシー': 5,
+        'ささやき': 22,
+        'ヒソヒソ': 38,
+        'ヘロヘロ': 75,
+        'なみだめ': 76,
+      }
+    },
+    '四国めたん': {
+      'uuid': '7ffcb7ce-00ec-4bdc-82cd-45a8889e43ff',
+      'styles': {
+        'ノーマル': 2,
+        'あまあま': 0,
+        'ツンツン': 6,
+        'セクシー': 4,
+        'ささやき': 36,
+        'ヒソヒソ': 37,
+      }
+    },
+    '雨晴はう': {
+      'uuid': '3474ee95-c274-47f9-aa1a-8322163d96f1',
+      'styles': {
+        'ノーマル': 10,
+      }
+    },
+    '青山龍星': {
+      'uuid': '4f51116a-d9ee-4516-925d-21f183e2afad',
+      'styles': {
+        'ノーマル': 13,
+        '熱血': 81,
+        '不機嫌': 82,
+        '喜び': 83,
+        'しっとり': 84,
+        'かなしみ': 85,
+        '囁き': 86,
+      }
+    },
+    '冥鳴ひまり': {
+      'uuid': '8eaad775-3119-417e-8cf4-2a10bfd592c8',
+      'styles': {
+        'ノーマル': 14,
+      }
+    },
+  };
+  
   VoiceVoxService({
     String? host,
     bool useLocalEngine = false,
@@ -39,17 +97,40 @@ class VoiceVoxService {
   /// キャラクターIDに基づいて話者を設定
   void setSpeakerByCharacter(int characterId) {
     // キャラクターIDに対応するVOICEVOX話者IDマッピング
+    // 注意: characterId 3は雨晴はうから春日部つむぎに変更されている
     final speakerMapping = {
-      0: 8,  // 春日部つむぎ
-      1: 3,  // ずんだもん
-      2: 2,  // 四国めたん
-      3: 13, // 雨晴はう
-      4: 10, // 青山龍星
-      5: 2,  // 冥鳴ひまり（四国めたんの声を使用）
+      0: 8,  // 春日部つむぎ（ノーマル）
+      1: 3,  // ずんだもん（ノーマル）
+      2: 2,  // 四国めたん（ノーマル）
+      3: 8,  // 春日部つむぎ（ノーマル）- 元は雨晴はう
+      4: 13, // 青山龍星（ノーマル）
+      5: 14, // 冥鳴ひまり（ノーマル）
     };
     
     final voicevoxSpeakerId = speakerMapping[characterId] ?? 3; // デフォルト: ずんだもん
     setSpeaker(voicevoxSpeakerId);
+    
+    // キャラクターに応じた音声パラメータの調整
+    switch (characterId) {
+      case 0: // 春日部つむぎ - 落ち着いた知的な声
+      case 3: // 春日部つむぎ（ID 3も同じ）
+        setVoiceParameters(speed: 0.95, pitch: 0.0, intonation: 1.0);
+        break;
+      case 1: // ずんだもん - 元気で明るい声
+        setVoiceParameters(speed: 1.1, pitch: 0.1, intonation: 1.2);
+        break;
+      case 2: // 四国めたん - 明るくハキハキした声
+        setVoiceParameters(speed: 1.05, pitch: 0.05, intonation: 1.1);
+        break;
+      case 4: // 青山龍星 - 力強い男性的な声
+        setVoiceParameters(speed: 0.9, pitch: -0.1, intonation: 1.1);
+        break;
+      case 5: // 冥鳴ひまり - ミステリアスで落ち着いた声
+        setVoiceParameters(speed: 0.85, pitch: -0.05, intonation: 0.9);
+        break;
+      default:
+        setVoiceParameters(speed: 1.0, pitch: 0.0, intonation: 1.0);
+    }
   }
   
   /// 音声パラメータを設定

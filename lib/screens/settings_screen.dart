@@ -638,9 +638,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: const Icon(Icons.face, color: Colors.white, size: 20),
                       ),
                     ),
-                    // 4番目: 雨晴はう（オレンジ）- 制限なし
+                    // 4番目: 春日部つむぎ（オレンジ）- レート4000以上
                     GestureDetector(
-                      onTap: () => _selectVoicePersonality(3),
+                      onTap: () => _selectVoicePersonality(0),
                       child: Container(
                         margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                         width: 32,

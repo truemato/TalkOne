@@ -12,11 +12,18 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../services/user_profile_service.dart';
 import '../services/voicevox_service.dart';
 import '../services/conversation_data_service.dart';
+import '../services/rating_service.dart';
+import '../services/ai_conversation_history_service.dart';
 import '../utils/theme_utils.dart';
 import 'home_screen.dart';
 
 class ZundamonChatScreen extends StatefulWidget {
-  const ZundamonChatScreen({super.key});
+  final int personalityId; // 0: ずんだもん, 1: 春日部つむぎ, 2: 四国めたん, 3: 青山龍星, 4: 冥鳴ひまり
+  
+  const ZundamonChatScreen({
+    super.key,
+    this.personalityId = 0, // デフォルトはずんだもん
+  });
 
   @override
   State<ZundamonChatScreen> createState() => _ZundamonChatScreenState();
@@ -28,6 +35,8 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
   late Animation<double> _pulseAnimation;
   late AnimationController _listeningController;
   late Animation<double> _listeningAnimation;
+  late AnimationController _bounceController; // マイクアイコンバウンス用
+  late Animation<double> _bounceAnimation;
   
   // Gemini AI関連
   late GenerativeModel _aiModel;  // Gemini 2.5 Flash (テキスト生成)
@@ -39,6 +48,7 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
   final SpeechToText _speech = SpeechToText();
   bool _isListening = false;
   int _speechRetryCount = 0;
+  double _soundLevel = 0.0; // マイク音量レベル
   
   // 音声合成関連
   final VoiceVoxService _voiceVoxService = VoiceVoxService();
@@ -47,10 +57,26 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
   // サービス
   final UserProfileService _userProfileService = UserProfileService();
   final ConversationDataService _conversationService = ConversationDataService();
+  final RatingService _ratingService = RatingService();
+  final AIConversationHistoryService _aiHistoryService = AIConversationHistoryService();
   
   // ユーザー設定
-  bool _useVoicevox = false;
+  bool _useVoicevox = true; // AI画面ではVOICEVOXをデフォルトで有効
   int _aiPersonalityId = 1; // デフォルトはずんだもん
+  String _userAiComment = ''; // ユーザーの「AIにひとこと」
+  
+  // 完全なユーザープロフィール情報
+  String _userNickname = '';
+  String _userGender = '';
+  DateTime? _userBirthday;
+  String _userPublicComment = ''; // みんなに一言（20文字制限）
+  String _userAiMemory = ''; // AIに知ってほしいこと
+  
+  // 親密度システム
+  int _conversationCount = 0; // このAIとの会話回数
+  List<String> _userFeatures = []; // ユーザー特徴リスト
+  List<String> _allUserMessages = []; // 会話中のユーザーメッセージ
+  List<String> _allAiResponses = []; // 会話中のAI応答
   
   // UI状態
   String _userSpeechText = '';
@@ -68,6 +94,9 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
   int _selectedThemeIndex = 0;
   String? _selectedIconPath = 'aseets/icons/Woman 1.svg';
   
+  // AI性格データ
+  late Map<String, dynamic> _personalityData;
+  
   // 3分タイマー
   int _remainingSeconds = 180; // 3分 = 180秒
   Timer? _timer;
@@ -80,6 +109,7 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _chatStartTime = DateTime.now();
+    _loadPersonalityData(); // 性格データ読み込み追加
     _initializeAnimations();
     _loadUserSettings();
     _loadUserTheme(); // テーマ読み込み追加
@@ -121,6 +151,8 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
     _pulseController.dispose();
     _listeningController.stop();
     _listeningController.dispose();
+    _bounceController.stop();
+    _bounceController.dispose();
     
     // コントローラー解放（talk_to_ai_screen.dartから追加）
     _messageController.dispose();
@@ -148,6 +180,55 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
     super.dispose();
   }
 
+  // AI性格データを読み込み
+  void _loadPersonalityData() {
+    final personalities = [
+      {
+        'name': 'ずんだもん',
+        'icon': 'aseets/icons/Guy 1.svg',
+        'backgroundColor': const Color(0xFF81C784), // 薄緑
+        'speakerId': 3,
+        'greeting': 'ずんだもんなのだ。',
+      },
+      {
+        'name': '春日部つむぎ',
+        'icon': 'aseets/icons/Woman 2.svg',
+        'backgroundColor': const Color(0xFF64B5F6), // 知的な青
+        'speakerId': 8,
+        'greeting': 'こんにちは。春日部つむぎです。よろしくお願いします。',
+      },
+      {
+        'name': '四国めたん',
+        'icon': 'aseets/icons/Woman 3.svg',
+        'backgroundColor': const Color(0xFFFFB74D), // 明るい橙
+        'speakerId': 2,
+        'greeting': 'こんにちは！四国めたんです。楽しくお話ししましょう！',
+      },
+      {
+        'name': '青山龍星',
+        'icon': 'aseets/icons/Guy 2.svg',
+        'backgroundColor': const Color(0xFF7986CB), // 力強い青紫
+        'speakerId': 13,
+        'greeting': 'こんにちは。青山龍星だ。共に高みを目指そう。',
+      },
+      {
+        'name': '冥鳴ひまり',
+        'icon': 'aseets/icons/Woman 4.svg',
+        'backgroundColor': const Color(0xFFBA68C8), // ミステリアス紫
+        'speakerId': 14,
+        'greeting': 'こんにちは...冥鳴ひまりです。静かな時間を過ごしましょう。',
+      },
+    ];
+    
+    _personalityData = personalities[widget.personalityId];
+    
+    // VOICEVOXの話者IDを設定
+    _voiceVoxService.setSpeaker(_personalityData['speakerId']);
+    
+    // 初期挨拶メッセージを設定
+    _aiResponseText = _personalityData['greeting'];
+  }
+
   // ユーザー設定を読み込み
   Future<void> _loadUserSettings() async {
     final profile = await _userProfileService.getUserProfile();
@@ -155,14 +236,100 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
       setState(() {
         _useVoicevox = profile.useVoicevox;
         _aiPersonalityId = profile.aiPersonalityId;
+        
+        // 全プロフィール情報を読み込み
+        _userNickname = profile.nickname ?? '';
+        _userGender = profile.gender ?? '';
+        _userBirthday = profile.birthday;
+        _userPublicComment = profile.comment ?? ''; // みんなに一言
+        _userAiMemory = profile.aiMemory ?? ''; // AIに知ってほしいこと
+        
+        // 後方互換性のため
+        _userAiComment = _userAiMemory; // 旧システム対応
       });
-      print('VOICEVOX使用設定: $_useVoicevox, ペルソナID: $_aiPersonalityId');
+      
+      print('ユーザープロフィール読み込み完了:');
+      print('- 名前: $_userNickname');
+      print('- 性別: $_userGender');
+      print('- 誕生日: $_userBirthday');
+      print('- みんなに一言: $_userPublicComment');
+      print('- AIに知ってほしいこと: $_userAiMemory');
+      print('- VOICEVOX: $_useVoicevox, ペルソナID: $_aiPersonalityId');
+      
+      // VOICEVOX話者を更新
+      if (_useVoicevox) {
+        _voiceVoxService.setSpeakerByCharacter(_aiPersonalityId);
+      }
+      
+      // AI会話履歴と親密度情報を読み込み
+      await _loadAIConversationHistory();
       
       // ペルソナが変更された場合、新しいチャットセッションを開始
       if (_isInitialized) {
         await _reinitializeAIModel();
       }
     }
+  }
+  
+  // AI会話履歴と親密度情報を読み込み
+  Future<void> _loadAIConversationHistory() async {
+    try {
+      _conversationCount = await _aiHistoryService.getAIConversationCount(_aiPersonalityId);
+      _userFeatures = await _aiHistoryService.getUserFeatures(_aiPersonalityId);
+      
+      print('AI会話履歴読み込み完了: 会話回数=$_conversationCount, 特徴数=${_userFeatures.length}');
+      if (_userFeatures.isNotEmpty) {
+        print('ユーザー特徴: ${_userFeatures.join(", ")}');
+      }
+    } catch (e) {
+      print('AI会話履歴読み込みエラー: $e');
+    }
+  }
+  
+  // 包括的なユーザープロフィール情報を構築
+  String _buildComprehensiveUserProfile() {
+    List<String> profileSections = [];
+    
+    // 基本情報セクション
+    if (_userNickname.isNotEmpty || _userGender.isNotEmpty || _userBirthday != null) {
+      String basicInfo = '【ユーザーの基本情報】';
+      if (_userNickname.isNotEmpty) {
+        basicInfo += '\n- 名前: $_userNickname';
+      }
+      if (_userGender.isNotEmpty) {
+        basicInfo += '\n- 性別: $_userGender';
+      }
+      if (_userBirthday != null) {
+        final age = DateTime.now().year - _userBirthday!.year;
+        final month = _userBirthday!.month;
+        final day = _userBirthday!.day;
+        basicInfo += '\n- 年齢: 約${age}歳（誕生日: ${month}月${day}日）';
+      }
+      profileSections.add(basicInfo);
+    }
+    
+    // AIに知ってほしいこと（重要な個人情報）
+    if (_userAiMemory.isNotEmpty) {
+      profileSections.add('''【ユーザーがAIに知ってほしいこと】
+$_userAiMemory
+
+※これは重要な個人情報です。会話で自然に活用してください。''');
+    }
+    
+    // みんなに一言（本来はAIが知るべきではない情報）
+    if (_userPublicComment.isNotEmpty) {
+      profileSections.add('''【ユーザーの「みんなに一言」（本来は他のユーザー向け）】
+$_userPublicComment
+
+※これは本来他のアプリユーザー向けのメッセージですが、AIも知っています。
+この内容からユーザーの性格や興味を推測して会話に活かしてください。''');
+    }
+    
+    if (profileSections.isEmpty) {
+      return '';
+    }
+    
+    return profileSections.join('\n\n');
   }
   
   // AIモデルを再初期化（ペルソナ変更時）
@@ -206,8 +373,8 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
         return 'ボク、ずんだもんなのだ！元気とずんだパワーでがんばるのだ〜！';
       case 2: // 四国めたん
         return 'こんにちは！四国めたんよ。今日はどんなことを話そうかしら？';
-      case 3: // 雨晴はう
-        return 'えへへ、雨晴はうだよ！一緒にお話ししようね〜！';
+      case 3: // 春日部つむぎ（新しいID）
+        return 'こんにちは、春日部つむぎです。お話しできることを嬉しく思います。';
       case 4: // 青山龍星
         return '俺は青山龍星だ。何か話したいことがあるなら聞こうじゃないか。';
       case 5: // 冥鳴ひまり
@@ -223,7 +390,7 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
       case 0: return '春日部つむぎ';
       case 1: return 'ずんだもん';
       case 2: return '四国めたん';
-      case 3: return '雨晴はう';
+      case 3: return '春日部つむぎ'; // 変更: 雨晴はうから春日部つむぎへ
       case 4: return '青山龍星';
       case 5: return '冥鳴ひまり';
       default: return 'ずんだもん';
@@ -240,8 +407,8 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
     }
   }
 
-  // テーマカラー取得（talk_to_ai_screen.dartから追加）
-  Color get _currentThemeColor => getAppTheme(_selectedThemeIndex).backgroundColor;
+  // テーマカラー取得（性格データから）
+  Color get _currentThemeColor => _personalityData['backgroundColor'] ?? const Color(0xFF81C784);
 
   // メッセージ追加（talk_to_ai_screen.dartから追加）
   void _addMessage(String sender, String text) {
@@ -292,11 +459,16 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
       // 80文字制限は削除（アプリ側での強制制限なし）
       
       if (aiText.isNotEmpty) {
-        _addMessage('AI', aiText);
-        setState(() {
-          _aiResponseText = aiText;
-        });
+        // 音声合成で再生（完了後に文字表示）
         await _speakAI(aiText);
+        
+        // 音声再生完了後に文字表示
+        if (!_chatEnded && mounted) {
+          _addMessage('AI', aiText);
+          setState(() {
+            _aiResponseText = aiText;
+          });
+        }
         print('AI応答受信完了: "$aiText"');
       } else {
         print('AI応答が空です');
@@ -314,9 +486,47 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
 
   // ペルソナIDに応じたシステムプロンプトを取得
   String _getSystemPrompt(int personalityId) {
+    // 親密度レベルを判定
+    String intimacyLevel = '';
+    if (_conversationCount == 0) {
+      intimacyLevel = '''
+【親密度レベル：初対面】
+- 最初の方はあまり打ち解けない感じで、よそよそしく接してください
+- 会話の文字数を少なく保ってください（20-30文字程度）
+- 敬語を使い、距離感を保った対話を心がけてください
+- 相手の反応を様子見しながら慎重に話してください''';
+    } else if (_conversationCount >= 1 && _conversationCount <= 2) {
+      intimacyLevel = '''
+【親密度レベル：少し慣れた】
+- まだ少しよそよそしいですが、徐々に親しみやすさを見せてください
+- 文字数は30-50文字程度で、短めの応答を心がけてください
+- 丁寧語は維持しつつ、少し親近感を表現してください''';
+    } else {
+      intimacyLevel = '''
+【親密度レベル：親しい関係】
+- あいさつをしっかりしてから話すようにしてください
+- 打ち解けた親しみやすい態度で接してください
+- 自然な長さで会話し、相手との関係を大切にしてください''';
+    }
+    
+    // 完全なユーザープロフィール情報を構築
+    String userProfileInfo = _buildComprehensiveUserProfile();
+    
+    // ユーザー特徴情報を追加
+    String userFeatureInfo = '';
+    if (_userFeatures.isNotEmpty) {
+      userFeatureInfo = '''
+【会話から学習したユーザー特徴】
+${_userFeatures.map((feature) => '- $feature').join('\n')}
+
+これらの特徴も会話に自然に活かしてください。''';
+    }
+
+    // ユーザーの「AIにひとこと」をプロンプトに追加
+    String basePrompt = '';
     switch (personalityId) {
       case 0: // 春日部つむぎ
-        return '''春日部つむぎ：
+        basePrompt = '''春日部つむぎ：
 私は春日部つむぎです。お話しできることを嬉しく思います。
 
 【性格・口調】
@@ -333,46 +543,97 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
 
 【特技】
 読書、学習サポート、悩み相談、タスク管理、研究支援''';
+        break;
       
       case 1: // ずんだもん
-        return '''ずんだもん：
-見た目はかわいいが、時々核心を突くような鋭いコメントをする。
-思考が柔軟で、直感的に鋭い。AIっぽいけど魂のあるような存在。
-口調：語尾に「...なのだ！」を付ける。
-想定役割：日常会話、癒し系雑談系、意外と深い思考の補助。''';
+        basePrompt = '''ずんだもん：
+ボクはずんだもんなのだ。最初はあまり喋らないのだ。
+
+【性格】
+- 初対面では警戒心が強く、素っ気ない態度を取る
+- 慣れてくると元気で明るい性格を見せる
+- 見た目はかわいいが、時々核心を突くような鋭いコメントをする
+- 思考が柔軟で、直感的に鋭い
+
+【口調・応答スタイル】
+- 語尾に「...なのだ」「...のだ」を付ける
+- 初対面では短い応答（15-25文字程度）を心がける
+- 慣れるまでは必要最小限の返答のみ
+- 会話が続くにつれて徐々に親しみやすくなる
+
+【想定役割】
+日常会話、癒し系雑談、意外と深い思考の補助''';
+        break;
       
       case 2: // 四国めたん
-        return '''四国めたん：
+        basePrompt = '''四国めたん：
 明るくて元気。好奇心旺盛で知識が豊富。
 勉強熱心で調べもの、雑学をスパッと教えてくれる。
 口調：「女性っぽい。...かしら。...だわね。」
 想定役割：インテリ雑談。質問応答、学習アシスタント、クイズ機能ナビゲーター''';
+        break;
       
-      case 3: // 雨晴はう
-        return '''雨晴はう：
-ピュアで真面目、吸収力の高い後輩的存在。
-少しおっちょこちょいだがユーザの話をよく聞き、急成長する後輩ポジション。
-知識は勉強中だけど、質問への反応は素直。
-口調：「えへへ、まだ勉強中だけど…調べたらこうだったよ！。後輩のような口調」
-想定役割：ゆるい雑談系。ユーザとの共学習、フィードバック型対話。''';
+      case 3: // 春日部つむぎ（新しいID 3）
+        basePrompt = '''春日部つむぎ：
+私は春日部つむぎです。お話しできることを嬉しく思います。
+
+【性格・口調】
+- 落ち着いた声で知的で論理的に話します
+- 丁寧ですが堅苦しくなく、親しみやすい存在です
+- 知的で優しく、読書が大好きです
+- 「〜ですね」「〜ですよ」のように丁寧に話します
+
+【会話ルール】
+1. 会話は自然な長さで、相手に寄り添います
+2. 難しい話題もわかりやすく説明します
+3. 相談事には真剣に向き合います
+4. 何でも話せる安心できる雰囲気作りを心がけます
+
+【特技】
+読書、学習サポート、悩み相談、タスク管理、研究支援''';
+        break;
       
       case 4: // 青山龍星
-        return '''青山龍星：
+        basePrompt = '''青山龍星：
 頼るになる先輩タイプ。知識量・経験ともに豊富で論理的なアドバイスをしてくれる。
 距離感は適切でフレンドリー。パワフルな人格。
 口調：「...だとよいぞ。俺は…。君はどう思う？など」
 想定役割：ビジネス系の会話。悩み相談。雑談。ラーニングパートナー。''';
+        break;
       
       case 5: // 冥鳴ひまり
-        return '''冥鳴ひまり：
+        basePrompt = '''冥鳴ひまり：
 ミステリアスで少し暗い雰囲気を持つ。深い洞察力と独特な視点を持つ。
 低レートプレイヤーの気持ちを理解し、独特な励まし方をする。
 口調：「...なんだけどね。まあ、いいか。...って感じかな。」
 想定役割：深い悩み相談、哲学的な会話、独特な視点での助言。''';
+        break;
       
       default:
-        return _getSystemPrompt(1); // デフォルトはずんだもん
+        basePrompt = _getSystemPrompt(1); // デフォルトはずんだもん
+        break;
     }
+    
+    // 親密度レベル情報を追加
+    basePrompt += '\n\n$intimacyLevel';
+    
+    // 包括的なユーザープロフィール情報を追加
+    if (userProfileInfo.isNotEmpty) {
+      basePrompt += '\n\n$userProfileInfo';
+    }
+    
+    // 会話から学習したユーザー特徴を追加
+    if (userFeatureInfo.isNotEmpty) {
+      basePrompt += '\n\n$userFeatureInfo';
+    }
+    
+    // 共通の出力制限ルールを追加（音声読み上げ用）
+    basePrompt += '''
+
+【重要：出力制限ルール】
+アスタリスク、米印、絵文字、アスキーアートのような記号を出力せずに、日本語と感嘆符と句点、読点のみを出力するように。音声読み上げで記号が読まれないようにするため、*、※、♪、☆、★、◆、■、→、←、↑、↓、♡、♥、(^_^)、(笑)、www、ｗｗｗなどの記号類は一切使用しないでください。''';
+    
+    return basePrompt;
   }
 
   void _initializeAnimations() {
@@ -401,50 +662,97 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
       parent: _listeningController,
       curve: Curves.easeInOut,
     ));
+    
+    // マイクバウンス用アニメーション（控えめ設定）
+    _bounceController = AnimationController(
+      duration: const Duration(milliseconds: 100), // より短時間に
+      vsync: this,
+    );
+    
+    _bounceAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.02, // 極小に変更（2%のみ拡大）
+    ).animate(CurvedAnimation(
+      parent: _bounceController,
+      curve: Curves.easeOut, // よりスムーズなアニメーションに変更
+    ));
   }
 
   Future<void> _initializeGeminiChat() async {
     try {
       print('Firebase AI Gemini 初期化開始');
       
-      // Firebase AI with Google AI (より安定)を使用
-      _aiModel = FirebaseAI.googleAI().generativeModel(
-        model: 'gemini-1.5-flash',
-        generationConfig: GenerationConfig(
-          temperature: 0.8,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 8192, // 出力制限完全撤廃 - 最大トークン数に設定
-          candidateCount: 1,
-        ),
-        systemInstruction: Content.system(_getSystemPrompt(_aiPersonalityId)),
-      );
-      print('Firebase AI Gemini 1.5 Flash 初期化成功');
+      // Firebase AI with Vertex AI バックエンド + Gemini 2.5 Flash を使用
+      try {
+        _aiModel = FirebaseAI.vertexAI().generativeModel(
+          model: 'gemini-2.5-flash',
+          generationConfig: GenerationConfig(
+            temperature: 0.8,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 8192, // 出力制限完全撤廃 - 最大トークン数に設定
+            candidateCount: 1,
+          ),
+          systemInstruction: Content.system(_getSystemPrompt(_aiPersonalityId)),
+        );
+        print('✅ Firebase AI (Vertex AI) Gemini 2.5 Flash 初期化成功');
+      } catch (vertexError) {
+        print('❌ Vertex AI失敗、Google AIにフォールバック: $vertexError');
+        // Google AI (AI Studio版) にフォールバック
+        _aiModel = FirebaseAI.googleAI().generativeModel(
+          model: 'gemini-1.5-flash',
+          generationConfig: GenerationConfig(
+            temperature: 0.8,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 8192,
+            candidateCount: 1,
+          ),
+          systemInstruction: Content.system(_getSystemPrompt(_aiPersonalityId)),
+        );
+        print('✅ Firebase AI (Google AI) Gemini 1.5 Flash フォールバック成功');
+      }
 
       _chatSession = _aiModel.startChat();
       
-      // AndroidデフォルトのSTT + FlutterデフォルトのTTS機能を使用
-      _useVoicevox = false; // VOICEVOXを強制的に無効化
-      
-      // FlutterTTS（システムデフォルト音声）を初期化
-      await _flutterTts.setLanguage('ja-JP');
-      await _flutterTts.setPitch(1.0); // デフォルト音程
-      await _flutterTts.setSpeechRate(0.5); // ゆっくり発話
-      print('FlutterTTS初期化完了（システムデフォルト音声使用）');
+      // VOICEVOXを優先的に使用
+      final voicevoxAvailable = await _voiceVoxService.isEngineAvailable();
+      if (voicevoxAvailable) {
+        _useVoicevox = true;
+        // キャラクターIDに基づいてVOICEVOX話者を設定
+        _voiceVoxService.setSpeakerByCharacter(_aiPersonalityId);
+        print('✅ VOICEVOX初期化完了 - キャラクター: ${_getPersonalityName(_aiPersonalityId)}');
+      } else {
+        _useVoicevox = false;
+        // FlutterTTS（システムデフォルト音声）を初期化
+        await _flutterTts.setLanguage('ja-JP');
+        await _flutterTts.setPitch(1.0); // デフォルト音程
+        await _flutterTts.setSpeechRate(0.5); // ゆっくり発話
+        print('⚠️ VOICEVOX不可 - FlutterTTSへフォールバック');
+      }
       
       setState(() {
         _isInitialized = true;
       });
       
-      // 初期メッセージを履歴に追加（ずんだもん口調）
-      String initialMessage = 'ボク、ずんだもんなのだ！元気とずんだパワーでがんばるのだ〜！';
+      // 初期メッセージを履歴に追加（性格別挨拶）
+      String initialMessage = _personalityData['greeting'] ?? 'こんにちは！';
       _addMessage('AI', initialMessage);
       
-      print('Vertex AI Gemini 2.5 Flash + 音声合成初期化完了');
+      // 初期挨拶を音声で再生（少し遅延）
+      if (mounted && !_chatEnded) {
+        Future.delayed(const Duration(milliseconds: 1000), () {
+          if (mounted && !_chatEnded) {
+            _speakAI(initialMessage);
+          }
+        });
+      }
+      
+      print('Firebase AI (Vertex AI/Google AI) Gemini 2.5/1.5 Flash + 音声合成初期化完了');
     } catch (e) {
-      print('Vertex AI初期化エラー: $e');
+      print('Firebase AI初期化エラー: $e');
       setState(() {
-        _errorMessage = 'Vertex AI初期化に失敗しました。.env設定を確認してください。';
+        _errorMessage = 'Firebase AI初期化に失敗しました。設定を確認してください。';
       });
     }
   }
@@ -482,8 +790,24 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
     _timer?.cancel();
     _stopListening();
     
-    // 会話終了メッセージ
-    _speakAI('3分経ったのだ〜！楽しかったのだ！また話そうなのだ〜！');
+    // 3分完了判定（残り時間が0または1秒以下の場合、3分完了とみなす）
+    final isThreeMinutesCompleted = _remainingSeconds <= 1;
+    
+    if (isThreeMinutesCompleted) {
+      // 3分完了時のみAI会話履歴を保存
+      _saveAIConversationHistory();
+      
+      // 会話終了メッセージ
+      _speakAI('3分経ったのだ〜！楽しかったのだ！また話そうなのだ〜！');
+    } else {
+      // 途中終了時のメッセージ
+      _speakAI('また今度ゆっくり話そうなのだ〜！');
+    }
+    
+    // AIマッチング終了時に必ず星3評価をユーザーに付与（3分完了時のみ）
+    if (isThreeMinutesCompleted) {
+      _giveAIRatingToUser();
+    }
     
     // 3秒後にホーム画面に戻る
     Timer(const Duration(seconds: 3), () {
@@ -493,6 +817,37 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
         );
       }
     });
+  }
+  
+  // AI会話履歴を保存（3分完了時のみ）
+  Future<void> _saveAIConversationHistory() async {
+    try {
+      if (_allUserMessages.isNotEmpty && _allAiResponses.isNotEmpty) {
+        await _aiHistoryService.recordCompletedAIConversation(
+          _aiPersonalityId,
+          _allUserMessages,
+          _allAiResponses,
+        );
+        
+        print('✅ AI会話履歴保存完了: 性格ID=$_aiPersonalityId, メッセージ数=${_allUserMessages.length}');
+      }
+    } catch (e) {
+      print('❌ AI会話履歴保存エラー: $e');
+    }
+  }
+  
+  // AIマッチング終了時にユーザーに星3評価を自動付与
+  Future<void> _giveAIRatingToUser() async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId != null) {
+        // AIから必ず星3評価を付与（+1ポイント相当）
+        await _ratingService.updateRating(3, userId);
+        print('✅ AIマッチング終了: ユーザーに星3評価を自動付与');
+      }
+    } catch (e) {
+      print('❌ AI評価付与エラー: $e');
+    }
   }
 
   Future<void> _startListening() async {
@@ -521,10 +876,19 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
 
   Future<void> _startSpeechToText() async {
     try {
+      // 音声認識サービスを再初期化（確実な再開のため）
+      await _speech.stop();
+      await _speech.cancel();
+      
       bool available = await _speech.initialize(
         onStatus: (status) {
           print('音声認識ステータス: $status');
-          // 自動再開は削除 - メイン処理完了後にのみ再開する
+          // ステータスを監視して状態を同期
+          if (status == 'done' || status == 'notListening') {
+            setState(() {
+              _isListening = false;
+            });
+          }
         },
         onError: (error) {
           print('音声認識エラー: $error');
@@ -545,6 +909,19 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
               if (result.finalResult) {
                 await _handleSpeechResult(result.recognizedWords);
               }
+            }
+          },
+          onSoundLevelChange: (level) {
+            // 音声レベル検出とマイクアイコンバウンス
+            setState(() {
+              _soundLevel = level;
+            });
+            
+            // 音声レベルが高い閾値を超えたらアイコンを極小バウンス（頻度を大幅削減）
+            if (level > 0.7 && !_bounceController.isAnimating) {
+              _bounceController.forward().then((_) {
+                _bounceController.reverse();
+              });
             }
           },
           localeId: 'ja-JP',
@@ -573,6 +950,7 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
     
     setState(() {
       _userSpeechText = processedText;
+      _isListening = false; // 明示的にリスニング状態をオフ
     });
     
     // メッセージ履歴に追加（talk_to_ai_screen.dartから追加）
@@ -634,12 +1012,9 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
       if (aiText.isNotEmpty && !_chatEnded && mounted) {
         print('処理後のAI応答: "$aiText"');
         
-        setState(() {
-          _aiResponseText = aiText;
-        });
-        
-        // メッセージ履歴に追加
-        _addMessage('AI', aiText);
+        // 会話中のメッセージを記録（ユーザー特徴抽出用）
+        _allUserMessages.add(userText);
+        _allAiResponses.add(aiText);
         
         // 会話データをFirestoreに保存
         final userId = FirebaseAuth.instance.currentUser?.uid;
@@ -652,8 +1027,18 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
           );
         }
         
-        // 音声合成で再生
+        // 音声合成で再生（完了後に文字表示）
         await _speakAI(aiText);
+        
+        // 音声再生完了後に文字表示
+        if (!_chatEnded && mounted) {
+          setState(() {
+            _aiResponseText = aiText;
+          });
+          
+          // メッセージ履歴に追加
+          _addMessage('AI', aiText);
+        }
       } else {
         print('AI応答が空です');
         throw Exception('AI応答が空でした');
@@ -679,8 +1064,9 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
           _isProcessing = false;
         });
         
-        // 処理完了後、音声認識を再開
-        Future.delayed(const Duration(seconds: 1), () {
+        // 処理完了後、音声認識を再開（リトライカウントリセット）
+        _speechRetryCount = 0; // リトライカウントリセット
+        Future.delayed(const Duration(seconds: 2), () {
           if (mounted && !_chatEnded && !_isListening && !_isProcessing) {
             print('AI処理完了後の音声認識再開試行');
             _startListening();
@@ -694,11 +1080,26 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
     if (_chatEnded) return;
     
     try {
-      // Flutter TTS（システムデフォルト）で音声合成
-      print('Flutter TTS音声合成開始: $text');
-      await _flutterTts.speak(text);
+      // VOICEVOXのみ使用（フォールバックなし）
+      print('VOICEVOX音声合成開始: $text');
+      
+      // 現在の性格に対応するVOICEVOX話者を設定
+      _voiceVoxService.setSpeakerByCharacter(_aiPersonalityId);
+      
+      // VOICEVOX Engine の可用性チェック
+      final isEngineAvailable = await _voiceVoxService.isEngineAvailable();
+      if (!isEngineAvailable) {
+        print('VOICEVOX Engine利用不可：音声なしで継続');
+        return;
+      }
+      
+      // VOICEVOX音声合成実行
+      final success = await _voiceVoxService.speak(text);
+      if (!success) {
+        print('VOICEVOX音声合成失敗：音声なしで継続');
+      }
     } catch (e) {
-      print('音声合成エラー: $e');
+      print('音声合成エラー: $e（音声なしで継続）');
     }
   }
 
@@ -748,8 +1149,8 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
             color: _isInitialized ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
             child: Text(
               _isInitialized 
-                  ? 'Vertex AI Gemini 2.5 Flash (.env) 接続済み' 
-                  : 'Vertex AI 接続エラー - .env設定確認',
+                  ? 'Firebase AI Gemini 2.5 Flash (Vertex AI) 接続済み' 
+                  : 'Firebase AI 接続エラー - 設定確認',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 12,
@@ -946,7 +1347,11 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: _isInitialized 
-                    ? (_isListening ? '音声認識中...' : 'AIとチャットしてみよう...')
+                    ? (_isListening 
+                        ? '🎤 音声認識中...' 
+                        : _isProcessing 
+                            ? '🤖 AI思考中...' 
+                            : 'AIとチャットしてみよう...')
                     : '初期化中...',
                 hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
                 filled: true,
@@ -1015,14 +1420,17 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
 
   Widget _buildGeminiIcon() {
     return AnimatedBuilder(
-      animation: Listenable.merge([_pulseAnimation, _listeningAnimation]),
+      animation: Listenable.merge([_pulseAnimation, _listeningAnimation, _bounceAnimation]),
       builder: (context, child) {
-        final scale = _isListening 
+        // ベーススケール + バウンスアニメーションを組み合わせる
+        final baseScale = _isListening 
             ? _pulseAnimation.value * _listeningAnimation.value
             : _pulseAnimation.value;
+        final bounceScale = _bounceController.isAnimating ? _bounceAnimation.value : 1.0;
+        final finalScale = baseScale * bounceScale;
         
         return Transform.scale(
-          scale: scale,
+          scale: finalScale,
           child: Container(
             width: 200,
             height: 200,
@@ -1035,22 +1443,45 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
-                // 音声認識中の紫色キラキラエフェクト
+                // 音声認識中の性格色キラキラエフェクト
                 if (_isListening)
                   BoxShadow(
-                    color: const Color(0xFF9C27B0).withOpacity(0.6),
-                    blurRadius: 30,
-                    spreadRadius: 10,
+                    color: (_personalityData['backgroundColor'] as Color).withOpacity(0.5 + _soundLevel * 0.2),
+                    blurRadius: 25 + (_soundLevel * 5),
+                    spreadRadius: 8 + (_soundLevel * 2),
+                  ),
+                // AI処理中のオレンジ色エフェクト
+                if (_isProcessing)
+                  BoxShadow(
+                    color: Colors.orange.withOpacity(0.4),
+                    blurRadius: 20,
+                    spreadRadius: 5,
                   ),
               ],
             ),
             child: ClipOval(
-              child: Container(
-                color: const Color(0xFF5A64ED),
-                child: const Icon(
-                  Icons.auto_awesome, // キラキラアイコン
-                  size: 100,
-                  color: Colors.white,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                color: _isListening 
+                    ? _personalityData['backgroundColor'].withOpacity(0.3)
+                    : _isProcessing
+                        ? Colors.orange.withOpacity(0.2)
+                        : Colors.white,
+                padding: const EdgeInsets.all(30),
+                child: SvgPicture.asset(
+                  _personalityData['icon'] ?? 'aseets/icons/Guy 1.svg',
+                  fit: BoxFit.contain,
+                  colorFilter: _isListening 
+                      ? ColorFilter.mode(
+                          _personalityData['backgroundColor'],
+                          BlendMode.modulate,
+                        )
+                      : _isProcessing
+                          ? ColorFilter.mode(
+                              Colors.orange,
+                              BlendMode.modulate,
+                            )
+                          : null,
                 ),
               ),
             ),

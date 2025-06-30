@@ -465,21 +465,21 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
         SizedBox(height: screenHeight * 0.05),
-        // レート850以下の場合、警告メッセージを表示
-        if (_userRating <= 850) ...[
+        // 多段階AI救済システムの警告メッセージを表示
+        if (_userRating <= 880) ...[
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             margin: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
-              color: const Color(0xFFFF9800).withOpacity(0.1), // オレンジ系の背景
+              color: _getWarningColor().withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFFF9800).withOpacity(0.3)),
+              border: Border.all(color: _getWarningColor().withOpacity(0.3)),
             ),
             child: Row(
               children: [
-                const Icon(
-                  Icons.info_outline,
-                  color: Color(0xFFFF9800),
+                Icon(
+                  _getWarningIcon(),
+                  color: _getWarningColor(),
                   size: 20,
                 ),
                 const SizedBox(width: 12),
@@ -488,19 +488,19 @@ class _HomeScreenState extends State<HomeScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'レート850以下のため、通話相手はAI（ずんだもん）になります',
+                        _getWarningMessage(),
                         style: GoogleFonts.notoSans(
                           fontSize: 13,
-                          color: const Color(0xFFFF9800),
+                          color: _getWarningColor(),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'レート880を超えると人間との通話に戻ります',
+                        _getTargetMessage(),
                         style: GoogleFonts.notoSans(
                           fontSize: 12,
-                          color: const Color(0xFFFF9800).withOpacity(0.8),
+                          color: _getWarningColor().withOpacity(0.8),
                         ),
                       ),
                     ],
@@ -911,6 +911,59 @@ class _HomeScreenState extends State<HomeScreen>
         );
       },
     );
+  }
+
+  // 多段階AI救済システム用のヘルパーメソッド
+  Color _getWarningColor() {
+    if (_userRating <= 550) {
+      return const Color(0xFFFF1744); // 赤色（最も深刻）
+    } else if (_userRating <= 580) {
+      return const Color(0xFFFF1744); // 赤色（救済中）
+    } else if (_userRating <= 700) {
+      return const Color(0xFFFF6D00); // 深いオレンジ（深刻）
+    } else if (_userRating <= 730) {
+      return const Color(0xFFFF6D00); // 深いオレンジ（救済中）
+    } else if (_userRating <= 850) {
+      return const Color(0xFFFF9800); // オレンジ（注意）
+    } else {
+      return const Color(0xFFFF9800); // オレンジ（救済中）
+    }
+  }
+
+  IconData _getWarningIcon() {
+    if (_userRating <= 550) {
+      return Icons.warning; // 最も深刻なレベル
+    } else if (_userRating <= 700) {
+      return Icons.error_outline; // 中程度の警告
+    } else {
+      return Icons.info_outline; // 軽度の注意
+    }
+  }
+
+  String _getWarningMessage() {
+    if (_userRating <= 550) {
+      return 'レート550以下のため、AI救済モード（レベル3）が発動中です';
+    } else if (_userRating <= 580) {
+      return 'AI救済モード中（レベル3）継続中です';
+    } else if (_userRating <= 700) {
+      return 'レート700以下のため、AI救済モード（レベル2）が発動中です';
+    } else if (_userRating <= 730) {
+      return 'AI救済モード中（レベル2）継続中です';
+    } else if (_userRating <= 850) {
+      return 'レート850以下のため、AI救済モード（レベル1）が発動中です';
+    } else {
+      return 'AI救済モード中（レベル1）継続中です';
+    }
+  }
+
+  String _getTargetMessage() {
+    if (_userRating <= 580) {
+      return 'レート580を超えると次の段階に進みます';
+    } else if (_userRating <= 730) {
+      return 'レート730を超えると次の段階に進みます';
+    } else {
+      return 'レート880を超えると人間との通話に戻ります';
+    }
   }
 
 }

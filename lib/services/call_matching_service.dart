@@ -37,14 +37,40 @@ class CallMatchingService {
     // ユーザーの現在のレーティングを取得
     final userRating = await _evaluationService.getUserRating();
     
-    // レート850以下の場合、自動でAIマッチングを強制
-    // レート880超えたら人間とのマッチングに戻る
+    // 多段階AI救済システム
+    // 850→880, 700→730, 550→580 の3段階でAI救済
     bool shouldForceAI = forceAIMatch;
-    if (userRating <= 850) {
+    String? autoAIReason;
+    
+    if (userRating <= 550) {
       shouldForceAI = true;
-      print('レート$userRatingが850以下のため、AI（ずんだもん）との自動マッチングを実行します');
-    } else if (userRating > 880 && userRating <= 900) {
-      // 850-880の間はAI練習中、880を超えたら人間とのマッチングに戻る
+      autoAIReason = 'multi_stage_rescue_550';
+      print('レート$userRatingが550以下のため、AI救済（550→580目標）を実行します');
+    } else if (userRating > 550 && userRating <= 580) {
+      // 550-580の間はAI練習中
+      shouldForceAI = true;
+      autoAIReason = 'multi_stage_rescue_550_ongoing';
+      print('レート$userRatingが550-580の範囲のため、AI救済継続中（580到達まで）');
+    } else if (userRating > 580 && userRating <= 700) {
+      shouldForceAI = true;
+      autoAIReason = 'multi_stage_rescue_700';
+      print('レート$userRatingが700以下のため、AI救済（700→730目標）を実行します');
+    } else if (userRating > 700 && userRating <= 730) {
+      // 700-730の間はAI練習中
+      shouldForceAI = true;
+      autoAIReason = 'multi_stage_rescue_700_ongoing';
+      print('レート$userRatingが700-730の範囲のため、AI救済継続中（730到達まで）');
+    } else if (userRating > 730 && userRating <= 850) {
+      shouldForceAI = true;
+      autoAIReason = 'multi_stage_rescue_850';
+      print('レート$userRatingが850以下のため、AI救済（850→880目標）を実行します');
+    } else if (userRating > 850 && userRating <= 880) {
+      // 850-880の間はAI練習中
+      shouldForceAI = true;
+      autoAIReason = 'multi_stage_rescue_850_ongoing';
+      print('レート$userRatingが850-880の範囲のため、AI救済継続中（880到達まで）');
+    } else if (userRating > 880) {
+      // 880を超えたら人間とのマッチングに戻る
       shouldForceAI = false;
       print('レート$userRatingが880を超えたため、人間とのマッチングに戻ります');
     }
@@ -62,7 +88,7 @@ class CallMatchingService {
       'forceAIMatch': shouldForceAI,
       'enableAIFilter': enableAIFilter,
       'privacyMode': privacyMode,
-      'autoAIReason': userRating <= 850 ? 'low_rating' : null, // 自動AI理由を記録
+      'autoAIReason': autoAIReason, // 多段階AI救済理由を記録
       'conversationTheme': conversationTheme, // 共有話題を追加
     });
     
@@ -190,12 +216,12 @@ class CallMatchingService {
         final myRating = (myData['userRating'] ?? 1000.0).toDouble();
         final forceAIMatch = myData['forceAIMatch'] ?? false;
         
-        // AI強制マッチングまたはAI推奨条件の場合（AI機能無効化のためコメントアウト）
-        // if (forceAIMatch || await _evaluationService.shouldMatchWithAI(myRating)) {
-        //   print('通話マッチング: AI練習モードを開始');
-        //   await _createAIPartner(callRequestId, transaction);
-        //   return;
-        // }
+        // AI強制マッチングの場合、即座にAIパートナーを作成
+        if (forceAIMatch) {
+          print('通話マッチング: AI練習モードを開始');
+          await _createAIPartner(callRequestId, transaction);
+          return;
+        }
         
         // レーティングベースマッチング
         final availablePartners = await _findRatingBasedPartners(myRating);
@@ -387,28 +413,52 @@ class CallMatchingService {
     });
   }
   
-  // AI練習パートナーを作成（AI機能無効化のためコメントアウト）
-  // Future<void> _createAIPartner(String callRequestId, Transaction? transaction) async {
-  //   final channelName = _generateChannelName();
-  //   final aiPartnerId = 'ai_practice_${DateTime.now().millisecondsSinceEpoch}';
-  //   
-  //   final updateData = {
-  //     'status': CallStatus.matched.name,
-  //     'matchedWith': aiPartnerId,
-  //     'channelName': channelName,
-  //     'matchedAt': FieldValue.serverTimestamp(),
-  //     'isDummyMatch': true,  // AI練習のフラグ
-  //     'isAIMatch': true,     // AI練習専用フラグ
-  //   };
-  //
-  //   if (transaction != null) {
-  //     transaction.update(_db.collection('callRequests').doc(callRequestId), updateData);
-  //   } else {
-  //     await _db.collection('callRequests').doc(callRequestId).update(updateData);
-  //   }
-  //   
-  //   print('AI練習パートナー作成完了: $aiPartnerId (チャンネル: $channelName)');
-  // }
+  // AI練習パートナーを作成
+  Future<void> _createAIPartner(String callRequestId, Transaction? transaction) async {
+    final channelName = _generateChannelName();
+    
+    // ユーザー設定からAI性格を取得
+    final userProfile = await FirebaseFirestore.instance
+        .collection('userProfiles')
+        .doc(_userId)
+        .get();
+    
+    final aiPersonalityId = userProfile.data()?['aiPersonalityId'] ?? 0; // デフォルト: ずんだもん
+    
+    final personalityNames = ['zundamon', 'kasukabe_tsumugi', 'shikoku_metan', 'aoyama_ryusei', 'meimei_himari'];
+    final selectedPersonality = personalityNames[aiPersonalityId];
+    
+    final aiPartnerId = 'ai_${selectedPersonality}_${DateTime.now().millisecondsSinceEpoch}';
+    
+    // 現在のconversationThemeを取得
+    String? conversationTheme;
+    if (transaction != null) {
+      final myRequestDoc = await transaction.get(_db.collection('callRequests').doc(callRequestId));
+      conversationTheme = myRequestDoc.data()?['conversationTheme'] as String?;
+    } else {
+      final myRequestDoc = await _db.collection('callRequests').doc(callRequestId).get();
+      conversationTheme = myRequestDoc.data()?['conversationTheme'] as String?;
+    }
+    
+    final updateData = {
+      'status': CallStatus.matched.name,
+      'matchedWith': aiPartnerId,
+      'channelName': channelName,
+      'matchedAt': FieldValue.serverTimestamp(),
+      'isDummyMatch': true,  // AI練習のフラグ
+      'isAIMatch': true,     // AI練習専用フラグ
+      'conversationTheme': conversationTheme, // 話題を保持
+      'aiPersonalityId': aiPersonalityId, // AI性格ID追加
+    };
+
+    if (transaction != null) {
+      transaction.update(_db.collection('callRequests').doc(callRequestId), updateData);
+    } else {
+      await _db.collection('callRequests').doc(callRequestId).update(updateData);
+    }
+    
+    print('AI練習パートナー作成完了: $aiPartnerId (性格ID: $aiPersonalityId, チャンネル: $channelName)');
+  }
 
   // テスト用ダミーパートナーを作成（後方互換性のため残す）（AI機能無効化のためコメントアウト）
   // Future<void> _createDummyPartner(String callRequestId) async {

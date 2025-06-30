@@ -157,8 +157,21 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       setState(() {
         // 相手の情報（アイコン、ニックネーム、テーマカラー）
         _selectedIconPath = partnerProfile.iconPath ?? 'aseets/icons/Woman 1.svg';
-        _partnerNickname = partnerProfile.nickname ?? 'Unknown';
+        // ニックネームが空文字やnullの場合のデフォルト処理
+        final nickname = partnerProfile.nickname;
+        if (nickname != null && nickname.trim().isNotEmpty) {
+          _partnerNickname = nickname.trim();
+        } else {
+          // ニックネームが未設定の場合、ユーザーIDの一部を使用
+          _partnerNickname = 'ユーザー${widget.partnerId.substring(0, 6)}';
+        }
         _selectedThemeIndex = partnerProfile.themeIndex ?? 0;
+      });
+      print('VoiceCall: 相手プロフィール読み込み完了 - ニックネーム: $_partnerNickname');
+    } else {
+      print('VoiceCall: 相手プロフィールが見つからない - ID: ${widget.partnerId}');
+      setState(() {
+        _partnerNickname = 'ユーザー${widget.partnerId.substring(0, 6)}';
       });
     }
   }

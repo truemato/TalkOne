@@ -6,17 +6,22 @@ import '../services/user_profile_service.dart';
 import '../utils/theme_utils.dart';
 import '../services/rating_service.dart';
 import '../services/evaluation_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'rematch_or_home_screen.dart';
 
 class PartnerProfileScreen extends StatefulWidget {
   final String partnerId;
   final String callId;
   final bool isDummyMatch;
+  final bool showReportButton;
 
   const PartnerProfileScreen({
     super.key,
     required this.partnerId,
     required this.callId,
     this.isDummyMatch = false,
+    this.showReportButton = false,
   });
 
   @override
@@ -35,6 +40,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
   String? _partnerIconPath = 'aseets/icons/Woman 1.svg';
   int _partnerThemeIndex = 0;
   bool _isLoading = true;
+  bool _isReporting = false;
 
   @override
   void initState() {
@@ -92,6 +98,176 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
 
   Color get _currentThemeColor => getAppTheme(_partnerThemeIndex).backgroundColor;
 
+  // 通報機能
+  Future<void> _showReportDialog() async {
+    String selectedReason = '不適切な発言';
+    String details = '';
+    
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            '相手を通報',
+            style: GoogleFonts.notoSans(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '通報理由を選択してください',
+                style: GoogleFonts.notoSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 12),
+              
+              // 通報理由選択
+              ...['不適切な発言', '嫌がらせ', 'スパム行為', 'その他'].map((reason) =>
+                RadioListTile<String>(
+                  title: Text(
+                    reason,
+                    style: GoogleFonts.notoSans(fontSize: 14),
+                  ),
+                  value: reason,
+                  groupValue: selectedReason,
+                  onChanged: (value) => setState(() => selectedReason = value!),
+                  dense: true,
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              Text(
+                '詳細（任意）',
+                style: GoogleFonts.notoSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                decoration: InputDecoration(
+                  hintText: '具体的な内容を記入してください',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+                maxLines: 3,
+                onChanged: (value) => details = value,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(
+                'キャンセル',
+                style: GoogleFonts.notoSans(
+                  color: Colors.grey[600],
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(
+                '通報する',
+                style: GoogleFonts.notoSans(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == true) {
+      await _submitReport(selectedReason, details);
+    }
+  }
+
+  Future<void> _submitReport(String reason, String details) async {
+    setState(() {
+      _isReporting = true;
+    });
+
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) throw Exception('ユーザーが認証されていません');
+
+      // 通報データをFirestoreに保存
+      await FirebaseFirestore.instance.collection('reports').add({
+        'reporterId': userId,
+        'reportedUserId': widget.partnerId,
+        'callId': widget.callId,
+        'reason': reason,
+        'details': details,
+        'timestamp': FieldValue.serverTimestamp(),
+        'status': 'pending',
+      });
+
+      // 相手に星1評価を自動送信
+      await _evaluationService.submitEvaluation(
+        callId: widget.callId,
+        partnerId: widget.partnerId,
+        rating: 1,
+        isDummyMatch: widget.isDummyMatch,
+      );
+
+      // 相手のレーティングを更新
+      await _ratingService.updateRating(1, widget.partnerId);
+
+      if (mounted) {
+        // 通報完了メッセージ
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '通報を送信しました。ご協力ありがとうございます。',
+              style: GoogleFonts.notoSans(),
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // RematchOrHomeScreenに遷移
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const RematchOrHomeScreen(),
+          ),
+        );
+      }
+    } catch (e) {
+      print('通報送信エラー: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '通報の送信に失敗しました。しばらく経ってから再度お試しください。',
+              style: GoogleFonts.notoSans(),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isReporting = false;
+        });
+      }
+    }
+  }
+
 
 
 
@@ -142,6 +318,10 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
                 // 一言コメント
                 _buildInfoField('一言コメント', _partnerComment ?? 'よろしくお願いします！'),
                 const SizedBox(height: 40),
+                
+                // 通報ボタン（評価画面からの遷移時のみ表示）
+                if (widget.showReportButton)
+                  _buildReportButton(),
               ],
             ),
           ),
@@ -249,6 +429,61 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildReportButton() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 20),
+      child: ElevatedButton(
+        onPressed: _isReporting ? null : _showReportDialog,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 4,
+        ),
+        child: _isReporting
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '通報送信中...',
+                    style: GoogleFonts.notoSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.report, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'この相手を通報する',
+                    style: GoogleFonts.notoSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+      ),
     );
   }
 
