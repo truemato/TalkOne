@@ -426,27 +426,77 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
 
   // Googleアカウントにアップグレードボタン
   Widget _buildUpgradeToGoogleButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue[600],
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _isLoading ? Colors.grey : Colors.blue[600],
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+            onPressed: _isLoading ? null : _handleUpgradeToGoogle,
+            icon: _isLoading 
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Icon(Icons.upgrade, size: 20),
+            label: Text(
+              _isLoading ? 'アップグレード中...' : 'Googleアカウントにアップグレード',
+              style: GoogleFonts.notoSans(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 12),
         ),
-        onPressed: _isLoading ? null : _handleUpgradeToGoogle,
-        icon: const Icon(Icons.upgrade, size: 20),
-        label: Text(
-          'Googleアカウントにアップグレード',
-          style: GoogleFonts.notoSans(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+        if (_isLoading) ...[
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red[600],
+                side: BorderSide(color: Colors.red[600]!, width: 1),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+              ),
+              onPressed: () {
+                setState(() {
+                  _isLoading = false;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'アップグレードをキャンセルしました',
+                      style: GoogleFonts.notoSans(),
+                    ),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+              },
+              child: Text(
+                'キャンセル',
+                style: GoogleFonts.notoSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
           ),
-        ),
-      ),
+        ],
+      ],
     );
   }
 
@@ -478,14 +528,37 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
 
   // Googleアカウントへのアップグレード処理
   Future<void> _handleUpgradeToGoogle() async {
+    if (!mounted) return;
+    
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final userCredential = await _authService.linkAnonymousWithGoogle();
+      print('=== プロフィール画面: Googleアップグレード開始 ===');
+      print('デバイス: ${Platform.operatingSystem}');
+      print('プラットフォーム: ${Platform.operatingSystemVersion}');
+      
+      // iOS/iPadでの安全性チェック
+      if (Platform.isIOS) {
+        print('🍎 iOS/iPad環境での認証開始');
+        // 短い遅延でUIを安定化
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+      
+      // タイムアウト付きでGoogleアップグレードを実行（60秒）
+      print('🔄 Googleアップグレード実行（60秒タイムアウト）');
+      final userCredential = await _authService.linkAnonymousWithGoogle()
+          .timeout(
+            const Duration(seconds: 60),
+            onTimeout: () {
+              print('❌ Googleアップグレードがタイムアウトしました');
+              throw TimeoutException('認証がタイムアウトしました', const Duration(seconds: 60));
+            },
+          );
       
       if (userCredential != null && mounted) {
+        print('✅ アップグレード成功: ${userCredential.user?.uid}');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -498,6 +571,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
         );
         setState(() {}); // UIを更新
       } else if (mounted) {
+        print('ℹ️ アップグレードがキャンセルされました');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -510,17 +584,37 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
         );
       }
     } catch (e) {
+      print('❌ プロフィール画面: アップグレードエラー: $e');
+      
       if (mounted) {
         String errorMessage = 'アップグレードに失敗しました';
-        if (e.toString().contains('SIGN_IN_CANCELLED') || e.toString().contains('canceled')) {
+        
+        // エラータイプの詳細判定
+        final errorString = e.toString().toLowerCase();
+        
+        if (errorString.contains('sign_in_cancelled') || 
+            errorString.contains('canceled') || 
+            errorString.contains('cancelled')) {
           errorMessage = 'ログインがキャンセルされました';
-        } else if (e.toString().contains('network') || e.toString().contains('Network')) {
+        } else if (errorString.contains('network') || 
+                   errorString.contains('connection')) {
           errorMessage = 'ネットワークエラーです。接続を確認してください。';
-        } else if (e.toString().contains('credential-already-in-use')) {
+        } else if (errorString.contains('credential-already-in-use') ||
+                   errorString.contains('email-already-in-use')) {
           errorMessage = 'このGoogleアカウントは既に使用されています';
+        } else if (errorString.contains('too-many-requests')) {
+          errorMessage = 'リクエストが多すぎます。しばらく待ってから再度お試しください。';
+        } else if (errorString.contains('user-disabled')) {
+          errorMessage = 'このアカウントは無効になっています';
+        } else if (errorString.contains('operation-not-allowed')) {
+          errorMessage = 'この操作は許可されていません';
+        } else if (e is TimeoutException) {
+          errorMessage = '認証がタイムアウトしました。ネットワーク環境を確認して再度お試しください。';
+        } else if (Platform.isIOS && errorString.contains('7')) {
+          errorMessage = 'iPad/iOSでの認証エラーです。アプリを再起動してお試しください。';
         } else {
-          print('アップグレードエラー詳細: $e');
-          errorMessage = 'ログインに失敗しました';
+          print('詳細エラー情報: $e');
+          errorMessage = 'ログインに失敗しました。再度お試しください。';
         }
         
         ScaffoldMessenger.of(context).showSnackBar(
@@ -530,7 +624,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
               style: GoogleFonts.notoSans(color: Colors.white),
             ),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
+            duration: const Duration(seconds: 4),
           ),
         );
       }
