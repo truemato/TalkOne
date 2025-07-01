@@ -180,6 +180,7 @@ class VoiceVoxService {
       return true;
     }
     
+    print('VOICEVOX Engine接続失敗: ホスト=$_host');
     return false;
   }
   
@@ -219,33 +220,65 @@ class VoiceVoxService {
     return [];
   }
   
-  /// テキストを音声合成して再生（non-blocking TTS API使用）
+  /// テキストを音声合成して再生（標準VOICEVOX API使用）
   Future<bool> speak(String text) async {
     if (text.isEmpty) return false;
     
     try {
-      // TTS API（一発変換）を使用
-      final ttsResponse = await http.post(
-        Uri.parse('$_host/tts'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'text': text,
-          'speaker': _speakerId,
-          'speed': _speed,
-          'pitch': _pitch,
-          'intonation': _intonation,
-          'volume': _volume,
-        }),
+      print('VOICEVOX音声合成開始: $_host, speaker: $_speakerId, text: ${text.substring(0, text.length > 50 ? 50 : text.length)}...');
+      
+      // Step 1: audio_queryでクエリを作成
+      final queryUrl = '$_host/audio_query?text=${Uri.encodeComponent(text)}&speaker=$_speakerId';
+      print('Audio Query URL: $queryUrl');
+      
+      final queryResponse = await http.post(
+        Uri.parse(queryUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 15));
+      
+      print('Audio Query Response: ${queryResponse.statusCode}');
+      
+      if (queryResponse.statusCode != 200) {
+        print('Audio Query失敗: ${queryResponse.statusCode}');
+        print('エラーレスポンス: ${queryResponse.body}');
+        return false;
+      }
+      
+      // クエリレスポンスを取得してパラメータを適用
+      final queryData = json.decode(queryResponse.body);
+      queryData['speedScale'] = _speed;
+      queryData['pitchScale'] = _pitch;
+      queryData['intonationScale'] = _intonation;
+      queryData['volumeScale'] = _volume;
+      
+      // Step 2: synthesisで音声を合成
+      final synthesisUrl = '$_host/synthesis?speaker=$_speakerId';
+      print('Synthesis URL: $synthesisUrl');
+      print('Synthesis request body size: ${json.encode(queryData).length} bytes');
+      
+      final synthesisResponse = await http.post(
+        Uri.parse(synthesisUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'audio/wav',
+        },
+        body: json.encode(queryData),
       ).timeout(const Duration(seconds: 30));
       
-      if (ttsResponse.statusCode != 200) {
-        print('TTS API音声合成失敗: ${ttsResponse.statusCode}');
-        print('エラーレスポンス: ${ttsResponse.body}');
+      print('Synthesis Response: ${synthesisResponse.statusCode}');
+      print('Audio data size: ${synthesisResponse.bodyBytes.length} bytes');
+      
+      if (synthesisResponse.statusCode != 200) {
+        print('Synthesis API音声合成失敗: ${synthesisResponse.statusCode}');
+        print('エラーレスポンス: ${synthesisResponse.body}');
         return false;
       }
       
       // 音声再生（iOS対応）
-      final audioBytes = ttsResponse.bodyBytes;
+      final audioBytes = synthesisResponse.bodyBytes;
       
       try {
         // iOSの場合は一時ファイルに保存してから再生
@@ -263,16 +296,10 @@ class VoiceVoxService {
           final iosPlayer = AudioPlayer();
           
           // iOS用の詳細設定
-          await iosPlayer.setPlayerMode(PlayerMode.mediaPlayer);
           await iosPlayer.setReleaseMode(ReleaseMode.release);
           
-          // ファイルURIとして設定
-          final source = DeviceFileSource(tempFile.path);
-          await iosPlayer.setSource(source);
-          
-          // 少し待機してから再生
-          await Future.delayed(const Duration(milliseconds: 100));
-          await iosPlayer.resume();
+          // 再生実行
+          await iosPlayer.play(DeviceFileSource(tempFile.path));
           
           // 再生完了を待つか、タイムアウト
           try {

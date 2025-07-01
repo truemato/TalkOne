@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../services/voicevox_service.dart';
 
 /// VOICEVOX機能テスト画面
@@ -12,7 +13,7 @@ class VoicevoxTestScreen extends StatefulWidget {
 }
 
 class _VoicevoxTestScreenState extends State<VoicevoxTestScreen> {
-  final VoiceVoxService _voiceVoxService = VoiceVoxService();
+  final VoiceVoxService _voiceVoxService = VoiceVoxService(useLocalEngine: false); // 明示的にCloud Runを使用
   final TextEditingController _textController = TextEditingController();
   
   bool _isProcessing = false;
@@ -23,6 +24,9 @@ class _VoicevoxTestScreenState extends State<VoicevoxTestScreen> {
   double _pitch = 0.0;
   double _intonation = 1.0;
   double _volume = 1.0;
+  
+  // デバッグ用
+  String _debugInfo = '';
   
   // VOICEVOX話者リスト
   final Map<String, int> _speakers = {
@@ -88,6 +92,12 @@ class _VoicevoxTestScreenState extends State<VoicevoxTestScreen> {
     });
 
     try {
+      // デバッグ情報を表示
+      print('=== VOICEVOXテスト開始 ===');
+      print('テキスト: $text');
+      print('話者ID: $_selectedSpeakerId');
+      print('パラメータ: speed=$_speed, pitch=$_pitch, intonation=$_intonation, volume=$_volume');
+      
       // 音声パラメータを設定
       _voiceVoxService.setSpeaker(_selectedSpeakerId);
       _voiceVoxService.setVoiceParameters(
@@ -100,10 +110,15 @@ class _VoicevoxTestScreenState extends State<VoicevoxTestScreen> {
       // 音声合成・再生実行
       final success = await _voiceVoxService.speak(text);
       
+      print('VOICEVOX speak結果: $success');
+      print('=== VOICEVOXテスト終了 ===');
+      
       if (mounted) {
         _showSnackBar(success ? '音声再生開始' : '音声合成に失敗しました');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ VOICEVOXテストエラー: $e');
+      print('スタックトレース: $stackTrace');
       if (mounted) {
         _showSnackBar('エラー: $e');
       }
@@ -130,6 +145,37 @@ class _VoicevoxTestScreenState extends State<VoicevoxTestScreen> {
         duration: const Duration(seconds: 2),
       ),
     );
+  }
+  
+  // シンプルなオーディオテスト
+  Future<void> _testSimpleAudio() async {
+    setState(() {
+      _debugInfo = 'オーディオテスト中...';
+    });
+    
+    try {
+      print('=== シンプルオーディオテスト ===');
+      final player = AudioPlayer();
+      
+      // シンプルなサウンドを再生
+      await player.play(AssetSource('sounds/notification.mp3')).catchError((e) {
+        print('アセットがないため、URLから再生を試みます: $e');
+        return player.play(UrlSource('https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'));
+      });
+      
+      setState(() {
+        _debugInfo = 'オーディオ再生成功\nAudioPlayerは正常に動作しています';
+      });
+      
+      _showSnackBar('オーディオテスト成功');
+      print('=== オーディオテスト成功 ===');
+    } catch (e) {
+      print('❌ オーディオテスト失敗: $e');
+      setState(() {
+        _debugInfo = 'オーディオ再生失敗:\n$e';
+      });
+      _showSnackBar('オーディオテスト失敗: $e');
+    }
   }
 
   @override
@@ -393,7 +439,38 @@ class _VoicevoxTestScreenState extends State<VoicevoxTestScreen> {
                         fontFamily: 'monospace',
                       ),
                     ),
+                    if (_debugInfo.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'デバッグ情報:\n$_debugInfo',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.yellow,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ],
                   ],
+                ),
+              ),
+              
+              const SizedBox(height: 20),
+              
+              // オーディオテストボタン
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _testSimpleAudio,
+                  icon: const Icon(Icons.volume_up),
+                  label: const Text('シンプルオーディオテスト'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
               ),
             ],

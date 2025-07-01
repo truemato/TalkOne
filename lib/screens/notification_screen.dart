@@ -21,6 +21,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   int _selectedThemeIndex = 0;
   List<VersionNotification> _notifications = [];
   bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -39,14 +40,26 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
   
   void _loadNotifications() {
-    _versionService.getUserNotifications().listen((notifications) {
-      if (mounted) {
-        setState(() {
-          _notifications = notifications;
-          _isLoading = false;
-        });
-      }
-    });
+    _versionService.getUserNotifications().listen(
+      (notifications) {
+        if (mounted) {
+          setState(() {
+            _notifications = notifications;
+            _isLoading = false;
+            _errorMessage = null;
+          });
+        }
+      },
+      onError: (error) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _errorMessage = '通知の読み込みに失敗しました';
+          });
+        }
+        print('通知読み込みエラー: $error');
+      },
+    );
   }
 
   Color get _currentThemeColor => getAppTheme(_selectedThemeIndex).backgroundColor;
@@ -101,27 +114,47 @@ class _NotificationScreenState extends State<NotificationScreen> {
       );
     }
     
+    if (_errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.white.withOpacity(0.6),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              _errorMessage!,
+              style: GoogleFonts.notoSans(
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+                color: Colors.white.withOpacity(0.8),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _isLoading = true;
+                  _errorMessage = null;
+                });
+                _loadNotifications();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white.withOpacity(0.2),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('再読み込み'),
+            ),
+          ],
+        ),
+      );
+    }
+    
     return Column(
       children: [
-        // テスト用ボタン（開発環境でのみ表示）
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          child: ElevatedButton(
-            onPressed: () async {
-              await _versionService.createTestVersionNotification();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('テスト通知を作成しました')),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white.withOpacity(0.2),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('テスト用バージョン通知作成'),
-          ),
-        ),
-        
         Expanded(
           child: _notifications.isEmpty 
               ? _buildEmptyState()

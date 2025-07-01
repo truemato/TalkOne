@@ -185,13 +185,6 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
   void _loadPersonalityData() {
     final personalities = [
       {
-        'name': 'ずんだもん',
-        'icon': 'aseets/icons/Guy 1.svg',
-        'backgroundColor': const Color(0xFF81C784), // 薄緑
-        'speakerId': 3,
-        'greeting': 'ボク、ずんだもんなのだ！元気とずんだパワーでがんばるのだ〜！',
-      },
-      {
         'name': '春日部つむぎ',
         'icon': 'aseets/icons/Woman 2.svg',
         'backgroundColor': const Color(0xFF64B5F6), // 知的な青
@@ -199,11 +192,25 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
         'greeting': 'こんにちは。春日部つむぎです。よろしくお願いします。',
       },
       {
+        'name': 'ずんだもん',
+        'icon': 'aseets/icons/Guy 1.svg',
+        'backgroundColor': const Color(0xFF81C784), // 薄緑
+        'speakerId': 3,
+        'greeting': 'ボク、ずんだもんなのだ！元気とずんだパワーでがんばるのだ〜！',
+      },
+      {
         'name': '四国めたん',
         'icon': 'aseets/icons/Woman 3.svg',
         'backgroundColor': const Color(0xFFFFB74D), // 明るい橙
         'speakerId': 2,
         'greeting': 'こんにちは！四国めたんです。楽しくお話ししましょう！',
+      },
+      {
+        'name': '春日部つむぎ', // 設定画面の「雨晴はう」は春日部つむぎとして扱う
+        'icon': 'aseets/icons/Woman 2.svg',
+        'backgroundColor': const Color(0xFF64B5F6), // 知的な青
+        'speakerId': 8,
+        'greeting': 'こんにちは。春日部つむぎです。よろしくお願いします。',
       },
       {
         'name': '青山龍星',
@@ -221,7 +228,13 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
       },
     ];
     
-    _personalityData = personalities[widget.personalityId];
+    // 他のキャラクターと同じロジック：personalityIdを直接インデックスとして使用
+    if (widget.personalityId >= 0 && widget.personalityId < personalities.length) {
+      _personalityData = personalities[widget.personalityId];
+    } else {
+      // フォールバック：範囲外の場合はずんだもん（ID 1）を使用
+      _personalityData = personalities[1];
+    }
     
     // VOICEVOXの話者IDを設定
     _voiceVoxService.setSpeaker(_personalityData['speakerId']);
@@ -258,7 +271,7 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
       
       // VOICEVOX話者を更新
       if (_useVoicevox) {
-        _voiceVoxService.setSpeakerByCharacter(_aiPersonalityId);
+        _voiceVoxService.setSpeakerByCharacter(widget.personalityId);
       }
       
       // AI会話履歴と親密度情報を読み込み
@@ -335,7 +348,7 @@ $_userPublicComment
   // AIモデルを再初期化（ペルソナ変更時）
   Future<void> _reinitializeAIModel() async {
     try {
-      print('AIペルソナを変更中... 新しいペルソナID: $_aiPersonalityId');
+      print('AIペルソナを変更中... 新しいペルソナ ID: ${widget.personalityId}');
       
       // 新しいシステムプロンプトでAIモデルを再作成
       _aiModel = FirebaseAI.googleAI().generativeModel(
@@ -347,20 +360,20 @@ $_userPublicComment
           maxOutputTokens: 8192, // 出力制限完全撤廃 - 最大トークン数に設定
           candidateCount: 1,
         ),
-        systemInstruction: Content.system(_getSystemPrompt(_aiPersonalityId)),
+        systemInstruction: Content.system(_getSystemPrompt(widget.personalityId)),
       );
       
       // 新しいチャットセッションを開始
       _chatSession = _aiModel.startChat();
       
       // 新しいペルソナでの初期挨拶（重複防止チェック）
-      String newGreeting = _getPersonalityGreeting(_aiPersonalityId);
+      String newGreeting = _getPersonalityGreeting(widget.personalityId);
       _addMessage('AI', newGreeting);
       if (!_isSpeaking) {
         await _speakAI(newGreeting);
       }
       
-      print('AIペルソナ変更完了: ${_getPersonalityName(_aiPersonalityId)}');
+      print('AIペルソナ変更完了: ${_getPersonalityName(widget.personalityId)}');
     } catch (e) {
       print('AIペルソナ変更エラー: $e');
     }
@@ -695,7 +708,7 @@ ${_userFeatures.map((feature) => '- $feature').join('\n')}
             maxOutputTokens: 8192, // 出力制限完全撤廃 - 最大トークン数に設定
             candidateCount: 1,
           ),
-          systemInstruction: Content.system(_getSystemPrompt(_aiPersonalityId)),
+          systemInstruction: Content.system(_getSystemPrompt(widget.personalityId)),
         );
         print('✅ Firebase AI (Vertex AI) Gemini 2.5 Flash 初期化成功');
       } catch (vertexError) {
@@ -710,7 +723,7 @@ ${_userFeatures.map((feature) => '- $feature').join('\n')}
             maxOutputTokens: 8192,
             candidateCount: 1,
           ),
-          systemInstruction: Content.system(_getSystemPrompt(_aiPersonalityId)),
+          systemInstruction: Content.system(_getSystemPrompt(widget.personalityId)),
         );
         print('✅ Firebase AI (Google AI) Gemini 1.5 Flash フォールバック成功');
       }
@@ -722,7 +735,7 @@ ${_userFeatures.map((feature) => '- $feature').join('\n')}
       if (voicevoxAvailable) {
         _useVoicevox = true;
         // キャラクターIDに基づいてVOICEVOX話者を設定
-        _voiceVoxService.setSpeakerByCharacter(_aiPersonalityId);
+        _voiceVoxService.setSpeakerByCharacter(widget.personalityId);
         print('✅ VOICEVOX初期化完了 - キャラクター: ${_getPersonalityName(_aiPersonalityId)}');
       } else {
         _useVoicevox = false;
@@ -737,23 +750,8 @@ ${_userFeatures.map((feature) => '- $feature').join('\n')}
         _isInitialized = true;
       });
       
-      // 初期メッセージを履歴に追加（性格別挨拶）
-      String initialMessage = _personalityData['greeting'] ?? 'こんにちは！';
-      _addMessage('AI', initialMessage);
-      
-      // _aiResponseTextも設定
-      setState(() {
-        _aiResponseText = initialMessage;
-      });
-      
-      // 初期挨拶を音声で再生（重複防止のため十分な遅延）
-      if (mounted && !_chatEnded) {
-        Future.delayed(const Duration(milliseconds: 2000), () {
-          if (mounted && !_chatEnded && !_isSpeaking) {
-            _speakAI(initialMessage);
-          }
-        });
-      }
+      // AIからの初期挨拶は削除し、ユーザーから話しかける仕様に変更
+      // 初期状態では何も表示しない
       
       print('Firebase AI (Vertex AI/Google AI) Gemini 2.5/1.5 Flash + 音声合成初期化完了');
     } catch (e) {
@@ -841,12 +839,12 @@ ${_userFeatures.map((feature) => '- $feature').join('\n')}
     try {
       if (_allUserMessages.isNotEmpty && _allAiResponses.isNotEmpty) {
         await _aiHistoryService.recordCompletedAIConversation(
-          _aiPersonalityId,
+          widget.personalityId,
           _allUserMessages,
           _allAiResponses,
         );
         
-        print('✅ AI会話履歴保存完了: 性格ID=$_aiPersonalityId, メッセージ数=${_allUserMessages.length}');
+        print('✅ AI会話履歴保存完了: 性格ID=${widget.personalityId}, メッセージ数=${_allUserMessages.length}');
       }
     } catch (e) {
       print('❌ AI会話履歴保存エラー: $e');
@@ -1108,7 +1106,7 @@ ${_userFeatures.map((feature) => '- $feature').join('\n')}
       print('VOICEVOX音声合成開始: $text');
       
       // 現在の性格に対応するVOICEVOX話者を設定
-      _voiceVoxService.setSpeakerByCharacter(_aiPersonalityId);
+      _voiceVoxService.setSpeakerByCharacter(widget.personalityId);
       
       // VOICEVOX Engine の可用性チェック
       final isEngineAvailable = await _voiceVoxService.isEngineAvailable();
@@ -1159,7 +1157,7 @@ ${_userFeatures.map((feature) => '- $feature').join('\n')}
       backgroundColor: _currentThemeColor, // 動的テーマカラー（talk_to_ai_screen.dartから統合）
       appBar: AppBar(
         title: Text(
-          '${_getPersonalityName(_aiPersonalityId)} AI チャット',
+          '${_getPersonalityName(widget.personalityId)} AI チャット',
           style: GoogleFonts.notoSans(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -1188,23 +1186,6 @@ ${_userFeatures.map((feature) => '- $feature').join('\n')}
       ),
       body: Column(
         children: [
-          // 状態表示
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(8),
-            color: _isInitialized ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
-            child: Text(
-              _isInitialized 
-                  ? 'Firebase AI Gemini 2.5 Flash (Vertex AI) 接続済み' 
-                  : 'Firebase AI 接続エラー - 設定確認',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
           
           // AIアイコンとタイマー（talk_to_ai_screen.dartから統合）
           Padding(

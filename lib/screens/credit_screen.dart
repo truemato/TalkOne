@@ -34,12 +34,22 @@ class _CreditScreenState extends State<CreditScreen> {
     final profile = await _userProfileService.getUserProfile();
     if (profile != null && mounted) {
       setState(() {
-        _selectedThemeIndex = profile.themeIndex ?? 0;
+        int themeIndex = profile.themeIndex ?? 0;
+        // 範囲チェック
+        if (themeIndex < 0 || themeIndex >= _themeColors.length) {
+          themeIndex = 0;
+        }
+        _selectedThemeIndex = themeIndex;
       });
     }
   }
 
-  Color get _currentThemeColor => _themeColors[_selectedThemeIndex];
+  Color get _currentThemeColor {
+    if (_selectedThemeIndex >= 0 && _selectedThemeIndex < _themeColors.length) {
+      return _themeColors[_selectedThemeIndex];
+    }
+    return _themeColors[0]; // デフォルト
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -123,8 +133,10 @@ class _CreditScreenState extends State<CreditScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Text(
-                      'VOICEVOX  …  © Hiroshiba Kazuyuki\n'
-                      'Fluent Emoji  …  © Microsoft\n'
+                      'VOICEVOX\n'
+                      '　© Hiroshiba Kazuyuki\n'
+                      'Fluent Emoji\n'
+                      '　© Microsoft\n'
                       'Lottiefiles\n'
                       '　Free Cold Mountain Background Animation\n'
                       '　© Felipe Da Silva Pinho\n'

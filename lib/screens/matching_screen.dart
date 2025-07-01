@@ -240,6 +240,7 @@ class _MatchingScreenState extends State<MatchingScreen>
   int _dotCount = 0;
   int _userRating = 1000; // デフォルトレーティング値
   int _aiPersonalityId = 0; // デフォルト: ずんだもん
+  String _aiAssistantName = 'ずんだもん'; // AIアシスタント名
   int _onlineUsers = 0;
   String? _callRequestId;
   StreamSubscription? _matchingSubscription;
@@ -320,7 +321,8 @@ class _MatchingScreenState extends State<MatchingScreen>
             _userRating = profile.rating;
             _selectedThemeIndex = profile.themeIndex ?? 0;
             _aiPersonalityId = profile.aiPersonalityId;
-            print('MatchingScreen: UserProfileからレーティング読み込み完了 - $_userRating, AI性格ID: $_aiPersonalityId');
+            _aiAssistantName = _userProfileService.getAIAssistantName(profile.aiPersonalityId);
+            print('MatchingScreen: UserProfileからレーティング読み込み完了 - $_userRating, AI性格ID: $_aiPersonalityId, AIアシスタント名: $_aiAssistantName');
           });
         }
         return;
@@ -745,7 +747,7 @@ class _MatchingScreenState extends State<MatchingScreen>
           const Icon(Icons.smart_toy, size: 20),
           const SizedBox(width: 8),
           Text(
-            'AIと会話',
+            '${_aiAssistantName}と会話',
             style: GoogleFonts.notoSans(
               fontSize: 16,
               fontWeight: FontWeight.w600,

@@ -1,7 +1,10 @@
 // lib/services/agora_call_service.dart
 import 'dart:async';
 import 'dart:io' show Platform;
-import 'package:agora_rtc_engine/agora_rtc_engine.dart';
+import 'package:flutter/foundation.dart';
+// Web版では音声通話機能を無効化
+import 'package:agora_rtc_engine/agora_rtc_engine.dart' 
+  if (dart.library.html) 'agora_call_service_web.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../config/agora_config.dart';
 import 'agora_token_service.dart';

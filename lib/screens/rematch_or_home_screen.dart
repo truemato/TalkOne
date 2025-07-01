@@ -61,12 +61,22 @@ class _RematchOrHomeScreenState extends State<RematchOrHomeScreen>
     if (profile != null && mounted) {
       setState(() {
         _selectedIconPath = profile.iconPath ?? 'aseets/icons/Woman 1.svg';
-        _selectedThemeIndex = profile.themeIndex ?? 0;
+        int themeIndex = profile.themeIndex ?? 0;
+        // 範囲チェック
+        if (themeIndex < 0 || themeIndex >= _themeColors.length) {
+          themeIndex = 0;
+        }
+        _selectedThemeIndex = themeIndex;
       });
     }
   }
   
-  Color get _currentThemeColor => _themeColors[_selectedThemeIndex];
+  Color get _currentThemeColor {
+    if (_selectedThemeIndex >= 0 && _selectedThemeIndex < _themeColors.length) {
+      return _themeColors[_selectedThemeIndex];
+    }
+    return _themeColors[0]; // デフォルト
+  }
 
   void _goToMatching() {
     Navigator.pushAndRemoveUntil(

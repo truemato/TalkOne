@@ -83,19 +83,24 @@ class _AiPreCallScreenState extends State<AiPreCallScreen>
   void _loadPersonalityData() {
     final personalities = [
       {
-        'name': 'ずんだもん',
-        'icon': 'aseets/icons/Guy 1.svg',
-        'backgroundColor': const Color(0xFF81C784), // 薄緑
-      },
-      {
         'name': '春日部つむぎ',
         'icon': 'aseets/icons/Woman 2.svg',
         'backgroundColor': const Color(0xFF64B5F6), // 知的な青
       },
       {
+        'name': 'ずんだもん',
+        'icon': 'aseets/icons/Guy 1.svg',
+        'backgroundColor': const Color(0xFF81C784), // 薄緑
+      },
+      {
         'name': '四国めたん',
         'icon': 'aseets/icons/Woman 3.svg',
         'backgroundColor': const Color(0xFFFFB74D), // 明るい橙
+      },
+      {
+        'name': '春日部つむぎ', // 設定画面の「雨晴はう」は春日部つむぎとして扱う
+        'icon': 'aseets/icons/Woman 2.svg',
+        'backgroundColor': const Color(0xFF64B5F6), // 知的な青
       },
       {
         'name': '青山龍星',
@@ -109,10 +114,19 @@ class _AiPreCallScreenState extends State<AiPreCallScreen>
       },
     ];
     
-    final personalityData = personalities[widget.personalityId];
-    _aiName = personalityData['name'] as String;
-    _aiIcon = personalityData['icon'] as String;
-    _aiBackgroundColor = personalityData['backgroundColor'] as Color;
+    // 他のキャラクターと同じロジック：personalityIdを直接インデックスとして使用
+    if (widget.personalityId >= 0 && widget.personalityId < personalities.length) {
+      final personalityData = personalities[widget.personalityId];
+      _aiName = personalityData['name'] as String;
+      _aiIcon = personalityData['icon'] as String;
+      _aiBackgroundColor = personalityData['backgroundColor'] as Color;
+    } else {
+      // フォールバック：範囲外の場合はずんだもん（ID 1）を使用
+      final personalityData = personalities[1];
+      _aiName = personalityData['name'] as String;
+      _aiIcon = personalityData['icon'] as String;
+      _aiBackgroundColor = personalityData['backgroundColor'] as Color;
+    }
   }
 
   void _navigateToZundamonChat() {
@@ -218,43 +232,13 @@ class _AiPreCallScreenState extends State<AiPreCallScreen>
                   
                   SizedBox(height: screenHeight * 0.04),
                   
-                  // AI名前
+                  // AI アシスタント（2倍の大きさ）
                   Text(
-                    _aiName,
+                    'AI アシスタント',
                     style: GoogleFonts.notoSans(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 8),
-                  
-                  // AI表記
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.smart_toy,
-                          color: Colors.white,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'AI アシスタント',
-                          style: GoogleFonts.notoSans(
-                            fontSize: 14,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                   

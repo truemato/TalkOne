@@ -62,12 +62,22 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
         _selectedDate = profile.birthday;
         _commentController.text = profile.comment ?? '';
         _aiMemoController.text = profile.aiMemory ?? '';
-        _selectedThemeIndex = profile.themeIndex;
+        int themeIndex = profile.themeIndex ?? 0;
+        // 範囲チェック
+        if (themeIndex < 0 || themeIndex >= _themeColors.length) {
+          themeIndex = 0;
+        }
+        _selectedThemeIndex = themeIndex;
       });
     }
   }
 
-  Color get _currentThemeColor => _themeColors[_selectedThemeIndex];
+  Color get _currentThemeColor {
+    if (_selectedThemeIndex >= 0 && _selectedThemeIndex < _themeColors.length) {
+      return _themeColors[_selectedThemeIndex];
+    }
+    return _themeColors[0]; // デフォルト
+  }
 
   Future<void> _saveProfile() async {
     if (_isLoading) return;
@@ -473,12 +483,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
     });
 
     try {
-      final userCredential = await _authService.linkAnonymousWithGoogle().timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          throw TimeoutException('Google Sign In timeout', const Duration(seconds: 30));
-        },
-      );
+      final userCredential = await _authService.linkAnonymousWithGoogle();
       
       if (userCredential != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -507,12 +512,15 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
     } catch (e) {
       if (mounted) {
         String errorMessage = 'アップグレードに失敗しました';
-        if (e is TimeoutException) {
-          errorMessage = 'ログインがタイムアウトしました。再度お試しください。';
-        } else if (e.toString().contains('SIGN_IN_CANCELLED')) {
+        if (e.toString().contains('SIGN_IN_CANCELLED') || e.toString().contains('canceled')) {
           errorMessage = 'ログインがキャンセルされました';
+        } else if (e.toString().contains('network') || e.toString().contains('Network')) {
+          errorMessage = 'ネットワークエラーです。接続を確認してください。';
+        } else if (e.toString().contains('credential-already-in-use')) {
+          errorMessage = 'このGoogleアカウントは既に使用されています';
         } else {
-          errorMessage = 'ログインに失敗しました: ${e.toString().length > 50 ? e.toString().substring(0, 50) + '...' : e.toString()}';
+          print('アップグレードエラー詳細: $e');
+          errorMessage = 'ログインに失敗しました';
         }
         
         ScaffoldMessenger.of(context).showSnackBar(

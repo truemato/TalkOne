@@ -1,9 +1,9 @@
-name: TalkOne
+name: talkone
 description: 1対1でキューを入れてマッチングできる、トークアプリ。会話後に相手を評価できる。AIとマッチングすることもある。
 
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 0.8.0+8
+version: 0.9.1+9
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
@@ -45,7 +45,7 @@ dependencies:
   flutter_sound: ^9.2.13
   record: ^5.0.0
   
-  # P2P通話機能
+  # P2P通話機能（Web版は対象外）
   agora_rtc_engine: ^6.3.2
   permission_handler: ^11.3.1
   

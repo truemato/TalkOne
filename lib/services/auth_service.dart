@@ -26,7 +26,13 @@ class AuthService {
       
       // Google認証フローを開始
       print('Google認証フロー開始...');
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn().catchError((error) {
+        print('❌ Google Sign Inエラー: $error');
+        if (error.toString().contains('sign_in_failed')) {
+          print('Google Play Servicesの問題またはOAuth設定の問題');
+        }
+        return null;
+      });
       
       if (googleUser == null) {
         print('❌ Googleサインインがキャンセルされました');
@@ -218,7 +224,10 @@ class AuthService {
       final guestData = await _backupAnonymousUserData(anonymousUid);
 
       // Google認証フローを開始
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn().catchError((error) {
+        print('❌ Google Sign Inエラー (リンク): $error');
+        return null;
+      });
       
       if (googleUser == null) {
         print('Googleサインインがキャンセルされました');

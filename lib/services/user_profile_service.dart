@@ -380,4 +380,28 @@ class UserProfileService {
       return false;
     }
   }
+
+  // AIアシスタント名を取得
+  String getAIAssistantName(int personalityId) {
+    final personalityNames = [
+      '春日部つむぎ',      // 0
+      'ずんだもん',        // 1
+      '四国めたん',        // 2
+      '春日部つむぎ',      // 3（設定画面の「雨晴はう」は「春日部つむぎ」に対応）
+      '青山龍星',          // 4
+      '冥鳴ひまり',        // 5
+    ];
+    
+    if (personalityId >= 0 && personalityId < personalityNames.length) {
+      return personalityNames[personalityId];
+    }
+    return 'ずんだもん'; // デフォルト
+  }
+
+  // 現在設定されているAIアシスタント名を取得
+  Future<String> getCurrentAIAssistantName() async {
+    final profile = await getUserProfile();
+    final personalityId = profile?.aiPersonalityId ?? 1;
+    return getAIAssistantName(personalityId);
+  }
 }
