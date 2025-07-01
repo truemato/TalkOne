@@ -231,10 +231,11 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '通報を送信しました。ご協力ありがとうございます。',
+              '通報を送信しました。24時間以内にサポートからのメールをお送りいたします。',
               style: GoogleFonts.notoSans(),
             ),
             backgroundColor: Colors.green,
+            duration: const Duration(seconds: 5),
           ),
         );
 
@@ -322,6 +323,10 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
                 // 通報ボタン（評価画面からの遷移時のみ表示）
                 if (widget.showReportButton)
                   _buildReportButton(),
+                
+                // ブロックボタン（履歴画面からの遷移時は表示）
+                if (!widget.showReportButton)
+                  _buildBlockButton(),
               ],
             ),
           ),
@@ -483,6 +488,130 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
                   ),
                 ],
               ),
+      ),
+    );
+  }
+
+  // ブロック機能
+  Future<void> _showBlockDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Text(
+          'ユーザーをブロック',
+          style: GoogleFonts.notoSans(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'このユーザーをブロックすると、今後マッチングされなくなります。\nブロックしますか？',
+          style: GoogleFonts.notoSans(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'キャンセル',
+              style: GoogleFonts.notoSans(
+                color: Colors.grey[600],
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(
+              'ブロックする',
+              style: GoogleFonts.notoSans(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      await _blockUser();
+    }
+  }
+
+  Future<void> _blockUser() async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) throw Exception('ユーザーが認証されていません');
+
+      // ブロックリストに追加
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('blockedUsers')
+          .doc(widget.partnerId)
+          .set({
+        'blockedAt': FieldValue.serverTimestamp(),
+        'blockedUserId': widget.partnerId,
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'ユーザーをブロックしました',
+              style: GoogleFonts.notoSans(),
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      print('ブロックエラー: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'ブロックに失敗しました。再度お試しください。',
+              style: GoogleFonts.notoSans(),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildBlockButton() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 20),
+      child: ElevatedButton(
+        onPressed: _showBlockDialog,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.orange,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 4,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.block, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'このユーザーをブロック',
+              style: GoogleFonts.notoSans(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

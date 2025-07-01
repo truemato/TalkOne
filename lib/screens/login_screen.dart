@@ -102,13 +102,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 _buildGoogleSignInButton(),
                 const SizedBox(height: 16),
                 
+                // Apple IDサインインボタン（iOSのみ）
+                if (Platform.isIOS) ...[
+                  _buildAppleSignInButton(),
+                  const SizedBox(height: 16),
+                ],
+                
                 // ゲストでプレイボタン
                 _buildAnonymousSignInButton(),
                 const SizedBox(height: 24),
                 
                 // 説明テキスト
                 Text(
-                  'Googleアカウントでサインインすると、\n機種変更時もAIとの会話履歴が\n引き継がれます',
+                  'Google/Appleアカウントでサインインすると、\n機種変更時もAIとの会話履歴が\n引き継がれます',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.notoSans(
                     color: Colors.white.withOpacity(0.7),
@@ -170,6 +176,47 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
 
+  Widget _buildAppleSignInButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+          elevation: 4,
+        ),
+        onPressed: _isLoading ? null : _handleAppleSignIn,
+        child: _isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.apple, size: 24),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Apple IDでサインイン',
+                    style: GoogleFonts.notoSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
   Widget _buildAnonymousSignInButton() {
     return SizedBox(
       width: double.infinity,
@@ -228,6 +275,33 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+
+  Future<void> _handleAppleSignIn() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final userCredential = await _authService.signInWithApple();
+      
+      if (userCredential != null && mounted) {
+        _showSuccessMessage('Apple IDでサインインしました');
+        _navigateToHome();
+      } else if (mounted) {
+        _showErrorMessage('サインインがキャンセルされました');
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorMessage('サインインに失敗しました: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   Future<void> _handleAnonymousSignIn() async {
     setState(() {

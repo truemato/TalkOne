@@ -3,9 +3,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:io' show Platform;
 import '../services/user_profile_service.dart';
 import '../services/rating_service.dart';
+import '../services/auth_service.dart';
 import 'profile_setting_screen.dart';
 import 'credit_screen.dart';
+import 'login_screen.dart';
 import '../utils/theme_utils.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 // 設定画面本体
 class SettingsScreen extends StatefulWidget {
@@ -20,8 +24,10 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final UserProfileService _userProfileService = UserProfileService();
   final RatingService _ratingService = RatingService();
+  final AuthService _authService = AuthService();
   int _selectedThemeIndex = 0;
   int _currentRating = 1000;
+  bool _isDeleting = false;
   
   // デバッグ機能（実績ポップアップ連続タップ）
   int _achievementTapCount = 0;
@@ -723,10 +729,159 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               // 実績セクション
               _buildAchievementSection(),
+              
+              const Divider(color: Colors.white24, height: 32),
+              
+              // アカウント削除
+              ListTile(
+                leading: const Icon(Icons.delete_forever, color: Colors.red),
+                title: const Text('アカウント削除', style: TextStyle(color: Colors.red)),
+                trailing: const Icon(Icons.arrow_forward_ios, color: Colors.red, size: 16),
+                onTap: _isDeleting ? null : _showDeleteAccountDialog,
+              ),
             ],
           ),
         ),
       ],
     );
+  }
+  
+  Future<void> _showDeleteAccountDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Text(
+          'アカウント削除',
+          style: GoogleFonts.notoSans(
+            fontWeight: FontWeight.bold,
+            color: Colors.red,
+          ),
+        ),
+        content: Text(
+          'この画面からアカウント削除を押すと、ログアウトされるだけでなく、これまでのレートとAI VOICEVOXの人格と会話が削除されます。本当によろしいですか？',
+          style: GoogleFonts.notoSans(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'キャンセル',
+              style: GoogleFonts.notoSans(
+                color: Colors.grey[600],
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(
+              '削除する',
+              style: GoogleFonts.notoSans(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      await _deleteAccount();
+    }
+  }
+  
+  Future<void> _deleteAccount() async {
+    setState(() {
+      _isDeleting = true;
+    });
+
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      final user = FirebaseAuth.instance.currentUser;
+      
+      if (userId == null || user == null) {
+        throw Exception('ユーザーが認証されていません');
+      }
+
+      // Firestoreからユーザーデータを削除
+      final batch = FirebaseFirestore.instance.batch();
+      
+      // userProfiles削除
+      batch.delete(FirebaseFirestore.instance.collection('userProfiles').doc(userId));
+      
+      // userRatings削除
+      batch.delete(FirebaseFirestore.instance.collection('userRatings').doc(userId));
+      
+      // callHistoriesサブコレクション削除
+      final callHistories = await FirebaseFirestore.instance
+          .collection('callHistories')
+          .doc(userId)
+          .collection('calls')
+          .get();
+      
+      for (final doc in callHistories.docs) {
+        batch.delete(doc.reference);
+      }
+      
+      // conversationLogsサブコレクション削除
+      final conversationLogs = await FirebaseFirestore.instance
+          .collection('conversationLogs')
+          .doc(userId)
+          .collection('logs')
+          .get();
+          
+      for (final doc in conversationLogs.docs) {
+        batch.delete(doc.reference);
+      }
+      
+      // バッチ実行
+      await batch.commit();
+      
+      // サインアウト
+      await _authService.signOut();
+      
+      // Firebase Authからアカウントを削除
+      await user.delete();
+      
+      if (mounted) {
+        // 成功メッセージ
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'お使いのGoogle/Appleアカウントのアプリケーション内情報を削除しました。',
+              style: GoogleFonts.notoSans(),
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        
+        // ログイン画面に戻る
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      print('アカウント削除エラー: $e');
+      if (mounted) {
+        setState(() {
+          _isDeleting = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'アカウントの削除に失敗しました。再度お試しください。',
+              style: GoogleFonts.notoSans(),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
