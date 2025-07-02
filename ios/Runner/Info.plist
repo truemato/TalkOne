@@ -73,9 +73,14 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.198779252752-a7or4kbjhq2ditrccjku0h3dei26j9rr</string>
+				<string>com.googleusercontent.apps.198779252752-9omqgco8p14ughks41d5tojn9gn0pkc6</string>
 			</array>
 		</dict>
 	</array>
+	<!-- Apple Sign In Configuration -->
+	<key>UIApplicationSupportsSignInWithApple</key>
+	<true/>
+	<key>NSUserNotificationAlertStyle</key>
+	<string>alert</string>
 </dict>
 </plist>
