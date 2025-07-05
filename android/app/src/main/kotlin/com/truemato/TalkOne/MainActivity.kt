@@ -71,16 +71,16 @@ class MainActivity: FlutterActivity() {
                     
                     override fun onError(error: Int) {
                         val errorMessage = when (error) {
-                            SpeechRecognizer.ERROR_AUDIO -> "Audio recording error"
-                            SpeechRecognizer.ERROR_CLIENT -> "Client side error"
-                            SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Insufficient permissions"
-                            SpeechRecognizer.ERROR_NETWORK -> "Network error"
-                            SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Network timeout"
-                            SpeechRecognizer.ERROR_NO_MATCH -> "No match found"
-                            SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "RecognitionService busy"
-                            SpeechRecognizer.ERROR_SERVER -> "Server error"
-                            SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Speech timeout"
-                            else -> "Unknown error"
+                            SpeechRecognizer.ERROR_AUDIO -> "音声録音エラーです。マイクを確認してください。"
+                            SpeechRecognizer.ERROR_CLIENT -> "音声認識でエラーが発生しました。"
+                            SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "音声録音の権限が必要です。"
+                            SpeechRecognizer.ERROR_NETWORK -> "ネットワーク接続エラーです。"
+                            SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "ネットワークがタイムアウトしました。"
+                            SpeechRecognizer.ERROR_NO_MATCH -> "音声を認識できませんでした。もう一度お試しください。"
+                            SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "音声認識サービスが利用中です。しばらく待ってからお試しください。"
+                            SpeechRecognizer.ERROR_SERVER -> "音声認識サーバーでエラーが発生しました。"
+                            SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "音声が検出されませんでした。もう一度お話しください。"
+                            else -> "音声認識で予期しないエラーが発生しました。"
                         }
                         
                         val speechMethodChannel = MethodChannel(

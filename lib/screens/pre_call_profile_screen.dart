@@ -327,43 +327,81 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
   }
 
   Widget _buildMainContent() {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          children: [
-            // ヘッダー部分
-            _buildHeader(),
-            const SizedBox(height: 40),
-            
-            // アイコンとプロフィール
-            Expanded(
+    return Platform.isIOS
+        ? SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24.0, 18.0, 24.0, 18.0), // iOS: 上下6px削減
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // アイコンアニメーション
-                  _buildIconSection(),
-                  const SizedBox(height: 40),
+                  // ヘッダー部分
+                  _buildHeader(),
+                  const SizedBox(height: 34), // iOS: 40→34
                   
-                  // プロフィール情報
-                  _buildProfileInfo(),
-                  const SizedBox(height: 40),
-                  
-                  // コメント（10px上に移動）
-                  Transform.translate(
-                    offset: const Offset(0, -10),
-                    child: _buildCommentSection(),
+                  // アイコンとプロフィール
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // アイコンアニメーション
+                        _buildIconSection(),
+                        const SizedBox(height: 34), // iOS: 40→34
+                        
+                        // プロフィール情報
+                        _buildProfileInfo(),
+                        const SizedBox(height: 34), // iOS: 40→34
+                        
+                        // コメント（16px上に移動）
+                        Transform.translate(
+                          offset: const Offset(0, -16), // iOS: -10→-16
+                          child: _buildCommentSection(),
+                        ),
+                      ],
+                    ),
                   ),
+                  
+                  // フッター（レートカウンター）
+                  _buildFooter(),
                 ],
               ),
             ),
-            
-            // フッター（レートカウンター）
-            _buildFooter(),
-          ],
-        ),
-      ),
-    );
+          )
+        : SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                children: [
+                  // ヘッダー部分
+                  _buildHeader(),
+                  const SizedBox(height: 40),
+                  
+                  // アイコンとプロフィール
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // アイコンアニメーション
+                        _buildIconSection(),
+                        const SizedBox(height: 40),
+                        
+                        // プロフィール情報
+                        _buildProfileInfo(),
+                        const SizedBox(height: 40),
+                        
+                        // コメント（10px上に移動）
+                        Transform.translate(
+                          offset: const Offset(0, -10),
+                          child: _buildCommentSection(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // フッター（レートカウンター）
+                  _buildFooter(),
+                ],
+              ),
+            ),
+          );
   }
 
   Widget _buildHeader() {

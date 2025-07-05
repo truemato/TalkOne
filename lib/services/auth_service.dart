@@ -17,69 +17,22 @@ class AuthService {
   // 認証状態の変更を監視
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  // Googleアカウントでサインイン
+  // Googleアカウントでサインイン（シンプル版 - 正常動作していたバージョンに復元）
   Future<UserCredential?> signInWithGoogle() async {
     try {
       print('=== Google Sign In Debug Start ===');
       print('Google Sign In開始');
       print('GoogleSignIn設定: ${_googleSignIn.toString()}');
       
-      // Google認証フローを開始（iPad対応）
+      // Google認証フローを開始
       print('Google認証フロー開始...');
-      
-      // iPad/iOS環境での安定化
-      if (Platform.isIOS) {
-        print('🍎 iOS/iPad環境でのGoogle認証準備');
-        await Future.delayed(const Duration(milliseconds: 150));
-      }
-      
-      GoogleSignInAccount? googleUser;
-      try {
-        // タイムアウト付きでGoogle Sign Inを実行
-        googleUser = await _googleSignIn.signIn().timeout(
-          const Duration(seconds: 45),
-          onTimeout: () {
-            print('❌ 通常Google Sign Inがタイムアウトしました（45秒）');
-            throw TimeoutException('Google Sign Inがタイムアウトしました', const Duration(seconds: 45));
-          },
-        );
-      } catch (signInError) {
-        print('❌ Google Sign In初期エラー: $signInError');
-        print('エラータイプ: ${signInError.runtimeType}');
-        
-        // タイムアウトエラーの場合は再試行しない
-        if (signInError is TimeoutException) {
-          print('⏰ 通常認証でタイムアウト - 再試行せずに終了');
-          return null;
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn().catchError((error) {
+        print('❌ Google Sign Inエラー: $error');
+        if (error.toString().contains('sign_in_failed')) {
+          print('Google Play Servicesの問題またはOAuth設定の問題');
         }
-        
-        // iPad特有エラーの詳細ログ
-        if (Platform.isIOS && signInError.toString().contains('7')) {
-          print('🍎 iPad特有エラー(7)検出 - リトライ実行');
-          try {
-            await _googleSignIn.signOut();
-            await Future.delayed(const Duration(milliseconds: 500));
-            
-            // リトライもタイムアウト付き
-            googleUser = await _googleSignIn.signIn().timeout(
-              const Duration(seconds: 30),
-              onTimeout: () {
-                print('❌ 通常認証リトライもタイムアウトしました（30秒）');
-                throw TimeoutException('Google Sign Inリトライがタイムアウトしました', const Duration(seconds: 30));
-              },
-            );
-          } catch (retryError) {
-            print('❌ 通常認証リトライも失敗: $retryError');
-            return null;
-          }
-        } else {
-          print('❌ Google Sign Inエラー: $signInError');
-          if (signInError.toString().contains('sign_in_failed')) {
-            print('Google Play Servicesの問題またはOAuth設定の問題');
-          }
-          return null;
-        }
-      }
+        return null;
+      });
       
       if (googleUser == null) {
         print('❌ Googleサインインがキャンセルされました');
@@ -116,131 +69,112 @@ class AuthService {
     } catch (e) {
       print('❌ Google Sign Inエラー: $e');
       print('エラータイプ: ${e.runtimeType}');
-      
-      // iPad/iOS特有のエラーハンドリング
-      if (Platform.isIOS && e.toString().contains('7')) {
-        print('🍎 iPad特有エラー(7): Google Sign Inサービスの初期化問題');
-        print('解決策: アプリ再起動またはGoogle Sign Inの再初期化');
-      } else if (e.toString().contains('DEVELOPER_ERROR')) {
+      if (e.toString().contains('DEVELOPER_ERROR')) {
         print('🔧 DEVELOPER_ERROR: SHA-1フィンガープリントまたはOAuth設定を確認してください');
       } else if (e.toString().contains('SIGN_IN_CANCELLED')) {
         print('👤 SIGN_IN_CANCELLED: ユーザーがサインインをキャンセルしました');
       } else if (e.toString().contains('SIGN_IN_FAILED')) {
         print('⚠️ SIGN_IN_FAILED: Google Play Servicesの問題の可能性があります');
-      } else if (e.toString().contains('network') || e.toString().contains('Network')) {
-        print('🌐 ネットワークエラー: インターネット接続を確認してください');
       }
       print('=== Google Sign In Debug End ===');
       return null;
     }
   }
 
-  // Apple IDでサインイン
+  // Apple IDでサインイン（エラー1000対応版）
   Future<UserCredential?> signInWithApple() async {
     try {
-      print('=== Apple Sign In Debug Start ===');
-      print('Platform: ${Platform.operatingSystem}');
-      print('Platform version: ${Platform.operatingSystemVersion}');
+      print('🍎 Apple Sign In開始');
+      print('Bundle ID: com.truemato.TalkOne');
       
       // Apple認証が利用可能かチェック
-      if (!Platform.isIOS && !Platform.isAndroid) {
-        print('❌ Apple Sign InはiOSとAndroidでのみ利用可能です');
-        throw Exception('Apple Sign InはiOSとAndroidでのみ利用可能です');
-      }
-      
-      print('🔍 Apple Sign In可用性チェック中...');
       final isAvailable = await SignInWithApple.isAvailable();
       print('Apple Sign In可用性: $isAvailable');
-      
       if (!isAvailable) {
         print('❌ Apple Sign Inが利用できません');
-        if (Platform.isAndroid) {
-          print('Android用Apple Sign In要件:');
-          print('1. Android 6.0 (API 23) 以上');
-          print('2. Google Play Services');
-          print('3. 適切なManifest設定');
-          print('4. Apple Developer設定');
-        }
-        throw Exception('Apple Sign Inが利用できません');
+        throw Exception('Apple Sign Inがサポートされていません');
       }
       
       // Apple認証フローを開始
-      print('🍎 Apple認証フロー開始...');
-      print('要求スコープ: email, fullName');
+      print('🔑 Apple認証ダイアログを表示中...');
+      print('Service ID 設定状況:');
+      print('- iOS: ネイティブ認証（Service ID不要）');
+      print('- Bundle ID: com.truemato.TalkOne');
+      print('- Entitlements: com.apple.developer.applesignin');
       
       final appleCredential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
           AppleIDAuthorizationScopes.fullName,
         ],
-        webAuthenticationOptions: Platform.isAndroid ? WebAuthenticationOptions(
-          clientId: 'com.truemato.TalkOne.signinwithapple',
-          redirectUri: Uri.parse('https://myproject-c8034.firebaseapp.com/__/auth/handler'),
-        ) : null,
+        // iOS用：Service ID は不要（ネイティブ認証）
+        // webAuthenticationOptions は Android 用のみ
       );
       
-      print('✅ Apple認証レスポンス受信');
-      print('ユーザーID: ${appleCredential.userIdentifier}');
-      print('Email: ${appleCredential.email ?? 'メールアドレス未取得'}');
-      print('名前: ${appleCredential.givenName} ${appleCredential.familyName}');
-      print('Identity Token有無: ${appleCredential.identityToken != null}');
-      print('Authorization Code有無: ${appleCredential.authorizationCode != null}');
+      print('✅ Apple認証成功: ${appleCredential.userIdentifier}');
+      print('Email: ${appleCredential.email ?? "なし"}');
+      print('Name: ${appleCredential.givenName ?? ""} ${appleCredential.familyName ?? ""}');
+      print('Identity Token: ${appleCredential.identityToken != null ? "取得済み" : "なし"}');
+      print('Authorization Code: ${appleCredential.authorizationCode != null ? "取得済み" : "なし"}');
       
-      // トークンの詳細確認
-      if (appleCredential.identityToken?.isEmpty ?? true) {
-        print('❌ Identity Tokenが取得できませんでした');
+      // トークンの確認
+      if (appleCredential.identityToken == null) {
+        print('❌ Identity Tokenが空です');
         throw Exception('Apple認証でIdentity Tokenが取得できませんでした');
       }
       
-      if (appleCredential.authorizationCode?.isEmpty ?? true) {
-        print('❌ Authorization Codeが取得できませんでした');
+      if (appleCredential.authorizationCode == null) {
+        print('❌ Authorization Codeが空です');
         throw Exception('Apple認証でAuthorization Codeが取得できませんでした');
       }
       
       // Firebase認証用のクレデンシャルを作成
-      print('🔑 Firebase認証用クレデンシャル作成中...');
+      print('🔗 Firebase認証クレデンシャル作成中...');
       final oauthCredential = OAuthProvider("apple.com").credential(
         idToken: appleCredential.identityToken,
         accessToken: appleCredential.authorizationCode,
       );
       
-      print('Firebase認証試行中...');
       // Firebaseにサインイン
+      print('🔥 Firebase認証実行中...');
       final UserCredential userCredential = await _auth.signInWithCredential(oauthCredential);
       
-      print('Firebase認証成功! UID: ${userCredential.user?.uid}');
-      print('Email: ${userCredential.user?.email}');
-      print('Display Name: ${userCredential.user?.displayName}');
-      print('Provider Data: ${userCredential.user?.providerData.map((p) => p.providerId).toList()}');
+      print('✅ Firebase認証成功: ${userCredential.user?.uid}');
+      print('Firebase Email: ${userCredential.user?.email ?? "なし"}');
       
       // 既存プロフィールの確認（上書きを絶対に防ぐ）
       await _ensureUserProfileExists(userCredential.user!);
       
-      print('✅ Apple Sign In完全成功: ${userCredential.user?.uid}');
-      print('=== Apple Sign In Debug End ===');
+      print('✅ Apple Sign In完了: ${userCredential.user?.uid}');
       return userCredential;
-    } catch (e, stackTrace) {
-      print('❌ Apple Sign Inエラー: $e');
-      print('エラータイプ: ${e.runtimeType}');
-      print('スタックトレース: $stackTrace');
+    } on SignInWithAppleAuthorizationException catch (e) {
+      print('❌ Apple認証例外詳細:');
+      print('Error Code: ${e.code}');
+      print('Error Message: ${e.message}');
       
-      // 詳細なエラー分析
-      if (e.toString().contains('SignInWithAppleAuthorizationError')) {
-        print('👤 AUTHORIZATION_ERROR: ユーザーがサインインをキャンセルしました');
-      } else if (e.toString().contains('NotSupported')) {
-        print('⚠️ NOT_SUPPORTED: Apple Sign Inがサポートされていません');
-      } else if (e.toString().contains('InvalidCredential')) {
-        print('🔑 INVALID_CREDENTIAL: 認証情報が無効です');
-      } else if (e.toString().contains('NetworkError')) {
-        print('🌐 NETWORK_ERROR: ネットワーク接続の問題です');
-      } else if (e.toString().contains('UserNotFound')) {
-        print('👤 USER_NOT_FOUND: ユーザーが見つかりません');
-      } else {
-        print('❓ 未知のエラー: $e');
+      // エラーコード1000の詳細処理
+      if (e.code == AuthorizationErrorCode.unknown) {
+        print('🔧 エラー1000: Apple Developer Console設定を確認してください');
+        print('確認項目:');
+        print('1. Bundle ID: com.truemato.TalkOne がApple Developer Consoleに登録済みか');
+        print('2. Sign In with Apple capabilityが有効になっているか');
+        print('3. Service IDが正しく設定されているか');
+        throw Exception('Apple Developer Console設定エラー (エラー1000)。Bundle ID: com.truemato.TalkOne の設定を確認してください。');
       }
       
-      print('=== Apple Sign In Debug End ===');
-      rethrow; // エラーを再度投げて詳細情報をUIに表示
+      // ユーザーがキャンセルした場合のみnullを返す
+      if (e.code == AuthorizationErrorCode.canceled) {
+        print('👤 ユーザーがキャンセルしました');
+        return null;
+      }
+      
+      // その他のエラーは詳細情報付きで例外として投げる
+      throw Exception('Apple Sign-In エラー ${e.code}: ${e.message ?? "不明なエラー"}');
+    } catch (e) {
+      print('❌ Apple Sign Inエラー: $e');
+      print('エラータイプ: ${e.runtimeType}');
+      // エラーを再投げして画面で詳細を表示
+      rethrow;
     }
   }
 
@@ -261,7 +195,7 @@ class AuthService {
     }
   }
 
-  // 匿名アカウントをGoogleアカウントにリンク（データ保持）
+  // 匿名アカウントをGoogleアカウントにリンク（データ保持）- シンプル版に復元
   Future<UserCredential?> linkAnonymousWithGoogle() async {
     try {
       if (currentUser == null || !currentUser!.isAnonymous) {
@@ -277,68 +211,11 @@ class AuthService {
       print('📦 匿名ユーザーデータのバックアップ中...');
       final guestData = await _backupAnonymousUserData(anonymousUid);
 
-      // Google Sign Inが利用可能かチェック（iPad対応）
-      print('🔍 Google Sign In初期化チェック中...');
-      try {
-        if (!await GoogleSignIn.standard().isSignedIn()) {
-          print('Google Sign Inの初期化確認完了');
-        } else {
-          print('既存のGoogle Sign Inセッションを検出');
-        }
-      } catch (initError) {
-        print('⚠️ Google Sign In初期化エラー: $initError');
-      }
-
-      // Google認証フローを開始（iPad安全モード + タイムアウト）
-      GoogleSignInAccount? googleUser;
-      try {
-        print('🔐 Google Sign In開始（iPad対応モード + 45秒タイムアウト）...');
-        
-        // タイムアウト付きでGoogle Sign Inを実行
-        googleUser = await _googleSignIn.signIn().timeout(
-          const Duration(seconds: 45),
-          onTimeout: () {
-            print('❌ Google Sign Inがタイムアウトしました（45秒）');
-            throw TimeoutException('Google Sign Inがタイムアウトしました', const Duration(seconds: 45));
-          },
-        );
-      } catch (signInError) {
-        print('❌ Google Sign Inエラー (詳細): $signInError');
-        print('エラータイプ: ${signInError.runtimeType}');
-        
-        // タイムアウトエラーの場合は再試行しない
-        if (signInError is TimeoutException) {
-          print('⏰ タイムアウトエラー - 再試行せずに終了');
-          rethrow;
-        }
-        
-        // iPad特有のエラーをチェック
-        if (signInError.toString().contains('7') || 
-            signInError.toString().contains('SIGN_IN_CANCELLED') ||
-            signInError.toString().contains('SIGN_IN_FAILED')) {
-          print('🔄 iPad用フォールバック認証を試行中...');
-          
-          try {
-            // GoogleSignInをリセットして再試行
-            await _googleSignIn.signOut();
-            await Future.delayed(const Duration(milliseconds: 500));
-            
-            // 再試行もタイムアウト付き
-            googleUser = await _googleSignIn.signIn().timeout(
-              const Duration(seconds: 30),
-              onTimeout: () {
-                print('❌ リトライもタイムアウトしました（30秒）');
-                throw TimeoutException('Google Sign Inリトライがタイムアウトしました', const Duration(seconds: 30));
-              },
-            );
-          } catch (retryError) {
-            print('❌ リトライ認証も失敗: $retryError');
-            rethrow;
-          }
-        } else {
-          rethrow;
-        }
-      }
+      // Google認証フローを開始
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn().catchError((error) {
+        print('❌ Google Sign Inエラー (リンク): $error');
+        return null;
+      });
       
       if (googleUser == null) {
         print('Googleサインインがキャンセルされました');
@@ -347,21 +224,8 @@ class AuthService {
 
       print('✅ Google Sign In成功: ${googleUser.email}');
 
-      // Google認証の詳細を取得（安全チェック付き）
-      GoogleSignInAuthentication? googleAuth;
-      try {
-        googleAuth = await googleUser.authentication;
-        
-        if (googleAuth.accessToken == null || googleAuth.idToken == null) {
-          print('❌ Google認証トークンが無効です');
-          throw Exception('Google認証トークンの取得に失敗しました');
-        }
-        
-        print('✅ Google認証トークン取得成功');
-      } catch (authError) {
-        print('❌ Google認証詳細取得エラー: $authError');
-        throw Exception('Google認証の詳細取得に失敗しました: $authError');
-      }
+      // Google認証の詳細を取得
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
       // Firebase認証用のクレデンシャルを作成
       final credential = GoogleAuthProvider.credential(
@@ -369,23 +233,10 @@ class AuthService {
         idToken: googleAuth.idToken,
       );
 
-      // 匿名アカウントにGoogleアカウントをリンク（安全チェック付き）
-      UserCredential? userCredential;
-      try {
-        print('🔗 Firebase アカウントリンク実行中...');
-        userCredential = await currentUser!.linkWithCredential(credential);
-        print('✅ アカウントリンク成功: ${userCredential.user?.uid}');
-      } catch (linkError) {
-        print('❌ アカウントリンクエラー: $linkError');
-        
-        // リンクエラーの詳細分析
-        if (linkError is FirebaseAuthException) {
-          print('Firebase認証エラーコード: ${linkError.code}');
-          print('Firebase認証エラーメッセージ: ${linkError.message}');
-        }
-        
-        rethrow;
-      }
+      // 匿名アカウントにGoogleアカウントをリンク
+      final UserCredential userCredential = await currentUser!.linkWithCredential(credential);
+      
+      print('✅ アカウントリンク成功: ${userCredential.user?.uid}');
       
       // データが保持されているか確認（UIDは変わらないはず）
       if (guestData != null) {

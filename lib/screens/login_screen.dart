@@ -102,11 +102,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 _buildGoogleSignInButton(),
                 const SizedBox(height: 16),
                 
-                // Apple IDサインインボタン（iOSのみ）
-                if (Platform.isIOS) ...[
-                  _buildAppleSignInButton(),
-                  const SizedBox(height: 16),
-                ],
+                // Apple IDサインインボタン（iOS、Android両方で表示）
+                _buildAppleSignInButton(),
+                const SizedBox(height: 16),
                 
                 // ゲストでプレイボタン
                 _buildAnonymousSignInButton(),
@@ -114,7 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 
                 // 説明テキスト
                 Text(
-                  'Google/Appleアカウントでサインインすると、\n機種変更時もAIとの会話履歴が\n引き継がれます',
+                  'GoogleまたはApple IDでサインインすると、\n機種変更時もAIとの会話履歴が\n引き継がれます',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.notoSans(
                     color: Colors.white.withOpacity(0.7),
@@ -174,7 +172,6 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-
 
   Widget _buildAppleSignInButton() {
     return SizedBox(
@@ -274,7 +271,6 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     }
   }
-
 
   Future<void> _handleAppleSignIn() async {
     setState(() {

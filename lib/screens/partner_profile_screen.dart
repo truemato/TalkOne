@@ -6,6 +6,7 @@ import '../services/user_profile_service.dart';
 import '../utils/theme_utils.dart';
 import '../services/rating_service.dart';
 import '../services/evaluation_service.dart';
+import '../services/block_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'rematch_or_home_screen.dart';
@@ -32,6 +33,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
   final UserProfileService _userProfileService = UserProfileService();
   final RatingService _ratingService = RatingService();
   final EvaluationService _evaluationService = EvaluationService();
+  final BlockService _blockService = BlockService();
   
   // パートナー情報
   String? _partnerNickname = 'ずんだもん';
@@ -321,8 +323,11 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
                 const SizedBox(height: 40),
                 
                 // 通報ボタン（評価画面からの遷移時のみ表示）
-                if (widget.showReportButton)
+                if (widget.showReportButton) ...[
                   _buildReportButton(),
+                  const SizedBox(height: 16),
+                  _buildBlockButton(),
+                ],
                 
                 // ブロックボタン（履歴画面からの遷移時は表示）
                 if (!widget.showReportButton)
@@ -541,31 +546,31 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
 
   Future<void> _blockUser() async {
     try {
-      final userId = FirebaseAuth.instance.currentUser?.uid;
-      if (userId == null) throw Exception('ユーザーが認証されていません');
-
-      // ブロックリストに追加
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('blockedUsers')
-          .doc(widget.partnerId)
-          .set({
-        'blockedAt': FieldValue.serverTimestamp(),
-        'blockedUserId': widget.partnerId,
-      });
-
+      final success = await _blockService.blockUser(widget.partnerId);
+      
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'ユーザーをブロックしました',
-              style: GoogleFonts.notoSans(),
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'ユーザーをブロックしました。今後このユーザーとマッチングされることはありません。',
+                style: GoogleFonts.notoSans(),
+              ),
+              backgroundColor: Colors.green,
             ),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context);
+          );
+          Navigator.pop(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'ブロックに失敗しました。再度お試しください。',
+                style: GoogleFonts.notoSans(),
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
       print('ブロックエラー: $e');

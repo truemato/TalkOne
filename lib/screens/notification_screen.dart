@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'dart:io' show Platform;
 import '../services/user_profile_service.dart';
-import '../services/version_notification_service.dart';
+import '../services/notification_service.dart';
 import '../utils/theme_utils.dart';
 
-// 通知画面（仮）
+/// 通知画面
 class NotificationScreen extends StatefulWidget {
   final VoidCallback? onNavigateToHome;
   
@@ -17,58 +18,189 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
   final UserProfileService _userProfileService = UserProfileService();
-  final VersionNotificationService _versionService = VersionNotificationService();
+  final NotificationService _notificationService = NotificationService();
   int _selectedThemeIndex = 0;
-  List<VersionNotification> _notifications = [];
   bool _isLoading = true;
-  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
     _loadUserTheme();
-    _loadNotifications();
   }
 
   Future<void> _loadUserTheme() async {
     final profile = await _userProfileService.getUserProfile();
     if (profile != null && mounted) {
       setState(() {
-        _selectedThemeIndex = profile.themeIndex;
+        _selectedThemeIndex = profile.themeIndex ?? 0;
       });
     }
-  }
-  
-  void _loadNotifications() {
-    _versionService.getUserNotifications().listen(
-      (notifications) {
-        if (mounted) {
-          setState(() {
-            _notifications = notifications;
-            _isLoading = false;
-            _errorMessage = null;
-          });
-        }
-      },
-      onError: (error) {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-            _errorMessage = '通知の読み込みに失敗しました';
-          });
-        }
-        print('通知読み込みエラー: $error');
-      },
-    );
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   Color get _currentThemeColor => getAppTheme(_selectedThemeIndex).backgroundColor;
 
+  /// 通知アイコンを取得
+  IconData _getNotificationIcon(NotificationType type) {
+    switch (type) {
+      case NotificationType.reportResponse:
+        return Icons.report_problem;
+      case NotificationType.warning:
+        return Icons.warning;
+      case NotificationType.account:
+        return Icons.account_circle;
+      case NotificationType.general:
+      default:
+        return Icons.notifications;
+    }
+  }
+
+  /// 通知アイコンの色を取得
+  Color _getNotificationColor(NotificationType type) {
+    switch (type) {
+      case NotificationType.reportResponse:
+        return Colors.orange;
+      case NotificationType.warning:
+        return Colors.red;
+      case NotificationType.account:
+        return Colors.blue;
+      case NotificationType.general:
+      default:
+        return Colors.grey;
+    }
+  }
+
+  /// 日時フォーマット
+  String _formatDateTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final diff = now.difference(dateTime);
+    
+    if (diff.inDays == 0) {
+      return DateFormat('HH:mm').format(dateTime);
+    } else if (diff.inDays == 1) {
+      return '昨日 ${DateFormat('HH:mm').format(dateTime)}';
+    } else if (diff.inDays < 7) {
+      return '${diff.inDays}日前';
+    } else {
+      return DateFormat('M/d').format(dateTime);
+    }
+  }
+
+  /// 通知タップ処理
+  Future<void> _onNotificationTap(AppNotification notification) async {
+    // 未読の場合は既読にマーク
+    if (!notification.isRead) {
+      await _notificationService.markAsRead(notification.id);
+    }
+
+    // 通知タイプに応じた詳細画面表示
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => _buildNotificationDetailDialog(notification),
+      );
+    }
+  }
+
+  /// 通知詳細ダイアログ
+  Widget _buildNotificationDetailDialog(AppNotification notification) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      title: Row(
+        children: [
+          Icon(
+            _getNotificationIcon(notification.type),
+            color: _getNotificationColor(notification.type),
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              notification.title,
+              style: GoogleFonts.notoSans(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            notification.message,
+            style: GoogleFonts.notoSans(fontSize: 16),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _formatDateTime(notification.createdAt),
+            style: GoogleFonts.notoSans(
+              fontSize: 12,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(
+            '閉じる',
+            style: GoogleFonts.notoSans(
+              color: _currentThemeColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 通知削除（左スワイプ）
+  Future<void> _deleteNotification(AppNotification notification) async {
+    final success = await _notificationService.deleteNotification(notification.id);
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '通知を削除しました',
+            style: GoogleFonts.notoSans(),
+          ),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  /// 全て既読にマーク
+  Future<void> _markAllAsRead() async {
+    final success = await _notificationService.markAllAsRead();
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '全ての通知を既読にしました',
+            style: GoogleFonts.notoSans(),
+          ),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onVerticalDragEnd: (details) {
-        // 下から上へのスワイプ（負の速度）でホーム画面に戻る
+      onHorizontalDragEnd: (details) {
+        // 右から左へのスワイプでホーム画面に戻る
         if (details.primaryVelocity! < 0 && mounted) {
           if (widget.onNavigateToHome != null) {
             widget.onNavigateToHome!();
@@ -78,32 +210,49 @@ class _NotificationScreenState extends State<NotificationScreen> {
         }
       },
       child: Scaffold(
-          backgroundColor: _currentThemeColor,
-          appBar: AppBar(
-            title: Text(
-              '通知',
-              style: GoogleFonts.notoSans(
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () {
-                if (widget.onNavigateToHome != null) {
-                  widget.onNavigateToHome!();
-                } else {
-                  Navigator.of(context).pop();
-                }
-              },
+        backgroundColor: _currentThemeColor,
+        appBar: AppBar(
+          title: Text(
+            '通知',
+            style: GoogleFonts.notoSans(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
           ),
-          body: Platform.isAndroid
-              ? SafeArea(child: _buildContent())
-              : _buildContent(),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () {
+              if (widget.onNavigateToHome != null) {
+                widget.onNavigateToHome!();
+              } else {
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+          actions: [
+            StreamBuilder<int>(
+              stream: _notificationService.getUnreadCountStream(),
+              builder: (context, snapshot) {
+                final unreadCount = snapshot.data ?? 0;
+                if (unreadCount > 0) {
+                  return IconButton(
+                    icon: const Icon(Icons.mark_email_read, color: Colors.white),
+                    onPressed: _markAllAsRead,
+                    tooltip: '全て既読にする',
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ],
         ),
+        body: Platform.isAndroid 
+            ? SafeArea(child: _buildContent())
+            : _buildContent(),
+      ),
     );
   }
 
@@ -113,197 +262,205 @@ class _NotificationScreenState extends State<NotificationScreen> {
         child: CircularProgressIndicator(color: Colors.white),
       );
     }
-    
-    if (_errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.white.withOpacity(0.6),
+
+    return StreamBuilder<List<AppNotification>>(
+      stream: _notificationService.getNotificationsStream(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.white),
+          );
+        }
+        
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: Colors.white.withOpacity(0.6),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'エラーが発生しました',
+                  style: GoogleFonts.notoSans(
+                    fontSize: 18,
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 24),
-            Text(
-              _errorMessage!,
-              style: GoogleFonts.notoSans(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-                color: Colors.white.withOpacity(0.8),
-              ),
+          );
+        }
+        
+        final notifications = snapshot.data ?? [];
+        
+        if (notifications.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.notifications_none,
+                  size: 64,
+                  color: Colors.white.withOpacity(0.6),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '通知はありません',
+                  style: GoogleFonts.notoSans(
+                    fontSize: 18,
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '新しい通知があると、ここに表示されます',
+                  style: GoogleFonts.notoSans(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.6),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _isLoading = true;
-                  _errorMessage = null;
-                });
-                _loadNotifications();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white.withOpacity(0.2),
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('再読み込み'),
-            ),
-          ],
-        ),
-      );
-    }
-    
-    return Column(
-      children: [
-        Expanded(
-          child: _notifications.isEmpty 
-              ? _buildEmptyState()
-              : _buildNotificationList(),
-        ),
-      ],
-    );
-  }
-  
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.notifications_off_outlined,
-            size: 64,
-            color: Colors.white.withOpacity(0.6),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            '通知はありません',
-            style: GoogleFonts.notoSans(
-              fontSize: 20,
-              fontWeight: FontWeight.w500,
-              color: Colors.white.withOpacity(0.8),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '新しい通知が届くとここに表示されます',
-            style: GoogleFonts.notoSans(
-              fontSize: 14,
-              color: Colors.white.withOpacity(0.6),
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildNotificationList() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _notifications.length,
-      itemBuilder: (context, index) {
-        final notification = _notifications[index];
-        return _buildNotificationCard(notification);
+          );
+        }
+        
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: notifications.length,
+          itemBuilder: (context, index) {
+            final notification = notifications[index];
+            return _buildNotificationCard(notification);
+          },
+        );
       },
     );
   }
-  
-  Widget _buildNotificationCard(VersionNotification notification) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+
+  Widget _buildNotificationCard(AppNotification notification) {
+    return Dismissible(
+      key: Key(notification.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Icon(
+          Icons.delete,
+          color: Colors.white,
+          size: 32,
+        ),
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: notification.isVersionUpdate 
-                ? Colors.green.withOpacity(0.1)
-                : Colors.blue.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(
-            notification.isVersionUpdate 
-                ? Icons.system_update
-                : Icons.notifications,
-            color: notification.isVersionUpdate ? Colors.green : Colors.blue,
-          ),
-        ),
-        title: Text(
-          notification.title,
-          style: GoogleFonts.notoSans(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text(
-              notification.message,
-              style: GoogleFonts.notoSans(
-                fontSize: 14,
-                color: Colors.black54,
-              ),
-            ),
-            if (notification.isVersionUpdate && 
-                notification.fromVersion != null && 
-                notification.toVersion != null) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '${notification.fromVersion} → ${notification.toVersion}',
-                  style: GoogleFonts.notoSans(
-                    fontSize: 12,
-                    color: Colors.green[700],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-            const SizedBox(height: 8),
-            Text(
-              notification.relativeTime,
-              style: GoogleFonts.notoSans(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+      onDismissed: (direction) {
+        _deleteNotification(notification);
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.95),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
-        trailing: !notification.isRead 
-            ? Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _onNotificationTap(notification),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 通知アイコン
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: _getNotificationColor(notification.type).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _getNotificationIcon(notification.type),
+                    color: _getNotificationColor(notification.type),
+                    size: 24,
+                  ),
                 ),
-              )
-            : null,
-        onTap: () async {
-          if (!notification.isRead) {
-            await _versionService.markAsRead(notification.id);
-          }
-        },
+                const SizedBox(width: 16),
+                
+                // 通知内容
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // タイトル行
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              notification.title,
+                              style: GoogleFonts.notoSans(
+                                fontSize: 16,
+                                fontWeight: notification.isRead 
+                                    ? FontWeight.w500 
+                                    : FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          // 未読インジケーター
+                          if (!notification.isRead)
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      
+                      // メッセージ
+                      Text(
+                        notification.message,
+                        style: GoogleFonts.notoSans(
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                          height: 1.4,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 8),
+                      
+                      // 日時
+                      Text(
+                        _formatDateTime(notification.createdAt),
+                        style: GoogleFonts.notoSans(
+                          fontSize: 12,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

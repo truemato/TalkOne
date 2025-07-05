@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/call_matching_service.dart';
 import '../services/user_profile_service.dart';
+import '../services/block_service.dart';
 import 'pre_call_profile_screen.dart';
 import 'ai_pre_call_screen.dart';
 import '../utils/theme_utils.dart';
@@ -222,6 +224,7 @@ class _MatchingScreenState extends State<MatchingScreen>
     with TickerProviderStateMixin {
   final CallMatchingService _matchingService = CallMatchingService();
   final UserProfileService _userProfileService = UserProfileService();
+  final BlockService _blockService = BlockService();
   
   // シュリンクアニメーション用
   late AnimationController _shrinkController;
@@ -374,28 +377,34 @@ class _MatchingScreenState extends State<MatchingScreen>
         .collection('callRequests')
         .where('status', isEqualTo: 'waiting') // waiting状態のみをカウント
         .snapshots()
-        .listen((snapshot) {
+        .listen((snapshot) async {
       if (mounted) {
         // 実際にマッチング待機中のユーザー数のみをカウント（自分を除く）
         final currentUserId = _userProfileService.getCurrentUserId();
+        
+        // ブロックしているユーザーIDのリストを取得
+        final blockedUserIds = await _blockService.getBlockedUserIds();
+        final blockedSet = blockedUserIds.toSet();
+        
         final queueingUsers = snapshot.docs.where((doc) {
           final data = doc.data();
           final userId = data['userId'] as String? ?? '';
           final status = data['status'] as String? ?? '';
           final forceAIMatch = data['forceAIMatch'] as bool? ?? false;
           
-          // waiting状態で、AI強制マッチ以外で、自分以外のユーザーをカウント
+          // waiting状態で、AI強制マッチ以外で、自分以外で、ブロックしていないユーザーをカウント
           return status == 'waiting' && 
                  !forceAIMatch && 
                  userId.isNotEmpty && 
-                 userId != currentUserId;
+                 userId != currentUserId &&
+                 !blockedSet.contains(userId); // ブロックユーザーを除外
         }).length;
 
         setState(() {
           _onlineUsers = queueingUsers;
         });
         
-        print('キューイング中のユーザー数: $queueingUsers');
+        print('キューイング中のユーザー数（ブロック除外後）: $queueingUsers');
       }
     });
   }
@@ -574,83 +583,161 @@ class _MatchingScreenState extends State<MatchingScreen>
               ),
             ),
             // メインコンテンツ
-            SafeArea(
-              child: Center(
-                child: SizedBox(
-                  width: contentWidth,
-                  height: contentHeight,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 40), // 上部のスペース（固定40px）
-                      _buildTitle(),
-                      SizedBox(height: contentHeight * 0.08), // タイトルとレートの間（8%）
-                      Column(
-                        children: [
-                          RateCounter(targetRate: _userRating),
-                          if (_userRating == 0)
-                            Text(
-                              '読み込み中...',
-                              style: GoogleFonts.catamaran(
-                                fontSize: 12,
-                                color: Colors.white.withOpacity(0.6),
-                              ),
-                            ),
-                        ],
-                      ),
-                      SizedBox(
-                          height: contentHeight * 0.15), // レートとオンラインユーザーの間（15%）
-                      _buildOnlineUsers(),
-                      SizedBox(
-                          height: contentHeight * 0.04), // オンラインユーザーとマッチング中の間（4%）
-                      // 多段階AI救済システムの通知を表示
-                      if (_userRating <= 880) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          margin: const EdgeInsets.symmetric(horizontal: 20),
-                          decoration: BoxDecoration(
-                            color: _getAINotificationColor().withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.white.withOpacity(0.3)),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                _getAINotificationIcon(),
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Flexible(
-                                child: Text(
-                                  _getAINotificationMessage(),
-                                  style: GoogleFonts.notoSans(
-                                    fontSize: 14,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
+            Platform.isIOS
+                ? SafeArea(
+                    child: Center(
+                      child: SizedBox(
+                        width: contentWidth,
+                        height: contentHeight,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 34), // iOS: 上部のスペース（40→34px）
+                            _buildTitle(),
+                            SizedBox(height: contentHeight * 0.07), // iOS: タイトルとレートの間（8%→7%）
+                            Column(
+                              children: [
+                                RateCounter(targetRate: _userRating),
+                                if (_userRating == 0)
+                                  Text(
+                                    '読み込み中...',
+                                    style: GoogleFonts.catamaran(
+                                      fontSize: 12,
+                                      color: Colors.white.withOpacity(0.6),
+                                    ),
                                   ),
-                                  textAlign: TextAlign.center,
+                              ],
+                            ),
+                            SizedBox(
+                                height: contentHeight * 0.14), // iOS: レートとオンラインユーザーの間（15%→14%）
+                            _buildOnlineUsers(),
+                            SizedBox(
+                                height: contentHeight * 0.035), // iOS: オンラインユーザーとマッチング中の間（4%→3.5%）
+                            // iOS: 多段階AI救済システムの通知を表示
+                            if (_userRating <= 880) ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10), // iOS: 12→10
+                                margin: const EdgeInsets.symmetric(horizontal: 20),
+                                decoration: BoxDecoration(
+                                  color: _getAINotificationColor().withOpacity(0.9),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.white.withOpacity(0.3)),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      _getAINotificationIcon(),
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      child: Text(
+                                        _getAINotificationMessage(),
+                                        style: GoogleFonts.notoSans(
+                                          fontSize: 14,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
+                              const SizedBox(height: 10), // iOS: 12→10
                             ],
-                          ),
+                            _buildProgressBar(),
+                            const SizedBox(height: 14), // iOS: 16→14
+                            _buildAIConversationButton(),
+                            const SizedBox(height: 14), // iOS: 16→14
+                            _buildMatchingText(),
+                            SizedBox(
+                                height: contentHeight * 0.055), // iOS: マッチング中とキャンセルボタンの間（6%→5.5%）
+                            _buildCancelButton(),
+                          ],
                         ),
-                        const SizedBox(height: 12),
-                      ],
-                      _buildProgressBar(),
-                      const SizedBox(height: 16),
-                      _buildAIConversationButton(),
-                      const SizedBox(height: 16),
-                      _buildMatchingText(),
-                      SizedBox(
-                          height: contentHeight * 0.06), // マッチング中とキャンセルボタンの間（6%）
-                      _buildCancelButton(),
-                    ],
+                      ),
+                    ),
+                  )
+                : SafeArea(
+                    child: Center(
+                      child: SizedBox(
+                        width: contentWidth,
+                        height: contentHeight,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 40), // Android: 上部のスペース（固定40px）
+                            _buildTitle(),
+                            SizedBox(height: contentHeight * 0.08), // Android: タイトルとレートの間（8%）
+                            Column(
+                              children: [
+                                RateCounter(targetRate: _userRating),
+                                if (_userRating == 0)
+                                  Text(
+                                    '読み込み中...',
+                                    style: GoogleFonts.catamaran(
+                                      fontSize: 12,
+                                      color: Colors.white.withOpacity(0.6),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            SizedBox(
+                                height: contentHeight * 0.15), // Android: レートとオンラインユーザーの間（15%）
+                            _buildOnlineUsers(),
+                            SizedBox(
+                                height: contentHeight * 0.04), // Android: オンラインユーザーとマッチング中の間（4%）
+                            // Android: 多段階AI救済システムの通知を表示
+                            if (_userRating <= 880) ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                margin: const EdgeInsets.symmetric(horizontal: 20),
+                                decoration: BoxDecoration(
+                                  color: _getAINotificationColor().withOpacity(0.9),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.white.withOpacity(0.3)),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      _getAINotificationIcon(),
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      child: Text(
+                                        _getAINotificationMessage(),
+                                        style: GoogleFonts.notoSans(
+                                          fontSize: 14,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                            _buildProgressBar(),
+                            const SizedBox(height: 16),
+                            _buildAIConversationButton(),
+                            const SizedBox(height: 16),
+                            _buildMatchingText(),
+                            SizedBox(
+                                height: contentHeight * 0.06), // Android: マッチング中とキャンセルボタンの間（6%）
+                            _buildCancelButton(),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ),
           ],
         ),
       ),

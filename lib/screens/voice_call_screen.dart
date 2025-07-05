@@ -6,8 +6,13 @@ import 'dart:io' show Platform;
 import '../services/user_profile_service.dart';
 import '../services/call_history_service.dart';
 import '../services/agora_call_service.dart';
+import '../services/evaluation_service.dart';
+import '../services/rating_service.dart';
 import 'evaluation_screen.dart';
+import 'partner_profile_screen.dart';
 import '../utils/theme_utils.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class VoiceCallScreen extends StatefulWidget {
   final String channelName;
@@ -35,6 +40,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   final UserProfileService _userProfileService = UserProfileService();
   final CallHistoryService _callHistoryService = CallHistoryService();
   final AgoraCallService _agoraService = AgoraCallService();
+  final EvaluationService _evaluationService = EvaluationService();
+  final RatingService _ratingService = RatingService();
   String? _selectedIconPath = 'aseets/icons/Woman 1.svg';
   String _partnerNickname = 'Unknown';
   
@@ -56,6 +63,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   Timer? _timer;
   bool _callEnded = false;
   DateTime? _callStartTime;
+  
+  // 緊急通報関連
+  bool _isReporting = false;
   
   // 会話テーマリスト
   final List<String> _conversationThemes = [
@@ -467,44 +477,56 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   }
 
   Widget _buildUserIcon() {
-    return AnimatedBuilder(
-      animation: Listenable.merge([_pulseAnimation, _volumeAnimation]),
-      builder: (context, child) {
-        // 基本のパルス + 音声レベルによる拡大
-        final combinedScale = _pulseAnimation.value * _volumeAnimation.value;
-        
-        return Transform.scale(
-          scale: combinedScale,
-          child: Container(
-            width: 234, // 180 * 1.3 = 234
-            height: 234, // 180 * 1.3 = 234
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
+    return Stack(
+      children: [
+        // メインアイコン
+        AnimatedBuilder(
+          animation: Listenable.merge([_pulseAnimation, _volumeAnimation]),
+          builder: (context, child) {
+            // 基本のパルス + 音声レベルによる拡大
+            final combinedScale = _pulseAnimation.value * _volumeAnimation.value;
+            
+            return Transform.scale(
+              scale: combinedScale,
+              child: Container(
+                width: 234, // 180 * 1.3 = 234
+                height: 234, // 180 * 1.3 = 234
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.9),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                    // 音声レベルが高い時の追加エフェクト
+                    if (_currentAudioVolume > 30)
+                      BoxShadow(
+                        color: getAppTheme(_selectedThemeIndex).backgroundColor.withOpacity(0.3),
+                        blurRadius: 30,
+                        spreadRadius: 5,
+                      ),
+                  ],
                 ),
-                // 音声レベルが高い時の追加エフェクト
-                if (_currentAudioVolume > 30)
-                  BoxShadow(
-                    color: getAppTheme(_selectedThemeIndex).backgroundColor.withOpacity(0.3),
-                    blurRadius: 30,
-                    spreadRadius: 5,
+                child: ClipOval(
+                  child: SvgPicture.asset(
+                    _selectedIconPath!,
+                    fit: BoxFit.cover,
                   ),
-              ],
-            ),
-            child: ClipOval(
-              child: SvgPicture.asset(
-                _selectedIconPath!,
-                fit: BoxFit.cover,
+                ),
               ),
-            ),
-          ),
-        );
-      },
+            );
+          },
+        ),
+        
+        // 緊急通報ボタン（右下に配置）
+        Positioned(
+          bottom: 10,
+          right: 10,
+          child: _buildEmergencyReportButton(),
+        ),
+      ],
     );
   }
 
@@ -685,5 +707,181 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         ),
       ],
     );
+  }
+
+  /// 緊急通報ボタン
+  Widget _buildEmergencyReportButton() {
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: BoxDecoration(
+        color: Colors.red,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.red.withOpacity(0.4),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(25),
+          onTap: _isReporting ? null : _showEmergencyReportDialog,
+          child: const Icon(
+            Icons.priority_high,
+            color: Colors.white,
+            size: 28,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 緊急通報確認ダイアログ
+  Future<void> _showEmergencyReportDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false, // ダイアログ外タップで閉じない
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            const Icon(Icons.warning, color: Colors.red, size: 28),
+            const SizedBox(width: 12),
+            Text(
+              '緊急通報',
+              style: GoogleFonts.notoSans(
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'この相手を通報しますか？\n\n通報すると即座に通話が終了し、相手のプロフィール画面に移動します。',
+          style: GoogleFonts.notoSans(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'キャンセル',
+              style: GoogleFonts.notoSans(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              '通報する',
+              style: GoogleFonts.notoSans(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      await _executeEmergencyReport();
+    }
+  }
+
+  /// 緊急通報の実行
+  Future<void> _executeEmergencyReport() async {
+    if (_isReporting) return;
+    
+    setState(() {
+      _isReporting = true;
+    });
+
+    try {
+      print('緊急通報実行: 通話終了 & プロフィール画面遷移');
+      
+      // 1. 通話を即座に終了（タイマー停止、Agora切断）
+      _timer?.cancel();
+      await _agoraService.leaveChannel();
+      await _agoraService.dispose();
+      
+      // 2. 通話履歴を保存
+      if (_callStartTime != null) {
+        final callDuration = DateTime.now().difference(_callStartTime!).inSeconds;
+        final history = CallHistory(
+          callId: widget.callId,
+          partnerId: widget.partnerId,
+          partnerNickname: _partnerNickname,
+          partnerIconPath: _selectedIconPath ?? 'aseets/icons/Woman 1.svg',
+          callDateTime: _callStartTime!,
+          callDuration: callDuration,
+          myRatingToPartner: null, // 緊急通報時は評価なし
+          partnerRatingToMe: null,
+          isAiCall: false,
+        );
+        await _callHistoryService.saveCallHistory(history);
+      }
+
+      // 3. 相手に星1評価を自動送信（緊急通報として）
+      await _evaluationService.submitEvaluation(
+        callId: widget.callId,
+        partnerId: widget.partnerId,
+        rating: 1,
+        isDummyMatch: false,
+      );
+
+      // 4. 相手のレーティングを更新
+      await _ratingService.updateRating(1, widget.partnerId);
+
+      if (mounted) {
+        // 5. 相手のプロフィール画面に遷移（通報機能付き）
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PartnerProfileScreen(
+              partnerId: widget.partnerId,
+              callId: widget.callId,
+              isDummyMatch: false,
+              showReportButton: true, // 通報ボタンを表示
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      print('緊急通報エラー: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '緊急通報の処理中にエラーが発生しました。',
+              style: GoogleFonts.notoSans(),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        
+        // エラーの場合は通常の通話終了処理
+        _endCall();
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isReporting = false;
+        });
+      }
+    }
   }
 }

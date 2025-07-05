@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'dart:io' show Platform;
 import '../services/call_history_service.dart';
 import '../services/user_profile_service.dart';
+import '../services/block_service.dart';
 import '../utils/theme_utils.dart';
 import 'partner_profile_screen.dart';
 
@@ -20,13 +21,16 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   final CallHistoryService _callHistoryService = CallHistoryService();
   final UserProfileService _userProfileService = UserProfileService();
+  final BlockService _blockService = BlockService();
   
   int _selectedThemeIndex = 0;
+  Set<String> _blockedUserIds = {};
 
   @override
   void initState() {
     super.initState();
     _loadUserTheme();
+    _loadBlockedUsers();
     // Unknownニックネームを修正
     _callHistoryService.fixUnknownNicknames();
   }
@@ -36,6 +40,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
     if (profile != null && mounted) {
       setState(() {
         _selectedThemeIndex = profile.themeIndex ?? 0;
+      });
+    }
+  }
+
+  Future<void> _loadBlockedUsers() async {
+    final blockedIds = await _blockService.getBlockedUserIds();
+    if (mounted) {
+      setState(() {
+        _blockedUserIds = blockedIds.toSet();
       });
     }
   }
@@ -325,11 +338,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildHistoryCard(CallHistory history) {
+    final isBlocked = _blockedUserIds.contains(history.partnerId);
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -341,125 +354,159 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
       child: Column(
         children: [
-          GestureDetector(
-            onTap: () {
-              if (!history.isAiCall) {
-                _navigateToPartnerProfile(history);
-              } else {
-                _showRatingDialog(history);
-              }
-            },
-            child: Row(
-              children: [
-                // アイコン
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    shape: BoxShape.circle,
-                  ),
-                  child: ClipOval(
-                    child: SvgPicture.asset(
-                      history.partnerIconPath,
-                      fit: BoxFit.cover,
+          // ブロック状態バー（一番上に表示）
+          if (isBlocked)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              decoration: const BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
+              child: Text(
+                'ブロック中',
+                style: GoogleFonts.notoSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.purple,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          
+          // メインコンテンツ
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.95),
+              borderRadius: isBlocked 
+                  ? const BorderRadius.only(
+                      bottomLeft: Radius.circular(16),
+                      bottomRight: Radius.circular(16),
+                    )
+                  : BorderRadius.circular(16),
+            ),
+            child: GestureDetector(
+              onTap: () {
+                if (!history.isAiCall) {
+                  _navigateToPartnerProfile(history);
+                } else {
+                  _showRatingDialog(history);
+                }
+              },
+              child: Row(
+                children: [
+                  // アイコン
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      shape: BoxShape.circle,
+                    ),
+                    child: ClipOval(
+                      child: SvgPicture.asset(
+                        history.partnerIconPath,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                
-                // 通話情報
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              history.partnerNickname,
-                              style: GoogleFonts.notoSans(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (history.isAiCall)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.shade100,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
+                  const SizedBox(width: 12),
+                  
+                  // 通話情報
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
                               child: Text(
-                                'AI',
+                                history.partnerNickname,
                                 style: GoogleFonts.notoSans(
-                                  fontSize: 10,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.blue.shade700,
+                                  color: Colors.black87,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (history.isAiCall)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade100,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  'AI',
+                                  style: GoogleFonts.notoSans(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue.shade700,
+                                  ),
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.access_time,
-                            size: 14,
-                            color: Colors.grey.shade600,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _formatDateTime(history.callDateTime),
-                            style: GoogleFonts.notoSans(
-                              fontSize: 12,
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.access_time,
+                              size: 14,
                               color: Colors.grey.shade600,
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Icon(
-                            Icons.schedule,
-                            size: 14,
-                            color: Colors.grey.shade600,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _formatDuration(history.callDuration),
-                            style: GoogleFonts.notoSans(
-                              fontSize: 12,
+                            const SizedBox(width: 4),
+                            Text(
+                              _formatDateTime(history.callDateTime),
+                              style: GoogleFonts.notoSans(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Icon(
+                              Icons.schedule,
+                              size: 14,
                               color: Colors.grey.shade600,
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      
-                      // 評価情報（自分の評価のみ）
-                      Row(
-                        children: [
-                          Text(
-                            '私の評価: ',
-                            style: GoogleFonts.notoSans(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
+                            const SizedBox(width: 4),
+                            Text(
+                              _formatDuration(history.callDuration),
+                              style: GoogleFonts.notoSans(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
                             ),
-                          ),
-                          _buildStarRating(history.myRatingToPartner),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        
+                        // 評価情報（自分の評価のみ）
+                        Row(
+                          children: [
+                            Text(
+                              '私の評価: ',
+                              style: GoogleFonts.notoSans(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            _buildStarRating(history.myRatingToPartner),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 12),
-          
         ],
       ),
     );

@@ -10,6 +10,7 @@ import 'login_screen.dart';
 import '../utils/theme_utils.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 // 設定画面本体
 class SettingsScreen extends StatefulWidget {
@@ -806,14 +807,68 @@ class _SettingsScreenState extends State<SettingsScreen> {
         throw Exception('ユーザーが認証されていません');
       }
 
-      // Firestoreからユーザーデータを削除
+      print('🗑️ ユーザーデータ削除開始: $userId');
+      
+      // 1. マッチングリクエストの削除（最初に実行）
+      print('📱 マッチングリクエスト削除中...');
+      final matchingRequests = await FirebaseFirestore.instance
+          .collection('matchingRequests')
+          .where('userId', isEqualTo: userId)
+          .get();
+      
+      final matchingBatch = FirebaseFirestore.instance.batch();
+      for (final doc in matchingRequests.docs) {
+        matchingBatch.delete(doc.reference);
+        print('🔥 マッチングリクエスト削除: ${doc.id}');
+      }
+      if (matchingRequests.docs.isNotEmpty) {
+        await matchingBatch.commit();
+        print('✅ マッチングリクエスト削除完了: ${matchingRequests.docs.length}件');
+      }
+      
+      // 2. 評価データの削除
+      print('⭐ 評価データ削除中...');
+      final evaluations = await FirebaseFirestore.instance
+          .collection('evaluations')
+          .where('evaluatorId', isEqualTo: userId)
+          .get();
+      
+      final evaluationBatch = FirebaseFirestore.instance.batch();
+      for (final doc in evaluations.docs) {
+        evaluationBatch.delete(doc.reference);
+        print('🔥 評価データ削除: ${doc.id}');
+      }
+      
+      // 自分への評価も削除
+      final evaluationsToMe = await FirebaseFirestore.instance
+          .collection('evaluations')
+          .where('evaluatedUserId', isEqualTo: userId)
+          .get();
+      
+      for (final doc in evaluationsToMe.docs) {
+        evaluationBatch.delete(doc.reference);
+        print('🔥 自分への評価削除: ${doc.id}');
+      }
+      
+      if (evaluations.docs.isNotEmpty || evaluationsToMe.docs.isNotEmpty) {
+        await evaluationBatch.commit();
+        print('✅ 評価データ削除完了: ${evaluations.docs.length + evaluationsToMe.docs.length}件');
+      }
+      
+      // 3. メインユーザーデータの削除
+      print('👤 メインユーザーデータ削除中...');
       final batch = FirebaseFirestore.instance.batch();
       
       // userProfiles削除
       batch.delete(FirebaseFirestore.instance.collection('userProfiles').doc(userId));
+      print('🔥 userProfiles削除予約');
       
       // userRatings削除
       batch.delete(FirebaseFirestore.instance.collection('userRatings').doc(userId));
+      print('🔥 userRatings削除予約');
+      
+      // 4. サブコレクション削除
+      print('📚 サブコレクション削除中...');
       
       // callHistoriesサブコレクション削除
       final callHistories = await FirebaseFirestore.instance
@@ -825,6 +880,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       for (final doc in callHistories.docs) {
         batch.delete(doc.reference);
       }
+      print('🔥 通話履歴削除予約: ${callHistories.docs.length}件');
       
       // conversationLogsサブコレクション削除
       final conversationLogs = await FirebaseFirestore.instance
@@ -836,15 +892,79 @@ class _SettingsScreenState extends State<SettingsScreen> {
       for (final doc in conversationLogs.docs) {
         batch.delete(doc.reference);
       }
+      print('🔥 会話ログ削除予約: ${conversationLogs.docs.length}件');
+      
+      // blockedUsersサブコレクション削除
+      final blockedUsers = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('blockedUsers')
+          .get();
+          
+      for (final doc in blockedUsers.docs) {
+        batch.delete(doc.reference);
+      }
+      print('🔥 ブロックユーザーリスト削除予約: ${blockedUsers.docs.length}件');
+      
+      // 通報データ削除
+      final reports = await FirebaseFirestore.instance
+          .collection('reports')
+          .where('reporterId', isEqualTo: userId)
+          .get();
+          
+      for (final doc in reports.docs) {
+        batch.delete(doc.reference);
+      }
+      print('🔥 通報データ削除予約: ${reports.docs.length}件');
+      
+      // 5. 親ドキュメント削除（callHistories, conversationLogs, users）
+      batch.delete(FirebaseFirestore.instance.collection('callHistories').doc(userId));
+      batch.delete(FirebaseFirestore.instance.collection('conversationLogs').doc(userId));
+      batch.delete(FirebaseFirestore.instance.collection('users').doc(userId));
+      print('🔥 親ドキュメント削除予約');
       
       // バッチ実行
+      print('💾 メインバッチ実行中...');
       await batch.commit();
+      print('✅ メインユーザーデータ削除完了');
       
-      // サインアウト
-      await _authService.signOut();
+      // 6. Firebase Auth アカウント削除（再認証付き）
+      print('🔐 Firebase Auth アカウント削除中...');
       
-      // Firebase Authからアカウントを削除
-      await user.delete();
+      try {
+        // Googleアカウントの場合は再認証が必要な場合がある
+        if (_authService.isGoogleSignedIn) {
+          print('🔄 Google再認証を試行中...');
+          try {
+            final googleUser = await GoogleSignIn().signInSilently();
+            if (googleUser != null) {
+              final googleAuth = await googleUser.authentication;
+              final credential = GoogleAuthProvider.credential(
+                accessToken: googleAuth.accessToken,
+                idToken: googleAuth.idToken,
+              );
+              await user.reauthenticateWithCredential(credential);
+              print('✅ Google再認証成功');
+            }
+          } catch (e) {
+            print('⚠️ Google再認証スキップ: $e');
+          }
+        }
+        
+        // アカウント削除実行
+        await user.delete();
+        print('✅ Firebase Authアカウント削除完了');
+        
+        // 最後にサインアウト（念のため）
+        await _authService.signOut();
+        print('✅ サインアウト完了');
+        
+      } catch (e) {
+        print('⚠️ Firebase Authアカウント削除エラー: $e');
+        // Firebase Authの削除に失敗してもFirestoreデータは削除済みなのでサインアウトする
+        await _authService.signOut();
+        print('✅ データ削除完了、サインアウト実行');
+      }
       
       if (mounted) {
         // 成功メッセージ

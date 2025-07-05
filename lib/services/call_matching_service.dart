@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'evaluation_service.dart';
 import 'matching_warmup_service.dart';
+import 'block_service.dart';
 
 enum CallStatus {
   waiting,      // 待機中
@@ -19,6 +20,7 @@ class CallMatchingService {
   final String _userId = FirebaseAuth.instance.currentUser!.uid;
   final EvaluationService _evaluationService = EvaluationService();
   final MatchingWarmupService _warmupService = MatchingWarmupService();
+  final BlockService _blockService = BlockService();
   
   StreamSubscription? _matchingSubscription;
   String? _currentCallId;
@@ -298,8 +300,8 @@ class CallMatchingService {
         final minRating = myRating - ratingRange;
         final maxRating = myRating + ratingRange;
         
-        // 自分以外で、レーティング範囲内、AI強制マッチング以外のユーザーを検索
-        final availablePartners = waitingRequests.docs
+        // 自分以外で、レーティング範囲内、AI強制マッチング以外、ブロックされていないユーザーを検索
+        final potentialPartners = waitingRequests.docs
             .where((doc) {
               final data = doc.data();
               final userRating = (data['userRating'] ?? 1000.0).toDouble();
@@ -309,6 +311,18 @@ class CallMatchingService {
                      !(data['forceAIMatch'] ?? false);
             })
             .toList();
+
+        // ブロック関係をチェックして最終的な利用可能パートナーを決定
+        final availablePartners = <QueryDocumentSnapshot>[];
+        for (final partner in potentialPartners) {
+          final partnerId = partner['userId'] as String;
+          final canMatch = await _blockService.canUsersMatch(_userId, partnerId);
+          if (canMatch) {
+            availablePartners.add(partner);
+          } else {
+            print('ブロック関係のためマッチング除外: $partnerId');
+          }
+        }
         
         if (availablePartners.isNotEmpty) {
           // レーティング差で並び替え
@@ -349,9 +363,21 @@ class CallMatchingService {
               .limit(20)
               .get();
           
-          final availablePartners = waitingRequests.docs
+          final potentialPartners = waitingRequests.docs
               .where((doc) => doc['userId'] != _userId)
               .toList();
+
+          // ブロック関係をチェックして最終的な利用可能パートナーを決定
+          final availablePartners = <QueryDocumentSnapshot>[];
+          for (final partner in potentialPartners) {
+            final partnerId = partner['userId'] as String;
+            final canMatch = await _blockService.canUsersMatch(_userId, partnerId);
+            if (canMatch) {
+              availablePartners.add(partner);
+            } else {
+              print('拡大マッチング - ブロック関係のためマッチング除外: $partnerId');
+            }
+          }
           
           if (availablePartners.isNotEmpty) {
             final partnerDoc = availablePartners.first;
