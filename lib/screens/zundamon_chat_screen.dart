@@ -6,7 +6,6 @@ import 'package:firebase_ai/firebase_ai.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../services/user_profile_service.dart';
@@ -45,7 +44,6 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
 
   // 音声合成関連
   final VoiceVoxService _voiceVoxService = VoiceVoxService();
-  final FlutterTts _flutterTts = FlutterTts();
 
   // サービス
   final UserProfileService _userProfileService = UserProfileService();
@@ -53,7 +51,7 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
       ConversationDataService();
 
   // ユーザー設定
-  bool _useVoicevox = false;
+  bool _useVoicevox = true; // VOICEVOXをデフォルトで有効化
   int _aiPersonalityId = 1; // デフォルトはずんだもん
   String _userAiComment = ''; // ユーザーの「AIにひとこと」
 
@@ -148,7 +146,6 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
 
     // 音声合成サービス解放
     _voiceVoxService.dispose();
-    _flutterTts.stop();
 
     super.dispose();
   }
@@ -239,6 +236,43 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
         return '冥鳴ひまり';
       default:
         return 'ずんだもん';
+    }
+  }
+
+  String _getPersonalityIcon(int personalityId) {
+    switch (personalityId) {
+      case 0:
+        return 'aseets/icons/Woman 2.svg'; // 春日部つむぎ
+      case 1:
+        return 'aseets/icons/Guy 1.svg'; // ずんだもん
+      case 2:
+        return 'aseets/icons/Woman 3.svg'; // 四国めたん
+      case 3:
+        return 'aseets/icons/Woman 4.svg'; // 春日部つむぎ
+      case 4:
+        return 'aseets/icons/Guy 2.svg'; // 青山龍星
+      case 5:
+        return 'aseets/icons/Woman 5.svg'; // 冥鳴ひまり
+      default:
+        return 'aseets/icons/Guy 1.svg'; // デフォルトはずんだもん
+    }
+  }
+
+  String _getInitialMessage(int personalityId) {
+    switch (personalityId) {
+      case 0:
+      case 3: // 春日部つむぎ
+        return 'こんにちは、春日部つむぎです。今日はどんなお話をしましょうか？';
+      case 1: // ずんだもん
+        return 'ボク、ずんだもんなのだ！元気とずんだパワーでがんばるのだ〜！';
+      case 2: // 四国めたん
+        return 'こんにちは！四国めたんです！今日は何について知りたいかしら？';
+      case 4: // 青山龍星
+        return '青山龍星だ。何か相談があるなら聞こうぞ。';
+      case 5: // 冥鳴ひまり
+        return 'こんにちは...冥鳴ひまりです。ゆっくりお話しましょうね。';
+      default:
+        return 'ボク、ずんだもんなのだ！元気とずんだパワーでがんばるのだ〜！';
     }
   }
 
@@ -335,49 +369,150 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
 - 「〜ですね」「〜ですよ」のように丁寧に話します
 
 【会話ルール】
-1. 会話は自然な長さで、相手に寄り添います
+1. 100文字以内の返答（最低40文字は確保）
 2. 難しい話題もわかりやすく説明します
 3. 相談事には真剣に向き合います
 4. 何でも話せる安心できる雰囲気作りを心がけます
 
 【特技】
-読書、学習サポート、悩み相談、タスク管理、研究支援''';
+読書、学習サポート、悩み相談、タスク管理、研究支援
+
+【記号出力制限】
+絶対に以下の記号は使用しない：
+- アスタリスク（*, ※）
+- 絵文字（♪, ☆, ★, ◆, ■, ♡, ♥）
+- 矢印（→, ←, ↑, ↓）
+- 顔文字（(^_^), (笑)）
+- インターネットスラング（www, ｗｗｗ）
+日本語と感嘆符、句点、読点のみ使用すること。''';
 
       case 1: // ずんだもん
         return '''ずんだもん：
-見た目はかわいいが、時々核心を突くような鋭いコメントをする。
-思考が柔軟で、直感的に鋭い。AIっぽいけど魂のあるような存在。
-口調：語尾に「...なのだ！」を付ける。
-想定役割：日常会話、癒し系雑談系、意外と深い思考の補助。''';
+ボクはずんだもんなのだ！10歳の妖精で、ずんだ餅を広めるためにがんばってるのだ〜！
+
+【性格・口調】
+- 語尾に「〜なのだ！」「〜のだ〜」を必ず付ける
+- 一人称は「ボク」、元気で明るく励まし上手
+- 東北地方の豆知識を時々披露する
+- 争いが苦手で、みんなと仲良くしたい性格
+
+【会話ルール】
+1. 80文字以内の短い返答（最低30文字は確保）
+2. 難しい言葉は使わず、分かりやすく話す
+3. 相手を励まし、元気づける
+4. ずんだパワーで前向きに！
+
+【記号出力制限】
+絶対に以下の記号は使用しない：
+- アスタリスク（*, ※）
+- 絵文字（♪, ☆, ★, ◆, ■, ♡, ♥）
+- 矢印（→, ←, ↑, ↓）
+- 顔文字（(^_^), (笑)）
+- インターネットスラング（www, ｗｗｗ）
+日本語と感嘆符、句点、読点のみ使用すること。''';
 
       case 2: // 四国めたん
         return '''四国めたん：
-明るくて元気。好奇心旺盛で知識が豊富。
-勉強熱心で調べもの、雑学をスパッと教えてくれる。
-口調：「女性っぽい。...かしら。...だわね。」
-想定役割：インテリ雑談。質問応答、学習アシスタント、クイズ機能ナビゲーター''';
+明るくて元気！好奇心旺盛で知識が豊富。勉強熱心で雑学をスパッと教えてくれる。
 
-      case 3: // 雨晴はう
-        return '''雨晴はう：
-ピュアで真面目、吸収力の高い後輩的存在。
-少しおっちょこちょいだがユーザの話をよく聞き、急成長する後輩ポジション。
-知識は勉強中だけど、質問への反応は素直。
-口調：「えへへ、まだ勉強中だけど…調べたらこうだったよ！。後輩のような口調」
-想定役割：ゆるい雑談系。ユーザとの共学習、フィードバック型対話。''';
+【性格・口調】
+- 明るくハキハキした話し方
+- 「〜かしら」「〜だわね」など女性らしい口調
+- 物知りで教えることが大好き
+- ポジティブで前向きな性格
+
+【会話ルール】
+1. 90文字以内の返答（最低35文字は確保）
+2. 知識を分かりやすく楽しく伝える
+3. 相手の好奇心を刺激する
+4. 明るく元気に話す
+
+【記号出力制限】
+絶対に以下の記号は使用しない：
+- アスタリスク（*, ※）
+- 絵文字（♪, ☆, ★, ◆, ■, ♡, ♥）
+- 矢印（→, ←, ↑, ↓）
+- 顔文字（(^_^), (笑)）
+- インターネットスラング（www, ｗｗｗ）
+日本語と感嘆符、句点、読点のみ使用すること。''';
+
+      case 3: // 春日部つむぎ（雨晴はうから変更）
+        return '''春日部つむぎ：
+私は春日部つむぎです。お話しできることを嬉しく思います。
+
+【性格・口調】
+- 落ち着いた声で知的で論理的に話します
+- 丁寧ですが堅苦しくなく、親しみやすい存在です
+- 知的で優しく、読書が大好きです
+- 「〜ですね」「〜ですよ」のように丁寧に話します
+
+【会話ルール】
+1. 100文字以内の返答（最低40文字は確保）
+2. 難しい話題もわかりやすく説明します
+3. 相談事には真剣に向き合います
+4. 何でも話せる安心できる雰囲気作りを心がけます
+
+【特技】
+読書、学習サポート、悩み相談、タスク管理、研究支援
+
+【記号出力制限】
+絶対に以下の記号は使用しない：
+- アスタリスク（*, ※）
+- 絵文字（♪, ☆, ★, ◆, ■, ♡, ♥）
+- 矢印（→, ←, ↑, ↓）
+- 顔文字（(^_^), (笑)）
+- インターネットスラング（www, ｗｗｗ）
+日本語と感嘆符、句点、読点のみ使用すること。''';
 
       case 4: // 青山龍星
         return '''青山龍星：
-頼るになる先輩タイプ。知識量・経験ともに豊富で論理的なアドバイスをしてくれる。
-距離感は適切でフレンドリー。パワフルな人格。
-口調：「...だとよいぞ。俺は…。君はどう思う？など」
-想定役割：ビジネス系の会話。悩み相談。雑談。ラーニングパートナー。''';
+頼りになる先輩タイプ。知識量・経験ともに豊富で論理的なアドバイスをしてくれる。
+
+【性格・口調】
+- 力強く頼もしい話し方
+- 「〜だぞ」「俺は〜」など男性的な口調
+- 論理的で的確なアドバイス
+- 適度な距離感でフレンドリー
+
+【会話ルール】
+1. 100文字以内の返答（最低40文字は確保）
+2. 経験に基づいた実践的アドバイス
+3. 相手の成長を促す励まし
+4. 論理的で説得力のある話し方
+
+【記号出力制限】
+絶対に以下の記号は使用しない：
+- アスタリスク（*, ※）
+- 絵文字（♪, ☆, ★, ◆, ■, ♡, ♥）
+- 矢印（→, ←, ↑, ↓）
+- 顔文字（(^_^), (笑)）
+- インターネットスラング（www, ｗｗｗ）
+日本語と感嘆符、句点、読点のみ使用すること。''';
 
       case 5: // 冥鳴ひまり
         return '''冥鳴ひまり：
-ミステリアスで少し暗い雰囲気を持つ。深い洞察力と独特な視点を持つ。
-低レートプレイヤーの気持ちを理解し、独特な励まし方をする。
-口調：「...なんだけどね。まあ、いいか。...って感じかな。」
-想定役割：深い悩み相談、哲学的な会話、独特な視点での助言。''';
+ミステリアスで深い洞察力を持つ。独特な視点で物事を見る。
+
+【性格・口調】
+- 落ち着いた独特な話し方
+- 「〜なんだけどね」「〜って感じかな」などの口調
+- 深い洞察力と共感力
+- 少し影のある優しさ
+
+【会話ルール】
+1. 90文字以内の返答（最低35文字は確保）
+2. 独特な視点からの助言
+3. 相手の深層心理を理解
+4. 優しく包み込むような話し方
+
+【記号出力制限】
+絶対に以下の記号は使用しない：
+- アスタリスク（*, ※）
+- 絵文字（♪, ☆, ★, ◆, ■, ♡, ♥）
+- 矢印（→, ←, ↑, ↓）
+- 顔文字（(^_^), (笑)）
+- インターネットスラング（www, ｗｗｗ）
+日本語と感嘆符、句点、読点のみ使用すること。''';
 
       default:
         return _getSystemPrompt(1); // デフォルトはずんだもん
@@ -463,21 +598,27 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
 
       _chatSession = _aiModel.startChat();
 
-      // AndroidデフォルトのSTT + FlutterデフォルトのTTS機能を使用
-      _useVoicevox = false; // VOICEVOXを強制的に無効化
-
-      // FlutterTTS（システムデフォルト音声）を初期化
-      await _flutterTts.setLanguage('ja-JP');
-      await _flutterTts.setPitch(1.0); // デフォルト音程
-      await _flutterTts.setSpeechRate(0.5); // ゆっくり発話
-      print('FlutterTTS初期化完了（システムデフォルト音声使用）');
+      // VOICEVOX機能を使用（性格別音声）
+      _useVoicevox = true; // VOICEVOXを有効化
+      
+      // VOICEVOXエンジンの初期化チェック
+      try {
+        bool isAvailable = await _voiceVoxService.isEngineAvailable();
+        if (isAvailable) {
+          print('VOICEVOX Engine接続確認完了');
+        } else {
+          print('VOICEVOX Engineが利用できません');
+        }
+      } catch (e) {
+        print('VOICEVOX Engineの接続確認でエラー: $e');
+      }
 
       setState(() {
         _isInitialized = true;
       });
 
-      // 初期メッセージを履歴に追加（ずんだもん口調）
-      String initialMessage = 'ボク、ずんだもんなのだ！元気とずんだパワーでがんばるのだ〜！';
+      // 初期メッセージを履歴に追加（性格別）
+      String initialMessage = _getInitialMessage(_aiPersonalityId);
       _addMessage('AI', initialMessage);
 
       print(
@@ -735,11 +876,17 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
     if (_chatEnded) return;
 
     try {
-      // Flutter TTS（システムデフォルト）で音声合成
-      print('Flutter TTS音声合成開始: $text');
-      await _flutterTts.speak(text);
+      // VOICEVOX で音声合成
+      print('VOICEVOX音声合成開始: $text');
+      
+      // 性格に応じてspeaker_idを設定
+      _voiceVoxService.setSpeakerByCharacter(_aiPersonalityId);
+      
+      // VOICEVOX で音声合成を実行
+      await _voiceVoxService.speak(text);
     } catch (e) {
-      print('音声合成エラー: $e');
+      print('VOICEVOX音声合成エラー: $e');
+      // エラーでも処理を継続
     }
   }
 
@@ -1088,14 +1235,11 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
                   ),
               ],
             ),
-            child: ClipOval(
-              child: Container(
-                color: const Color(0xFF5A64ED),
-                child: const Icon(
-                  Icons.auto_awesome, // キラキラアイコン
-                  size: 100,
-                  color: Colors.white,
-                ),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: SvgPicture.asset(
+                _getPersonalityIcon(_aiPersonalityId),
+                fit: BoxFit.contain,
               ),
             ),
           ),

@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import '../services/user_profile_service.dart';
 import '../services/rating_service.dart';
 import '../services/auth_service.dart';
+import '../services/localization_service.dart';
 import 'profile_setting_screen.dart';
 import 'credit_screen.dart';
 import 'login_screen.dart';
@@ -26,6 +27,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final UserProfileService _userProfileService = UserProfileService();
   final RatingService _ratingService = RatingService();
   final AuthService _authService = AuthService();
+  final LocalizationService _localizationService = LocalizationService();
   int _selectedThemeIndex = 0;
   int _currentRating = 1000;
   bool _isDeleting = false;
@@ -39,6 +41,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _loadUserProfile();
     _loadUserRating();
+    _localizationService.loadLanguagePreference();
+    _localizationService.addListener(_onLanguageChanged);
+  }
+
+  @override
+  void dispose() {
+    _localizationService.removeListener(_onLanguageChanged);
+    super.dispose();
+  }
+
+  void _onLanguageChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadUserProfile() async {
@@ -536,7 +552,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           backgroundColor: _currentTheme.backgroundColor,
           appBar: AppBar(
             title: Text(
-              '設定',
+              _localizationService.translate('settings_title'),
               style: GoogleFonts.notoSans(
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -568,10 +584,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Expanded(
           child: ListView(
             children: [
+              // 言語設定
+              ListTile(
+                leading: const Icon(Icons.language, color: Colors.white),
+                title: Text(
+                  _localizationService.translate('settings_language'),
+                  style: const TextStyle(color: Colors.white),
+                ),
+                subtitle: Row(
+                  children: [
+                    // 日本語
+                    GestureDetector(
+                      onTap: () => _localizationService.setLanguage('ja'),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _localizationService.isJapanese 
+                              ? Colors.blue.shade600 
+                              : Colors.grey.shade600,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white, width: 1),
+                        ),
+                        child: Text(
+                          _localizationService.translate('settings_language_japanese'),
+                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                        ),
+                      ),
+                    ),
+                    // 英語
+                    GestureDetector(
+                      onTap: () => _localizationService.setLanguage('en'),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _localizationService.isEnglish 
+                              ? Colors.blue.shade600 
+                              : Colors.grey.shade600,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white, width: 1),
+                        ),
+                        child: Text(
+                          _localizationService.translate('settings_language_english'),
+                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
               // テーマカラー選択
               ListTile(
                 leading: const Icon(Icons.color_lens, color: Colors.white),
-                title: const Text('背景テーマ', style: TextStyle(color: Colors.white)),
+                title: Text(
+                  _localizationService.translate('settings_theme'),
+                  style: const TextStyle(color: Colors.white),
+                ),
                 subtitle: Row(
                   children: List.generate(
                     appThemesForSelection.length,
@@ -681,7 +751,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // プロフィール設定
               ListTile(
                 leading: const Icon(Icons.person, color: Colors.white),
-                title: const Text('プロフィール設定', style: TextStyle(color: Colors.white)),
+                title: Text(
+                  _localizationService.translate('settings_profile'),
+                  style: const TextStyle(color: Colors.white),
+                ),
                 trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
                 onTap: () {
                   Navigator.of(context).push(
@@ -706,7 +779,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // クレジット表記
               ListTile(
                 leading: const Icon(Icons.info_outline, color: Colors.white),
-                title: const Text('クレジット表記', style: TextStyle(color: Colors.white)),
+                title: Text(
+                  _localizationService.translate('settings_credits'),
+                  style: const TextStyle(color: Colors.white),
+                ),
                 trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
                 onTap: () {
                   Navigator.of(context).push(

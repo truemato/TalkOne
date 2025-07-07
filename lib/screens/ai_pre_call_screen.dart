@@ -133,7 +133,7 @@ class _AiPreCallScreenState extends State<AiPreCallScreen>
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => ZundamonChatScreen(personalityId: widget.personalityId),
+        builder: (context) => const ZundamonChatScreen(),
       ),
     );
   }

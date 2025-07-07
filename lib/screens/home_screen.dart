@@ -10,6 +10,7 @@ import 'notification_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:io' show Platform;
 import '../services/user_profile_service.dart';
+import '../services/localization_service.dart';
 import '../utils/permission_util.dart';
 import '../utils/theme_utils.dart';
 
@@ -39,6 +40,7 @@ class _HomeScreenState extends State<HomeScreen>
   late Animation<int> _rateAnimation;
 
   final UserProfileService _userProfileService = UserProfileService();
+  final LocalizationService _localizationService = LocalizationService();
   int _userRating = 1000;
   String? _currentUserId;
   
@@ -91,6 +93,8 @@ class _HomeScreenState extends State<HomeScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadUserRating();
+    _localizationService.loadLanguagePreference();
+    _localizationService.addListener(_onLanguageChanged);
     
     // PageControllerの初期化（削除）
     // _pageController = PageController(initialPage: 1);
@@ -175,11 +179,18 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _localizationService.removeListener(_onLanguageChanged);
     _waveController.dispose();
     _bubbleController.dispose();
     _rateController.dispose();
     // _pageController.dispose(); // PageControllerは削除したためコメントアウト
     super.dispose();
+  }
+
+  void _onLanguageChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   // 画面復帰時にレーティングを更新
@@ -548,7 +559,7 @@ class _HomeScreenState extends State<HomeScreen>
     return Column(
       children: [
         Text(
-          'Talk One',
+          _localizationService.translate('home_title'),
           style: GoogleFonts.caveat(
             fontSize: 60,
             color: const Color(0xFF4E3B7A),
@@ -666,7 +677,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildRateCounter() {
     return SizedBox(
       width: 130, // 幅を100から130に拡大
-      height: 90,
+      height: 100, // 90から100に増やしてオーバーフローを解消
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

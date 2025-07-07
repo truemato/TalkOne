@@ -178,7 +178,7 @@ class _RateCounterState extends State<RateCounter>
   Widget build(BuildContext context) {
     return Container(
       width: 120,
-      height: 110,
+      height: 120, // 110から120に増やしてオーバーフローを解消
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

@@ -588,7 +588,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
   Widget _buildFooter() {
     return SizedBox(
       width: 100,
-      height: 90,
+      height: 100, // 90から100に増やしてオーバーフローを解消
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
