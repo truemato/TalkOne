@@ -13,6 +13,7 @@ import '../services/user_profile_service.dart';
 import '../services/localization_service.dart';
 import '../utils/permission_util.dart';
 import '../utils/theme_utils.dart';
+import '../widgets/content_filter_indicator.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onNavigateToHistory;
@@ -279,14 +280,14 @@ class _HomeScreenState extends State<HomeScreen>
             Positioned(
               left: 0,
               right: 0,
-              bottom: 60, // メニューバーの高さ分上に配置
+              bottom: 65, // メニューバーが5px上に移動したため65に調整
               child: _buildUserIdDisplay(),
             ),
             // 下部バー（iOS風統一レイアウト）
             Positioned(
               left: 0,
               right: 0,
-              bottom: 0,
+              bottom: 5, // 5px上に移動
               child: Platform.isAndroid
                   ? SafeArea(
                       top: false,
@@ -523,6 +524,9 @@ class _HomeScreenState extends State<HomeScreen>
           const SizedBox(height: 16),
         ],
         _buildAICallButton(theme),
+        const SizedBox(height: 16),
+        // コンテンツフィルタ有効インジケーター
+        const ContentFilterIndicator(),
         const SizedBox(height: 24),
         _buildRateCounter(),
           ],
@@ -613,7 +617,7 @@ class _HomeScreenState extends State<HomeScreen>
                     _selectedComment,
                     style: const TextStyle(
                       color: Colors.black,
-                      fontSize: 14,
+                      fontSize: 8,
                       fontFamily: 'Cascadia Mono',
                       fontWeight: FontWeight.w700,
                     ),
