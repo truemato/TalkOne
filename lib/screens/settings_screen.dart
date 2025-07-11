@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'dart:io' show Platform;
 import '../services/user_profile_service.dart';
 import '../services/rating_service.dart';
@@ -9,6 +8,7 @@ import 'profile_setting_screen.dart';
 import 'credit_screen.dart';
 import 'login_screen.dart';
 import '../utils/theme_utils.dart';
+import '../utils/font_size_utils.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -110,7 +110,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SnackBar(
               content: Text(
                 'レートの条件を満たしてください。',
-                style: GoogleFonts.notoSans(color: Colors.white),
+                style: FontSizeUtils.notoSans(fontSize: 16, color: Colors.white),
               ),
               backgroundColor: Colors.red.shade600,
               duration: const Duration(seconds: 3),
@@ -129,7 +129,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SnackBar(
               content: Text(
                 'レートの条件を満たしてください。',
-                style: GoogleFonts.notoSans(color: Colors.white),
+                style: FontSizeUtils.notoSans(fontSize: 16, color: Colors.white),
               ),
               backgroundColor: Colors.red.shade600,
               duration: const Duration(seconds: 3),
@@ -156,7 +156,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         SnackBar(
           content: Text(
             'エージェントを${characterName}に変更しました。',
-            style: GoogleFonts.notoSans(color: Colors.white),
+            style: FontSizeUtils.notoSans(fontSize: 16, color: Colors.white),
           ),
           backgroundColor: Colors.green.shade600,
           duration: const Duration(seconds: 3),
@@ -236,14 +236,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: Colors.grey[900],
         title: Text(
           'デバッグ: レーティング変更',
-          style: GoogleFonts.notoSans(color: Colors.white),
+          style: FontSizeUtils.notoSans(fontSize: 16, color: Colors.white),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               '現在のレーティング: $_currentRating',
-              style: GoogleFonts.notoSans(color: Colors.white70),
+              style: FontSizeUtils.notoSans(fontSize: 16, color: Colors.white70),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -268,7 +268,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () => Navigator.of(context).pop(),
             child: Text(
               'キャンセル',
-              style: GoogleFonts.notoSans(color: Colors.white70),
+              style: FontSizeUtils.notoSans(fontSize: 16, color: Colors.white70),
             ),
           ),
           TextButton(
@@ -288,7 +288,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   SnackBar(
                     content: Text(
                       'レーティングを$newRatingに変更しました',
-                      style: GoogleFonts.notoSans(color: Colors.white),
+                      style: FontSizeUtils.notoSans(fontSize: 16, color: Colors.white),
                     ),
                     backgroundColor: Colors.green.shade600,
                   ),
@@ -306,7 +306,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   SnackBar(
                     content: Text(
                       '0から5000の間の数値を入力してください',
-                      style: GoogleFonts.notoSans(color: Colors.white),
+                      style: FontSizeUtils.notoSans(fontSize: 16, color: Colors.white),
                     ),
                     backgroundColor: Colors.red.shade600,
                   ),
@@ -315,7 +315,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
             child: Text(
               'OK',
-              style: GoogleFonts.notoSans(color: Colors.blue),
+              style: FontSizeUtils.notoSans(fontSize: 16, color: Colors.blue),
             ),
           ),
         ],
@@ -371,7 +371,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(width: 12),
                     Text(
                       '実績',
-                      style: GoogleFonts.notoSans(
+                      style: FontSizeUtils.notoSans(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -387,7 +387,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Text(
                     '現在のレベル: ${achievement['level']}',
-                    style: GoogleFonts.notoSans(
+                    style: FontSizeUtils.notoSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: achievement['color'],
@@ -395,7 +395,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   Text(
                     'レーティング: $_currentRating',
-                    style: GoogleFonts.notoSans(
+                    style: FontSizeUtils.notoSans(
                       fontSize: 14,
                       color: Colors.white70,
                     ),
@@ -411,7 +411,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   if (achievement['nextTarget'] != null) ...[
                     Text(
                       '次の目標: ${achievement['nextTarget']}',
-                      style: GoogleFonts.notoSans(
+                      style: FontSizeUtils.notoSans(
                         fontSize: 12,
                         color: Colors.white60,
                       ),
@@ -431,7 +431,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 4),
                     Text(
                       '残り${achievement['nextTarget'] - _currentRating}ポイント',
-                      style: GoogleFonts.notoSans(
+                      style: FontSizeUtils.notoSans(
                         fontSize: 11,
                         color: Colors.white.withOpacity(0.5),
                       ),
@@ -453,7 +453,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     Text(
                       '解禁機能: ${achievement['unlocked']}',
-                      style: GoogleFonts.notoSans(
+                      style: FontSizeUtils.notoSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
@@ -462,7 +462,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 4),
                     Text(
                       achievement['description'],
-                      style: GoogleFonts.notoSans(
+                      style: FontSizeUtils.notoSans(
                         fontSize: 12,
                         color: Colors.white70,
                       ),
@@ -476,7 +476,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ExpansionTile(
                   title: Text(
                     '実績レベル一覧',
-                    style: GoogleFonts.notoSans(
+                    style: FontSizeUtils.notoSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -523,7 +523,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Expanded(
             child: Text(
               '$rating: $level - $feature',
-              style: GoogleFonts.notoSans(
+              style: FontSizeUtils.notoSans(
                 fontSize: 12,
                 color: isAchieved ? Colors.white : Colors.white60,
                 fontWeight: isAchieved ? FontWeight.w600 : FontWeight.normal,
@@ -553,7 +553,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           appBar: AppBar(
             title: Text(
               _localizationService.translate('settings_title'),
-              style: GoogleFonts.notoSans(
+              style: FontSizeUtils.notoSans(
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
@@ -832,21 +833,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         title: Text(
           'アカウント削除',
-          style: GoogleFonts.notoSans(
+          style: FontSizeUtils.notoSans(
+            fontSize: 16,
             fontWeight: FontWeight.bold,
             color: Colors.red,
           ),
         ),
         content: Text(
           'この画面からアカウント削除を押すと、ログアウトされるだけでなく、これまでのレートとAI VOICEVOXの人格と会話が削除されます。本当によろしいですか？',
-          style: GoogleFonts.notoSans(fontSize: 14),
+          style: FontSizeUtils.notoSans(fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
               'キャンセル',
-              style: GoogleFonts.notoSans(
+              style: FontSizeUtils.notoSans(
+                fontSize: 16,
                 color: Colors.grey[600],
               ),
             ),
@@ -855,7 +858,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(
               '削除する',
-              style: GoogleFonts.notoSans(
+              style: FontSizeUtils.notoSans(
+                fontSize: 16,
                 color: Colors.red,
                 fontWeight: FontWeight.bold,
               ),
@@ -1048,7 +1052,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SnackBar(
             content: Text(
               'お使いのGoogle/Appleアカウントのアプリケーション内情報を削除しました。',
-              style: GoogleFonts.notoSans(),
+              style: FontSizeUtils.notoSans(fontSize: 14),
             ),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 3),
@@ -1072,7 +1076,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SnackBar(
             content: Text(
               'アカウントの削除に失敗しました。再度お試しください。',
-              style: GoogleFonts.notoSans(),
+              style: FontSizeUtils.notoSans(fontSize: 14),
             ),
             backgroundColor: Colors.red,
           ),

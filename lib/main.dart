@@ -6,9 +6,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'screens/page_view_container.dart';
 import 'screens/login_screen.dart';
+import 'screens/eula_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'utils/permission_util.dart';
 import 'services/auth_service.dart';
+import 'services/version_notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -70,19 +73,65 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
       ),
       home: permissionGranted
-          ? AuthWrapper() // 権限が許可されていれば認証チェック
+          ? const AuthWrapper() // 権限が許可されていれば認証チェック
           : const LoginScreen(), // 権限が拒否されていればログイン画面へ
     );
   }
 }
 
-class AuthWrapper extends StatelessWidget {
-  final AuthService _authService = AuthService();
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
 
-  AuthWrapper({super.key});
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  final AuthService _authService = AuthService();
+  final VersionNotificationService _versionService = VersionNotificationService();
+  bool? _eulaAccepted;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkEulaAcceptance();
+    _initializeVersionNotifications();
+  }
+
+  Future<void> _initializeVersionNotifications() async {
+    // ユーザーがログイン済みの場合のみバージョン通知をチェック
+    _authService.authStateChanges.listen((user) {
+      if (user != null) {
+        _versionService.checkAndNotifyVersionUpdate();
+      }
+    });
+  }
+
+  Future<void> _checkEulaAcceptance() async {
+    final prefs = await SharedPreferences.getInstance();
+    final accepted = prefs.getBool('eula_accepted') ?? false;
+    setState(() {
+      _eulaAccepted = accepted;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    // EULA確認中
+    if (_eulaAccepted == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    // EULAが未承認の場合
+    if (!_eulaAccepted!) {
+      return const EulaScreen();
+    }
+
+    // EULAが承認済みの場合、認証チェック
     return StreamBuilder<User?>(
       stream: _authService.authStateChanges,
       builder: (context, snapshot) {

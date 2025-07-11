@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'dart:io' show Platform;
 import '../services/user_profile_service.dart';
 import '../services/notification_service.dart';
 import '../utils/theme_utils.dart';
+import '../utils/font_size_utils.dart';
 
 /// 通知画面
 class NotificationScreen extends StatefulWidget {
@@ -121,7 +121,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
           Expanded(
             child: Text(
               notification.title,
-              style: GoogleFonts.notoSans(
+              style: FontSizeUtils.notoSans(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
               ),
@@ -135,12 +135,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
         children: [
           Text(
             notification.message,
-            style: GoogleFonts.notoSans(fontSize: 16),
+            style: FontSizeUtils.notoSans(fontSize: 16),
           ),
           const SizedBox(height: 16),
           Text(
             _formatDateTime(notification.createdAt),
-            style: GoogleFonts.notoSans(
+            style: FontSizeUtils.notoSans(
               fontSize: 12,
               color: Colors.grey[600],
             ),
@@ -152,7 +152,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
           onPressed: () => Navigator.of(context).pop(),
           child: Text(
             '閉じる',
-            style: GoogleFonts.notoSans(
+            style: FontSizeUtils.notoSans(
+              fontSize: 16,
               color: _currentThemeColor,
               fontWeight: FontWeight.bold,
             ),
@@ -170,7 +171,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         SnackBar(
           content: Text(
             '通知を削除しました',
-            style: GoogleFonts.notoSans(),
+            style: FontSizeUtils.notoSans(fontSize: 14),
           ),
           backgroundColor: Colors.green,
           duration: const Duration(seconds: 2),
@@ -187,7 +188,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         SnackBar(
           content: Text(
             '全ての通知を既読にしました',
-            style: GoogleFonts.notoSans(),
+            style: FontSizeUtils.notoSans(fontSize: 14),
           ),
           backgroundColor: Colors.green,
           duration: const Duration(seconds: 2),
@@ -199,9 +200,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onHorizontalDragEnd: (details) {
-        // 右から左へのスワイプでホーム画面に戻る
-        if (details.primaryVelocity! < 0 && mounted) {
+      onVerticalDragEnd: (details) {
+        // 下から上へのスワイプ（負の速度）でホーム画面に戻る
+        if (details.primaryVelocity! < -500 && mounted) {
           if (widget.onNavigateToHome != null) {
             widget.onNavigateToHome!();
           } else {
@@ -214,7 +215,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         appBar: AppBar(
           title: Text(
             '通知',
-            style: GoogleFonts.notoSans(
+            style: FontSizeUtils.notoSans(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -285,7 +286,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 const SizedBox(height: 16),
                 Text(
                   'エラーが発生しました',
-                  style: GoogleFonts.notoSans(
+                  style: FontSizeUtils.notoSans(
                     fontSize: 18,
                     color: Colors.white.withOpacity(0.8),
                   ),
@@ -310,7 +311,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 const SizedBox(height: 16),
                 Text(
                   '通知はありません',
-                  style: GoogleFonts.notoSans(
+                  style: FontSizeUtils.notoSans(
                     fontSize: 18,
                     color: Colors.white.withOpacity(0.8),
                   ),
@@ -318,7 +319,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 const SizedBox(height: 8),
                 Text(
                   '新しい通知があると、ここに表示されます',
-                  style: GoogleFonts.notoSans(
+                  style: FontSizeUtils.notoSans(
                     fontSize: 14,
                     color: Colors.white.withOpacity(0.6),
                   ),
@@ -344,6 +345,45 @@ class _NotificationScreenState extends State<NotificationScreen> {
     return Dismissible(
       key: Key(notification.id),
       direction: DismissDirection.endToStart,
+      confirmDismiss: (direction) async {
+        // 削除確認ダイアログ
+        return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(
+              '通知を削除',
+              style: FontSizeUtils.notoSans(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Text(
+              'この通知を削除しますか？',
+              style: FontSizeUtils.notoSans(fontSize: 16),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(
+                  'キャンセル',
+                  style: FontSizeUtils.notoSans(fontSize: 16),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text(
+                  '削除',
+                  style: FontSizeUtils.notoSans(
+                    fontSize: 16,
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ) ?? false;
+      },
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
@@ -351,10 +391,24 @@ class _NotificationScreenState extends State<NotificationScreen> {
           color: Colors.red,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Icon(
-          Icons.delete,
-          color: Colors.white,
-          size: 32,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.delete,
+              color: Colors.white,
+              size: 32,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '削除',
+              style: FontSizeUtils.notoSans(
+                fontSize: 12,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       ),
       onDismissed: (direction) {
@@ -408,7 +462,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                           Expanded(
                             child: Text(
                               notification.title,
-                              style: GoogleFonts.notoSans(
+                              style: FontSizeUtils.notoSans(
                                 fontSize: 16,
                                 fontWeight: notification.isRead 
                                     ? FontWeight.w500 
@@ -436,7 +490,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       // メッセージ
                       Text(
                         notification.message,
-                        style: GoogleFonts.notoSans(
+                        style: FontSizeUtils.notoSans(
                           fontSize: 14,
                           color: Colors.grey[700],
                           height: 1.4,
@@ -449,7 +503,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       // 日時
                       Text(
                         _formatDateTime(notification.createdAt),
-                        style: GoogleFonts.notoSans(
+                        style: FontSizeUtils.notoSans(
                           fontSize: 12,
                           color: Colors.grey[500],
                         ),

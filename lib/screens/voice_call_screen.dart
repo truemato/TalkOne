@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:async';
 import 'dart:io' show Platform;
@@ -11,6 +10,7 @@ import '../services/rating_service.dart';
 import 'evaluation_screen.dart';
 import 'partner_profile_screen.dart';
 import '../utils/theme_utils.dart';
+import '../utils/font_size_utils.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -546,7 +546,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       ),
       child: Text(
         _formatTime(_remainingSeconds),
-        style: GoogleFonts.notoSans(
+        style: FontSizeUtils.notoSans(
           fontSize: 48,
           fontWeight: FontWeight.bold,
           color: getAppTheme(_selectedThemeIndex).backgroundColor,
@@ -606,7 +606,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           const SizedBox(width: 8),
           Text(
             statusText,
-            style: GoogleFonts.notoSans(
+            style: FontSizeUtils.notoSans(
               fontSize: 14,
               fontWeight: FontWeight.w500,
               color: Colors.black87,
@@ -755,7 +755,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
             const SizedBox(width: 12),
             Text(
               '緊急通報',
-              style: GoogleFonts.notoSans(
+              style: FontSizeUtils.notoSans(
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Colors.red,
               ),
@@ -764,14 +765,15 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         ),
         content: Text(
           'この相手を通報しますか？\n\n通報すると即座に通話が終了し、相手のプロフィール画面に移動します。',
-          style: GoogleFonts.notoSans(fontSize: 16),
+          style: FontSizeUtils.notoSans(fontSize: 16),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
               'キャンセル',
-              style: GoogleFonts.notoSans(
+              style: FontSizeUtils.notoSans(
+                fontSize: 16,
                 color: Colors.grey[600],
                 fontWeight: FontWeight.w500,
               ),
@@ -788,7 +790,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
             ),
             child: Text(
               '通報する',
-              style: GoogleFonts.notoSans(
+              style: FontSizeUtils.notoSans(
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -867,7 +870,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           SnackBar(
             content: Text(
               '緊急通報の処理中にエラーが発生しました。',
-              style: GoogleFonts.notoSans(),
+              style: FontSizeUtils.notoSans(fontSize: 14),
             ),
             backgroundColor: Colors.red,
           ),

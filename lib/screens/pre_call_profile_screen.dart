@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../utils/font_size_utils.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/cupertino.dart';
@@ -8,6 +8,7 @@ import '../services/user_profile_service.dart';
 import '../services/call_matching_service.dart';
 import '../services/evaluation_service.dart';
 import 'voice_call_screen.dart';
+import 'matching_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PreCallProfileScreen extends StatefulWidget {
@@ -170,22 +171,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
       );
       _rateController.forward();
       
-      // 3秒後に通話画面に遷移
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => VoiceCallScreen(
-                channelName: widget.match.channelName,
-                callId: widget.match.callId,
-                partnerId: widget.match.partnerId,
-                conversationTheme: widget.match.conversationTheme,
-              ),
-            ),
-          );
-        }
-      });
+      // 自動遷移は削除し、ボタンで判断するように変更
     } catch (e) {
       print('パートナープロフィール読み込みエラー: $e');
       // エラーの場合も評価システムからレーティングを取得
@@ -410,7 +396,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
       children: [
         Text(
           'Talk One',
-          style: GoogleFonts.caveat(
+          style: FontSizeUtils.caveat(
             fontSize: 40,
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -586,28 +572,168 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
   }
 
   Widget _buildFooter() {
-    return SizedBox(
-      width: 100,
-      height: 100, // 90から100に増やしてオーバーフローを解消
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'RATE',
-            style: GoogleFonts.catamaran(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
+    return Column(
+      children: [
+        // レートカウンター
+        SizedBox(
+          width: 100,
+          height: 100, // 90から100に増やしてオーバーフローを解消
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'RATE',
+                style: FontSizeUtils.catamaran(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 4),
+              AnimatedBuilder(
+                animation: _rateAnimation,
+                builder: (context, child) => _buildMetallicRatingText(_rateAnimation.value),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 30),
+        // 承認/拒否/スキップボタン
+        _buildActionButtons(),
+      ],
+    );
+  }
+  
+  Widget _buildActionButtons() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        // 拒否ボタン
+        ElevatedButton.icon(
+          onPressed: _handleReject,
+          icon: const Icon(Icons.close, color: Colors.white),
+          label: Text(
+            '拒否',
+            style: FontSizeUtils.notoSans(
+              fontSize: 16,
               color: Colors.white,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 4),
-          AnimatedBuilder(
-            animation: _rateAnimation,
-            builder: (context, child) => _buildMetallicRatingText(_rateAnimation.value),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red.withOpacity(0.8),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(25),
+            ),
           ),
-        ],
-      ),
+        ),
+        // 承認ボタン
+        ElevatedButton.icon(
+          onPressed: _handleApprove,
+          icon: const Icon(Icons.check, color: Colors.white),
+          label: Text(
+            '承認',
+            style: FontSizeUtils.notoSans(
+              fontSize: 16,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green.withOpacity(0.8),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(25),
+            ),
+          ),
+        ),
+        // スキップボタン
+        ElevatedButton.icon(
+          onPressed: _handleSkip,
+          icon: const Icon(Icons.skip_next, color: Colors.white),
+          label: Text(
+            'スキップ',
+            style: FontSizeUtils.notoSans(
+              fontSize: 16,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.orange.withOpacity(0.8),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(25),
+            ),
+          ),
+        ),
+      ],
     );
+  }
+
+  // ハンドラメソッドを追加
+  void _handleReject() async {
+    // マッチングを拒否してホーム画面に戻る
+    try {
+      // マッチングを削除
+      await FirebaseFirestore.instance
+          .collection('callRequests')
+          .doc(widget.match.callId)
+          .delete();
+      
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } catch (e) {
+      print('マッチング拒否エラー: $e');
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    }
+  }
+
+  void _handleApprove() {
+    // 承認して通話画面へ遷移
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => VoiceCallScreen(
+            channelName: widget.match.channelName,
+            callId: widget.match.callId,
+            partnerId: widget.match.partnerId,
+            conversationTheme: widget.match.conversationTheme,
+          ),
+        ),
+      );
+    }
+  }
+
+  void _handleSkip() async {
+    // 現在のマッチングをスキップして新しいマッチングを探す
+    try {
+      // 現在のマッチングを削除
+      await FirebaseFirestore.instance
+          .collection('callRequests')
+          .doc(widget.match.callId)
+          .delete();
+      
+      if (mounted) {
+        // マッチング画面に戻る
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const MatchingScreen(),
+          ),
+        );
+      }
+    } catch (e) {
+      print('マッチングスキップエラー: $e');
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    }
   }
 
   Widget _buildMetallicRatingText(int rating) {
@@ -659,7 +785,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
       fontSize = 40;
       return Text(
         '$rating',
-        style: GoogleFonts.notoSans(
+        style: FontSizeUtils.notoSans(
           fontSize: fontSize,
           fontWeight: FontWeight.w700,
           color: Colors.white,
@@ -681,7 +807,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
             offset: const Offset(2, 2),
             child: Text(
               '$rating',
-              style: GoogleFonts.notoSans(
+              style: FontSizeUtils.notoSans(
                 fontSize: fontSize,
                 fontWeight: FontWeight.w700,
                 color: shadowColors[1],
@@ -693,7 +819,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
             offset: const Offset(1, 1),
             child: Text(
               '$rating',
-              style: GoogleFonts.notoSans(
+              style: FontSizeUtils.notoSans(
                 fontSize: fontSize,
                 fontWeight: FontWeight.w700,
                 color: shadowColors[0],
@@ -703,7 +829,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
           // メインテキスト
           Text(
             '$rating',
-            style: GoogleFonts.notoSans(
+            style: FontSizeUtils.notoSans(
               fontSize: fontSize,
               fontWeight: FontWeight.w700,
               color: Colors.white,

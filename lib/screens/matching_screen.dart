@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/call_matching_service.dart';
@@ -11,6 +10,7 @@ import '../services/block_service.dart';
 import 'pre_call_profile_screen.dart';
 import 'ai_pre_call_screen.dart';
 import '../utils/theme_utils.dart';
+import '../utils/font_size_utils.dart';
 
 class RateCounter extends StatefulWidget {
   final int targetRate;
@@ -119,7 +119,7 @@ class _RateCounterState extends State<RateCounter>
       fontSize = 46;
       return Text(
         '$rating',
-        style: GoogleFonts.notoSans(
+        style: FontSizeUtils.notoSans(
           fontSize: fontSize,
           fontWeight: FontWeight.w700,
           color: const Color(0xFF1E1E1E),
@@ -141,7 +141,7 @@ class _RateCounterState extends State<RateCounter>
             offset: const Offset(2, 2),
             child: Text(
               '$rating',
-              style: GoogleFonts.notoSans(
+              style: FontSizeUtils.notoSans(
                 fontSize: fontSize,
                 fontWeight: FontWeight.w700,
                 color: shadowColors[1],
@@ -153,7 +153,7 @@ class _RateCounterState extends State<RateCounter>
             offset: const Offset(1, 1),
             child: Text(
               '$rating',
-              style: GoogleFonts.notoSans(
+              style: FontSizeUtils.notoSans(
                 fontSize: fontSize,
                 fontWeight: FontWeight.w700,
                 color: shadowColors[0],
@@ -163,7 +163,7 @@ class _RateCounterState extends State<RateCounter>
           // メインテキスト
           Text(
             '$rating',
-            style: GoogleFonts.notoSans(
+            style: FontSizeUtils.notoSans(
               fontSize: fontSize,
               fontWeight: FontWeight.w700,
               color: Colors.white,
@@ -184,7 +184,7 @@ class _RateCounterState extends State<RateCounter>
         children: [
           Text(
             'RATE',
-            style: GoogleFonts.catamaran(
+            style: FontSizeUtils.catamaran(
               fontSize: 24,
               fontWeight: FontWeight.w800,
               color: const Color(0xFF1E1E1E),
@@ -601,7 +601,7 @@ class _MatchingScreenState extends State<MatchingScreen>
                                 if (_userRating == 0)
                                   Text(
                                     '読み込み中...',
-                                    style: GoogleFonts.catamaran(
+                                    style: FontSizeUtils.catamaran(
                                       fontSize: 12,
                                       color: Colors.white.withOpacity(0.6),
                                     ),
@@ -635,7 +635,7 @@ class _MatchingScreenState extends State<MatchingScreen>
                                     Flexible(
                                       child: Text(
                                         _getAINotificationMessage(),
-                                        style: GoogleFonts.notoSans(
+                                        style: FontSizeUtils.notoSans(
                                           fontSize: 14,
                                           color: Colors.white,
                                           fontWeight: FontWeight.w600,
@@ -678,7 +678,7 @@ class _MatchingScreenState extends State<MatchingScreen>
                                 if (_userRating == 0)
                                   Text(
                                     '読み込み中...',
-                                    style: GoogleFonts.catamaran(
+                                    style: FontSizeUtils.catamaran(
                                       fontSize: 12,
                                       color: Colors.white.withOpacity(0.6),
                                     ),
@@ -712,7 +712,7 @@ class _MatchingScreenState extends State<MatchingScreen>
                                     Flexible(
                                       child: Text(
                                         _getAINotificationMessage(),
-                                        style: GoogleFonts.notoSans(
+                                        style: FontSizeUtils.notoSans(
                                           fontSize: 14,
                                           color: Colors.white,
                                           fontWeight: FontWeight.w600,
@@ -747,7 +747,7 @@ class _MatchingScreenState extends State<MatchingScreen>
   Widget _buildTitle() {
     return Text(
       'Talk One',
-      style: GoogleFonts.caveat(
+      style: FontSizeUtils.caveat(
         fontSize: 60,
         color: const Color(0xFF4E3B7A),
         fontWeight: FontWeight.bold,
@@ -758,7 +758,7 @@ class _MatchingScreenState extends State<MatchingScreen>
   Widget _buildOnlineUsers() {
     return Text(
       'マッチング待ちのユーザー：$_onlineUsers人',
-      style: GoogleFonts.catamaran(
+      style: FontSizeUtils.catamaran(
         fontSize: 15,
         fontWeight: FontWeight.w800,
         color: Colors.white,
@@ -772,7 +772,7 @@ class _MatchingScreenState extends State<MatchingScreen>
       children: [
         Text(
           'マッチング中',
-          style: GoogleFonts.catamaran(
+          style: FontSizeUtils.catamaran(
             fontSize: 32,
             fontWeight: FontWeight.w800,
             color: Colors.white,
@@ -782,7 +782,7 @@ class _MatchingScreenState extends State<MatchingScreen>
         for (var i = 0; i < 3; i++) ...[
           Text(
             '.',
-            style: GoogleFonts.catamaran(
+            style: FontSizeUtils.catamaran(
               fontSize: 32,
               fontWeight: FontWeight.w800,
               color: (i < _dotCount) ? Colors.white : Colors.transparent,
@@ -835,7 +835,7 @@ class _MatchingScreenState extends State<MatchingScreen>
           const SizedBox(width: 8),
           Text(
             '${_aiAssistantName}と会話',
-            style: GoogleFonts.notoSans(
+            style: FontSizeUtils.notoSans(
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
@@ -856,7 +856,7 @@ class _MatchingScreenState extends State<MatchingScreen>
       ),
       child: Text(
         'キャンセル',
-        style: GoogleFonts.catamaran(
+        style: FontSizeUtils.catamaran(
           fontSize: 20,
           fontWeight: FontWeight.w800,
         ),

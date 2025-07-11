@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -11,6 +10,7 @@ import '../services/call_history_service.dart';
 import 'rematch_or_home_screen.dart';
 import 'partner_profile_screen.dart';
 import '../utils/theme_utils.dart';
+import '../utils/font_size_utils.dart';
 
 class EvaluationScreen extends StatefulWidget {
   final String callId;
@@ -165,7 +165,7 @@ class _EvaluationScreenState extends State<EvaluationScreen>
           if (!_isSubmitted)
             Text(
               'タップして相手のプロフィールを表示',
-              style: GoogleFonts.catamaran(
+              style: FontSizeUtils.catamaran(
                 fontSize: 14,
                 color: Colors.white.withOpacity(0.8),
               ),
@@ -184,7 +184,7 @@ class _EvaluationScreenState extends State<EvaluationScreen>
             const SizedBox(height: 16),
             Text(
               '評価を送信中...',
-              style: GoogleFonts.catamaran(
+              style: FontSizeUtils.catamaran(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
                 color: Colors.white,
@@ -269,7 +269,7 @@ class _EvaluationScreenState extends State<EvaluationScreen>
   Widget _buildRatingText() {
     return Text(
       '今の通話を評価してください',
-      style: GoogleFonts.catamaran(
+      style: FontSizeUtils.catamaran(
         fontSize: 28,
         fontWeight: FontWeight.bold,
         color: Colors.white,
@@ -337,7 +337,7 @@ class _EvaluationScreenState extends State<EvaluationScreen>
       ),
       child: Text(
         descriptions[_selectedRating],
-        style: GoogleFonts.catamaran(
+        style: FontSizeUtils.catamaran(
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: const Color(0xFF4E3B7A),
@@ -360,7 +360,7 @@ class _EvaluationScreenState extends State<EvaluationScreen>
         const SizedBox(height: 8),
         Text(
           '評価を送信中...',
-          style: GoogleFonts.catamaran(
+          style: FontSizeUtils.catamaran(
             fontSize: 14,
             fontWeight: FontWeight.w500,
             color: Colors.white,

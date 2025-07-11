@@ -13,7 +13,6 @@ import '../services/user_profile_service.dart';
 import '../services/localization_service.dart';
 import '../utils/permission_util.dart';
 import '../utils/theme_utils.dart';
-import '../widgets/content_filter_indicator.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onNavigateToHistory;
@@ -444,9 +443,9 @@ class _HomeScreenState extends State<HomeScreen>
         physics: const NeverScrollableScrollPhysics(),
         child: Column(
           children: [
-            const SizedBox(height: 40),
+            const SizedBox(height: 20),
             _buildTitle(),
-            SizedBox(height: screenHeight * 0.20),
+            SizedBox(height: screenHeight * 0.15),
             Center(
               child: Stack(
                 clipBehavior: Clip.none,
@@ -476,7 +475,7 @@ class _HomeScreenState extends State<HomeScreen>
             ],
           ),
         ),
-        SizedBox(height: screenHeight * 0.05),
+        SizedBox(height: screenHeight * 0.03),
         // 多段階AI救済システムの警告メッセージを表示
         if (_userRating <= 880) ...[
           Container(
@@ -524,10 +523,7 @@ class _HomeScreenState extends State<HomeScreen>
           const SizedBox(height: 16),
         ],
         _buildAICallButton(theme),
-        const SizedBox(height: 16),
-        // コンテンツフィルタ有効インジケーター
-        const ContentFilterIndicator(),
-        const SizedBox(height: 24),
+        const SizedBox(height: 32),
         _buildRateCounter(),
           ],
         ),
@@ -580,7 +576,7 @@ class _HomeScreenState extends State<HomeScreen>
             letterSpacing: 1,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         Text(
           'Powered By AI Gemini 2.5 Flash',
           style: GoogleFonts.notoSans(
@@ -617,7 +613,7 @@ class _HomeScreenState extends State<HomeScreen>
                     _selectedComment,
                     style: const TextStyle(
                       color: Colors.black,
-                      fontSize: 8,
+                      fontSize: 14,
                       fontFamily: 'Cascadia Mono',
                       fontWeight: FontWeight.w700,
                     ),

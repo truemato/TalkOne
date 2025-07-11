@@ -163,6 +163,46 @@ class LocalizationService extends ChangeNotifier {
       'ai_precall_title': 'AI練習モード',
       'ai_precall_countdown': '音声チャット開始まで...',
       'ai_precall_skip': 'スキップ',
+      
+      // 追加翻訳
+      'block_user': 'このユーザーをブロック',
+      'partner_profile': '相手のプロフィール',
+      'call_history': '通話履歴',
+      'my_rating': '私の評価',
+      'date': '日付',
+      'delete_account': 'アカウント削除',
+      'notifications': '通知',
+      'error_occurred': 'エラーが発生しました',
+      'waiting_users': 'マッチング待ちのユーザー',
+      'matching_cancelled': 'マッチングがキャンセルされました',
+      'conversation_screen': '会話画面',
+      'call_ended': '通話終了',
+      
+      // プリコール画面
+      'approve': '承認',
+      'reject': '拒否',
+      
+      // パートナープロフィール画面
+      'report_user': 'ユーザーを通報',
+      'block_confirm_title': 'ユーザーをブロック',
+      'block_confirm_message': 'このユーザーをブロックしますか？今後マッチングされなくなります。',
+      'block_success': 'ユーザーをブロックしました',
+      'block_failed': 'ブロックに失敗しました',
+      
+      // アカウント削除
+      'delete_account_title': 'アカウント削除',
+      'delete_account_message': '本当にアカウントを削除しますか？この操作は取り消せません。',
+      'delete_account_confirm': '削除する',
+      
+      // 通知メッセージ
+      'notification_empty': '通知はありません',
+      'notification_new_match': '新しいマッチが見つかりました',
+      'notification_call_request': '通話リクエストがあります',
+      
+      // エラーメッセージ
+      'error_loading_profile': 'プロフィールの読み込みに失敗しました',
+      'error_matching': 'マッチングエラーが発生しました',
+      'error_call_failed': '通話接続に失敗しました',
     },
     
     'en': {
@@ -284,6 +324,46 @@ class LocalizationService extends ChangeNotifier {
       'ai_precall_title': 'AI Practice Mode',
       'ai_precall_countdown': 'Voice chat starting in...',
       'ai_precall_skip': 'Skip',
+      
+      // Additional translations requested
+      'block_user': 'Block this user',
+      'partner_profile': 'Partner\'s Profile',
+      'call_history': 'Call History',
+      'my_rating': 'My Rating',
+      'date': 'Date',
+      'delete_account': 'Delete Account',
+      'notifications': 'Notifications',
+      'error_occurred': 'An error occurred',
+      'waiting_users': 'Waiting for users',
+      'matching_cancelled': 'Matching cancelled',
+      'conversation_screen': 'Conversation Screen',
+      'call_ended': 'Call Ended',
+      
+      // Pre-call screen
+      'approve': 'Approve',
+      'reject': 'Reject',
+      
+      // Partner profile screen
+      'report_user': 'Report User',
+      'block_confirm_title': 'Block User',
+      'block_confirm_message': 'Are you sure you want to block this user? You will no longer be matched with them.',
+      'block_success': 'User has been blocked',
+      'block_failed': 'Failed to block user',
+      
+      // Account deletion
+      'delete_account_title': 'Delete Account',
+      'delete_account_message': 'Are you sure you want to delete your account? This action cannot be undone.',
+      'delete_account_confirm': 'Delete',
+      
+      // Notification messages
+      'notification_empty': 'No notifications',
+      'notification_new_match': 'New match found',
+      'notification_call_request': 'Incoming call request',
+      
+      // Error messages
+      'error_loading_profile': 'Failed to load profile',
+      'error_matching': 'Matching error occurred',
+      'error_call_failed': 'Call connection failed',
     },
   };
 }

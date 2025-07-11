@@ -34,7 +34,7 @@ class _PageViewContainerState extends State<PageViewContainer> {
   /// アプリ起動時のバージョンチェック
   Future<void> _checkVersionOnStartup() async {
     try {
-      await _versionService.checkVersionOnStartup();
+      await _versionService.checkAndNotifyVersionUpdate();
     } catch (e) {
       print('バージョンチェックエラー: $e');
     }

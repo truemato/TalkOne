@@ -95,14 +95,33 @@ class NotificationService {
       return Stream.value([]);
     }
 
-    return _firestore
-        .collection('notifications')
-        .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) => 
-          snapshot.docs.map((doc) => AppNotification.fromFirestore(doc)).toList()
-        );
+    try {
+      return _firestore
+          .collection('notifications')
+          .where('userId', isEqualTo: userId)
+          .orderBy('createdAt', descending: true)
+          .limit(50) // パフォーマンス向上のため制限
+          .snapshots()
+          .map((snapshot) => 
+            snapshot.docs.map((doc) => AppNotification.fromFirestore(doc)).toList()
+          );
+    } catch (e) {
+      print('通知ストリーム取得エラー: $e');
+      // フォールバック: orderByなしでクエリ
+      return _firestore
+          .collection('notifications')
+          .where('userId', isEqualTo: userId)
+          .limit(50)
+          .snapshots()
+          .map((snapshot) {
+            final notifications = snapshot.docs
+                .map((doc) => AppNotification.fromFirestore(doc))
+                .toList();
+            // クライアント側でソート
+            notifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            return notifications;
+          });
+    }
   }
 
   /// 未読通知数を取得
