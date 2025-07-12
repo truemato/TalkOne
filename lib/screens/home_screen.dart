@@ -568,7 +568,7 @@ class _HomeScreenState extends State<HomeScreen>
         ),
         const SizedBox(height: 8),
         Text(
-          'Ver 0.9.1',
+          'Ver 1.0.1',
           style: GoogleFonts.notoSans(
             color: const Color(0xFF4E3B7A).withOpacity(0.7),
             fontSize: 16,
