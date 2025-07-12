@@ -929,26 +929,6 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
       ),
       body: Column(
         children: [
-          // 状態表示
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(8),
-            color: _isInitialized
-                ? Colors.green.withOpacity(0.2)
-                : Colors.red.withOpacity(0.2),
-            child: Text(
-              _isInitialized
-                  ? 'Firebase AI Gemini 2.5 Flash (Vertex AI) 接続済み'
-                  : 'Firebase AI 接続エラー - 設定確認',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-
           // AIアイコンとタイマー（talk_to_ai_screen.dartから統合）
           Padding(
             padding: const EdgeInsets.all(16),

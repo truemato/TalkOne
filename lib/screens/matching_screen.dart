@@ -75,9 +75,15 @@ class _RateCounterState extends State<RateCounter>
     List<Color> gradientColors;
     List<Color> shadowColors;
     
+    // 4桁の場合はフォントサイズを小さくする
+    if (rating >= 1000) {
+      fontSize = 38; // 4桁用の小さいサイズ
+    } else {
+      fontSize = 46; // 3桁以下用の通常サイズ
+    }
+    
     if (rating >= 4000) {
       // 金色 (4000以上)
-      fontSize = 52; // 46 + 3 + 3
       gradientColors = [
         const Color(0xFFFFD700), // ゴールド
         const Color(0xFFFFA500), // オレンジゴールド
@@ -90,7 +96,6 @@ class _RateCounterState extends State<RateCounter>
       ];
     } else if (rating >= 3000) {
       // 銀色 (3000以上)
-      fontSize = 49; // 46 + 1 + 2
       gradientColors = [
         const Color(0xFFC0C0C0), // シルバー
         const Color(0xFFE5E5E5), // ライトシルバー
@@ -103,7 +108,6 @@ class _RateCounterState extends State<RateCounter>
       ];
     } else if (rating >= 2000) {
       // 銅色 (2000以上)
-      fontSize = 47; // 46 + 1
       gradientColors = [
         const Color(0xFFB87333), // ブロンズ
         const Color(0xFFCD7F32), // ライトブロンズ
@@ -116,7 +120,6 @@ class _RateCounterState extends State<RateCounter>
       ];
     } else {
       // 通常 (2000未満)
-      fontSize = 46;
       return Text(
         '$rating',
         style: FontSizeUtils.notoSans(

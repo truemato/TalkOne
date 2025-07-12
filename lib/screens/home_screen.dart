@@ -613,7 +613,7 @@ class _HomeScreenState extends State<HomeScreen>
                     _selectedComment,
                     style: const TextStyle(
                       color: Colors.black,
-                      fontSize: 14,
+                      fontSize: 8,
                       fontFamily: 'Cascadia Mono',
                       fontWeight: FontWeight.w700,
                     ),
