@@ -7,6 +7,7 @@ import '../services/rating_service.dart';
 import '../services/evaluation_service.dart';
 import '../services/user_profile_service.dart';
 import '../services/call_history_service.dart';
+import '../services/localization_service.dart';
 import 'rematch_or_home_screen.dart';
 import 'partner_profile_screen.dart';
 import '../utils/theme_utils.dart';
@@ -39,6 +40,7 @@ class _EvaluationScreenState extends State<EvaluationScreen>
   final EvaluationService _evaluationService = EvaluationService();
   final UserProfileService _userProfileService = UserProfileService();
   final CallHistoryService _callHistoryService = CallHistoryService();
+  final LocalizationService _localizationService = LocalizationService();
 
   // 相手のアイコンとテーマ
   String? _selectedIconPath = 'aseets/icons/Woman 1.svg';
@@ -93,7 +95,7 @@ class _EvaluationScreenState extends State<EvaluationScreen>
       // AI通話の場合は特別処理
       if (widget.isDummyMatch || widget.partnerId.contains('ai_')) {
         // AI通話: 相手（AI）には評価を送らず、自分がAIから星3評価を受ける
-        print('AI（ずんだもん）から星3の評価を受けました');
+        print('AI received 3-star rating from Zundamon');
         final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
         await _ratingService.updateRating(3, userId); // 自分のレーティングを更新
       } else {
@@ -111,7 +113,7 @@ class _EvaluationScreenState extends State<EvaluationScreen>
       // evaluationコレクションからの評価データを履歴に同期
       await _callHistoryService.syncRatingsFromEvaluations();
 
-      print('評価送信完了: $rating星');
+      print('Rating submission completed: $rating stars');
 
       // 1秒後にリマッチ画面に遷移
       await Future.delayed(const Duration(milliseconds: 1000));
@@ -125,12 +127,12 @@ class _EvaluationScreenState extends State<EvaluationScreen>
         );
       }
     } catch (e) {
-      print('評価送信エラー: $e');
+      print('Rating submission error: $e');
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('評価の送信に失敗しました: $e'),
+            content: Text(_localizationService.translate('evaluation_submission_failed')),
             backgroundColor: Colors.red,
           ),
         );
@@ -164,7 +166,7 @@ class _EvaluationScreenState extends State<EvaluationScreen>
           const SizedBox(height: 12),
           if (!_isSubmitted)
             Text(
-              'タップして相手のプロフィールを表示',
+              _localizationService.translate('evaluation_tap_to_view_profile'),
               style: FontSizeUtils.catamaran(
                 fontSize: 14,
                 color: Colors.white.withOpacity(0.8),
@@ -183,7 +185,7 @@ class _EvaluationScreenState extends State<EvaluationScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              '評価を送信中...',
+              _localizationService.translate('evaluation_submitting'),
               style: FontSizeUtils.catamaran(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -268,7 +270,7 @@ class _EvaluationScreenState extends State<EvaluationScreen>
 
   Widget _buildRatingText() {
     return Text(
-      '今の通話を評価してください',
+      _localizationService.translate('evaluation_rate_conversation'),
       style: FontSizeUtils.catamaran(
         fontSize: 28,
         fontWeight: FontWeight.bold,
@@ -322,11 +324,11 @@ class _EvaluationScreenState extends State<EvaluationScreen>
 
     final descriptions = [
       '',
-      'とても悪い',
-      '悪い',
-      '普通',
-      '良い',
-      'とても良い',
+      _localizationService.translate('evaluation_very_bad'),
+      _localizationService.translate('evaluation_bad'),
+      _localizationService.translate('evaluation_average'),
+      _localizationService.translate('evaluation_good'),
+      _localizationService.translate('evaluation_very_good'),
     ];
 
     return Container(

@@ -109,7 +109,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'レートの条件を満たしてください。',
+                _localizationService.translate('settings_rate_requirement_not_met'),
                 style: FontSizeUtils.notoSans(fontSize: 16, color: Colors.white),
               ),
               backgroundColor: Colors.red.shade600,
@@ -128,7 +128,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'レートの条件を満たしてください。',
+                _localizationService.translate('settings_rate_requirement_not_met'),
                 style: FontSizeUtils.notoSans(fontSize: 16, color: Colors.white),
               ),
               backgroundColor: Colors.red.shade600,
@@ -155,7 +155,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'エージェントを${characterName}に変更しました。',
+            _localizationService.translate('settings_agent_changed').replaceAll('{characterName}', characterName),
             style: FontSizeUtils.notoSans(fontSize: 16, color: Colors.white),
           ),
           backgroundColor: Colors.green.shade600,
@@ -171,55 +171,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Map<String, dynamic> get _achievementInfo {
     if (_currentRating >= 5000) {
       return {
-        'level': '殿堂入り',
+        'level': _localizationService.translate('settings_achievement_hall_of_fame'),
         'color': const Color(0xFFFFD700), // ゴールド
-        'description': 'すべての機能が解禁されています',
-        'unlocked': 'すべての機能解禁',
+        'description': _localizationService.translate('settings_all_features_unlocked'),
+        'unlocked': _localizationService.translate('settings_all_features_unlocked'),
         'progress': 1.0,
         'nextTarget': null,
       };
     } else if (_currentRating >= 4000) {
       return {
-        'level': '金メダル',
+        'level': _localizationService.translate('settings_achievement_gold'),
         'color': const Color(0xFFFFD700), // ゴールド
-        'description': 'VOICEVOX機能が解禁されています',
-        'unlocked': 'VOICEVOX解禁',
+        'description': _localizationService.translate('settings_voicevox_unlocked'),
+        'unlocked': _localizationService.translate('settings_voicevox_unlocked'),
         'progress': (_currentRating - 4000) / 1000.0,
         'nextTarget': 5000,
       };
     } else if (_currentRating >= 3000) {
       return {
-        'level': '銀メダル',
+        'level': _localizationService.translate('settings_achievement_silver'),
         'color': const Color(0xFFC0C0C0), // シルバー
-        'description': 'VOICEVOX機能が解禁されています',
-        'unlocked': 'VOICEVOX解禁',
+        'description': _localizationService.translate('settings_voicevox_unlocked'),
+        'unlocked': _localizationService.translate('settings_voicevox_unlocked'),
         'progress': (_currentRating - 3000) / 1000.0,
         'nextTarget': 4000,
       };
     } else if (_currentRating >= 2000) {
       return {
-        'level': '銅メダル',
+        'level': _localizationService.translate('settings_achievement_bronze'),
         'color': const Color(0xFFCD7F32), // 銅色
-        'description': 'VOICEVOX機能が解禁されています',
-        'unlocked': 'VOICEVOX解禁',
+        'description': _localizationService.translate('settings_voicevox_unlocked'),
+        'unlocked': _localizationService.translate('settings_voicevox_unlocked'),
         'progress': (_currentRating - 2000) / 1000.0,
         'nextTarget': 3000,
       };
     } else if (_currentRating >= 1500) {
       return {
-        'level': 'ブロンズ',
+        'level': _localizationService.translate('settings_achievement_bronze'),
         'color': const Color(0xFFCD7F32), // 銅色
-        'description': 'VOICEVOX機能が解禁されています',
-        'unlocked': 'VOICEVOX解禁',
+        'description': _localizationService.translate('settings_voicevox_unlocked'),
+        'unlocked': _localizationService.translate('settings_voicevox_unlocked'),
         'progress': (_currentRating - 1500) / 500.0,
         'nextTarget': 2000,
       };
     } else {
       return {
-        'level': 'ビギナー',
+        'level': _localizationService.translate('settings_achievement_beginner'),
         'color': Colors.grey,
-        'description': 'レーティング1500以上でVOICEVOX解禁',
-        'unlocked': '基本機能のみ',
+        'description': _localizationService.translate('settings_voicevox_requirement'),
+        'unlocked': _localizationService.translate('settings_basic_features_only'),
         'progress': _currentRating / 1500.0,
         'nextTarget': 1500,
       };
@@ -370,7 +370,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      '実績',
+                      _localizationService.translate('settings_achievement_section'),
                       style: FontSizeUtils.notoSans(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -386,7 +386,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '現在のレベル: ${achievement['level']}',
+                    _localizationService.translate('settings_current_level').replaceAll('{level}', achievement['level']),
                     style: FontSizeUtils.notoSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -394,7 +394,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   Text(
-                    'レーティング: $_currentRating',
+                    _localizationService.translate('settings_current_rating').replaceAll('{rating}', '$_currentRating'),
                     style: FontSizeUtils.notoSans(
                       fontSize: 14,
                       color: Colors.white70,
@@ -410,7 +410,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   if (achievement['nextTarget'] != null) ...[
                     Text(
-                      '次の目標: ${achievement['nextTarget']}',
+                      _localizationService.translate('settings_next_target').replaceAll('{target}', '${achievement['nextTarget']}'),
                       style: FontSizeUtils.notoSans(
                         fontSize: 12,
                         color: Colors.white60,
@@ -430,7 +430,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   if (achievement['nextTarget'] != null) ...[
                     const SizedBox(height: 4),
                     Text(
-                      '残り${achievement['nextTarget'] - _currentRating}ポイント',
+                      _localizationService.translate('settings_points_remaining').replaceAll('{points}', '${achievement['nextTarget'] - _currentRating}'),
                       style: FontSizeUtils.notoSans(
                         fontSize: 11,
                         color: Colors.white.withOpacity(0.5),
@@ -452,7 +452,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '解禁機能: ${achievement['unlocked']}',
+                      _localizationService.translate('settings_unlocked_features').replaceAll('{features}', achievement['unlocked']),
                       style: FontSizeUtils.notoSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -475,7 +475,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 16),
                 ExpansionTile(
                   title: Text(
-                    '実績レベル一覧',
+                    _localizationService.translate('settings_achievement_list'),
                     style: FontSizeUtils.notoSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -489,11 +489,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       padding: const EdgeInsets.all(12),
                       child: Column(
                         children: [
-                          _buildLevelRow('1500', 'ブロンズ', 'VOICEVOX解禁', Colors.grey),
-                          _buildLevelRow('2000', '銅メダル', 'VOICEVOX解禁', const Color(0xFFCD7F32)),
-                          _buildLevelRow('3000', '銀メダル', 'VOICEVOX解禁', const Color(0xFFC0C0C0)),
-                          _buildLevelRow('4000', '金メダル', 'VOICEVOX解禁', const Color(0xFFFFD700)),
-                          _buildLevelRow('5000', '殿堂入り', 'すべての機能解禁', const Color(0xFFFFD700)),
+                          _buildLevelRow('1500', _localizationService.translate('achievement_bronze'), _localizationService.translate('achievement_voicevox_unlocked'), Colors.grey),
+                          _buildLevelRow('2000', _localizationService.translate('achievement_copper'), _localizationService.translate('achievement_voicevox_unlocked'), const Color(0xFFCD7F32)),
+                          _buildLevelRow('3000', _localizationService.translate('achievement_silver'), _localizationService.translate('achievement_voicevox_unlocked'), const Color(0xFFC0C0C0)),
+                          _buildLevelRow('4000', _localizationService.translate('achievement_gold'), _localizationService.translate('achievement_voicevox_unlocked'), const Color(0xFFFFD700)),
+                          _buildLevelRow('5000', _localizationService.translate('achievement_hall_of_fame'), _localizationService.translate('achievement_all_features_unlocked'), const Color(0xFFFFD700)),
                         ],
                       ),
                     ),
@@ -668,7 +668,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // VoiceVox人格選択
               ListTile(
                 leading: const Icon(Icons.record_voice_over, color: Colors.white),
-                title: const Text('音声キャラクター', style: TextStyle(color: Colors.white)),
+                title: Text(_localizationService.translate('settings_voice_character'), style: const TextStyle(color: Colors.white)),
                 subtitle: Row(
                   children: [
                     // 1番目: 四国めたん（赤）- レート1500以上
@@ -813,7 +813,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // アカウント削除
               ListTile(
                 leading: const Icon(Icons.delete_forever, color: Colors.red),
-                title: const Text('アカウント削除', style: TextStyle(color: Colors.red)),
+                title: Text(_localizationService.translate('settings_delete_account'), style: const TextStyle(color: Colors.red)),
                 trailing: const Icon(Icons.arrow_forward_ios, color: Colors.red, size: 16),
                 onTap: _isDeleting ? null : _showDeleteAccountDialog,
               ),
@@ -832,7 +832,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           borderRadius: BorderRadius.circular(20),
         ),
         title: Text(
-          'アカウント削除',
+          _localizationService.translate('delete_account_title'),
           style: FontSizeUtils.notoSans(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -840,14 +840,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         content: Text(
-          'この画面からアカウント削除を押すと、ログアウトされるだけでなく、これまでのレートとAI VOICEVOXの人格と会話が削除されます。本当によろしいですか？',
+          _localizationService.translate('settings_delete_account_confirm'),
           style: FontSizeUtils.notoSans(fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
-              'キャンセル',
+              _localizationService.translate('cancel'),
               style: FontSizeUtils.notoSans(
                 fontSize: 16,
                 color: Colors.grey[600],
@@ -857,7 +857,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(
-              '削除する',
+              _localizationService.translate('settings_delete_account_button'),
               style: FontSizeUtils.notoSans(
                 fontSize: 16,
                 color: Colors.red,

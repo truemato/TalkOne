@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/font_size_utils.dart';
+import '../services/localization_service.dart';
 import 'home_screen.dart';
 
 class EulaScreen extends StatefulWidget {
@@ -14,6 +15,7 @@ class _EulaScreenState extends State<EulaScreen> {
   bool _isAgreed = false;
   final ScrollController _scrollController = ScrollController();
   bool _hasScrolledToEnd = false;
+  final LocalizationService _localizationService = LocalizationService();
 
   @override
   void initState() {
@@ -60,7 +62,7 @@ class _EulaScreenState extends State<EulaScreen> {
       backgroundColor: const Color(0xFF5A64ED),
       appBar: AppBar(
         title: Text(
-          'エンドユーザーライセンス契約',
+          _localizationService.translate('eula_title'),
           style: FontSizeUtils.notoSans(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -99,7 +101,7 @@ class _EulaScreenState extends State<EulaScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'TalkOne エンドユーザーライセンス契約',
+                            _localizationService.translate('eula_content_title'),
                             style: FontSizeUtils.notoSans(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -135,7 +137,7 @@ class _EulaScreenState extends State<EulaScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          '利用規約を最後まで読んでください',
+                          _localizationService.translate('eula_scroll_instruction'),
                           style: FontSizeUtils.notoSans(
                             fontSize: 14,
                             color: Colors.orange[700],
@@ -155,7 +157,7 @@ class _EulaScreenState extends State<EulaScreen> {
                   ),
                   child: CheckboxListTile(
                     title: Text(
-                      '上記の利用規約に同意します',
+                      _localizationService.translate('eula_agreement_checkbox'),
                       style: FontSizeUtils.notoSans(
                         fontSize: 16,
                         color: Colors.white,
@@ -193,7 +195,7 @@ class _EulaScreenState extends State<EulaScreen> {
                         ),
                       ),
                       child: Text(
-                        '同意しない',
+                        _localizationService.translate('eula_disagree_button'),
                         style: FontSizeUtils.notoSans(
                           fontSize: 16,
                           color: Colors.white,
@@ -216,7 +218,7 @@ class _EulaScreenState extends State<EulaScreen> {
                         ),
                       ),
                       child: Text(
-                        '同意してアプリを開始',
+                        _localizationService.translate('eula_agree_button'),
                         style: FontSizeUtils.notoSans(
                           fontSize: 16,
                           color: Colors.white,

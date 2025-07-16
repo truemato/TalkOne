@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:io' show Platform;
 import '../services/user_profile_service.dart';
+import '../services/localization_service.dart';
 
 // クレジット表記画面
 class CreditScreen extends StatefulWidget {
@@ -13,6 +14,7 @@ class CreditScreen extends StatefulWidget {
 
 class _CreditScreenState extends State<CreditScreen> {
   final UserProfileService _userProfileService = UserProfileService();
+  final LocalizationService _localizationService = LocalizationService();
   int _selectedThemeIndex = 0;
 
   // テーマカラー配列
@@ -79,10 +81,10 @@ class _CreditScreenState extends State<CreditScreen> {
               icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () => Navigator.pop(context),
             ),
-            const Expanded(
+            Expanded(
               child: Center(
                 child: Text(
-                  'クレジット表記',
+                  _localizationService.translate('credit_title'),
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -114,8 +116,8 @@ class _CreditScreenState extends State<CreditScreen> {
                   ),
                   const SizedBox(height: 16),
                   // 謝辞タイトル（左寄せ）
-                  const Text(
-                    '謝辞',
+                  Text(
+                    _localizationService.translate('credit_acknowledgments'),
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 22,

@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import 'dart:io' show Platform;
 import '../services/user_profile_service.dart';
 import '../services/notification_service.dart';
+import '../services/localization_service.dart';
+import '../services/version_notification_service.dart';
 import '../utils/theme_utils.dart';
 import '../utils/font_size_utils.dart';
 
@@ -19,6 +21,8 @@ class NotificationScreen extends StatefulWidget {
 class _NotificationScreenState extends State<NotificationScreen> {
   final UserProfileService _userProfileService = UserProfileService();
   final NotificationService _notificationService = NotificationService();
+  final LocalizationService _localizationService = LocalizationService();
+  final VersionNotificationService _versionNotificationService = VersionNotificationService();
   int _selectedThemeIndex = 0;
   bool _isLoading = true;
 
@@ -80,9 +84,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
     if (diff.inDays == 0) {
       return DateFormat('HH:mm').format(dateTime);
     } else if (diff.inDays == 1) {
-      return '昨日 ${DateFormat('HH:mm').format(dateTime)}';
+      return '${_localizationService.translate('history_yesterday')} ${DateFormat('HH:mm').format(dateTime)}';
     } else if (diff.inDays < 7) {
-      return '${diff.inDays}日前';
+      return '${diff.inDays}${_localizationService.translate('history_days_ago')}';
     } else {
       return DateFormat('M/d').format(dateTime);
     }
@@ -151,7 +155,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: Text(
-            '閉じる',
+            _localizationService.translate('common_close'),
             style: FontSizeUtils.notoSans(
               fontSize: 16,
               color: _currentThemeColor,
@@ -170,7 +174,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '通知を削除しました',
+            _localizationService.translate('notification_delete_success'),
             style: FontSizeUtils.notoSans(fontSize: 14),
           ),
           backgroundColor: Colors.green,
@@ -187,7 +191,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '全ての通知を既読にしました',
+            _localizationService.translate('notification_mark_all_read_success'),
             style: FontSizeUtils.notoSans(fontSize: 14),
           ),
           backgroundColor: Colors.green,
@@ -214,7 +218,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         backgroundColor: _currentThemeColor,
         appBar: AppBar(
           title: Text(
-            '通知',
+            _localizationService.translate('notification_title'),
             style: FontSizeUtils.notoSans(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -242,7 +246,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   return IconButton(
                     icon: const Icon(Icons.mark_email_read, color: Colors.white),
                     onPressed: _markAllAsRead,
-                    tooltip: '全て既読にする',
+                    tooltip: _localizationService.translate('notification_mark_all_read'),
                   );
                 }
                 return const SizedBox.shrink();
@@ -285,10 +289,46 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'エラーが発生しました',
+                  _localizationService.translate('notification_error_occurred'),
                   style: FontSizeUtils.notoSans(
                     fontSize: 18,
                     color: Colors.white.withOpacity(0.8),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${_localizationService.translate('notification_error_prefix')}${snapshot.error}',
+                  style: FontSizeUtils.notoSans(
+                    fontSize: 12,
+                    color: Colors.white.withOpacity(0.6),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    final success = await _versionNotificationService.createManualVersionNotification();
+                    if (success && mounted) {
+                      setState(() {});
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            _localizationService.translate('notification_version_create_success'),
+                            style: FontSizeUtils.notoSans(fontSize: 14),
+                          ),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.system_update),
+                  label: Text(
+                    _localizationService.translate('notification_version_create'),
+                    style: FontSizeUtils.notoSans(fontSize: 14),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
                   ),
                 ),
               ],
@@ -310,7 +350,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  '通知はありません',
+                  _localizationService.translate('notification_empty'),
                   style: FontSizeUtils.notoSans(
                     fontSize: 18,
                     color: Colors.white.withOpacity(0.8),
@@ -318,7 +358,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '新しい通知があると、ここに表示されます',
+                  _localizationService.translate('notification_empty_description'),
                   style: FontSizeUtils.notoSans(
                     fontSize: 14,
                     color: Colors.white.withOpacity(0.6),
@@ -351,28 +391,28 @@ class _NotificationScreenState extends State<NotificationScreen> {
           context: context,
           builder: (context) => AlertDialog(
             title: Text(
-              '通知を削除',
+              _localizationService.translate('notification_delete_title'),
               style: FontSizeUtils.notoSans(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
             content: Text(
-              'この通知を削除しますか？',
+              _localizationService.translate('notification_delete_message'),
               style: FontSizeUtils.notoSans(fontSize: 16),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
                 child: Text(
-                  'キャンセル',
+                  _localizationService.translate('cancel'),
                   style: FontSizeUtils.notoSans(fontSize: 16),
                 ),
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
                 child: Text(
-                  '削除',
+                  _localizationService.translate('notification_delete_confirm'),
                   style: FontSizeUtils.notoSans(
                     fontSize: 16,
                     color: Colors.red,
@@ -401,7 +441,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              '削除',
+              _localizationService.translate('delete'),
               style: FontSizeUtils.notoSans(
                 fontSize: 12,
                 color: Colors.white,

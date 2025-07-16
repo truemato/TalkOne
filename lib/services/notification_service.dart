@@ -91,37 +91,52 @@ class NotificationService {
   /// 通知一覧をストリーム取得
   Stream<List<AppNotification>> getNotificationsStream() {
     final userId = _auth.currentUser?.uid;
+    print('通知取得開始 - userId: $userId');
     if (userId == null) {
+      print('通知取得エラー: ユーザーIDがnull');
       return Stream.value([]);
     }
 
-    try {
-      return _firestore
-          .collection('notifications')
-          .where('userId', isEqualTo: userId)
-          .orderBy('createdAt', descending: true)
-          .limit(50) // パフォーマンス向上のため制限
-          .snapshots()
-          .map((snapshot) => 
-            snapshot.docs.map((doc) => AppNotification.fromFirestore(doc)).toList()
-          );
-    } catch (e) {
-      print('通知ストリーム取得エラー: $e');
-      // フォールバック: orderByなしでクエリ
-      return _firestore
-          .collection('notifications')
-          .where('userId', isEqualTo: userId)
-          .limit(50)
-          .snapshots()
-          .map((snapshot) {
+    // インデックスなしの単純なクエリから開始
+    return _firestore
+        .collection('notifications')
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .handleError((error) {
+          print('Firestoreストリームエラー: $error');
+          print('エラー詳細: ${error.toString()}');
+          return Stream.value(<AppNotification>[]);
+        })
+        .map((snapshot) {
+          print('通知ドキュメント数: ${snapshot.docs.length}');
+          try {
             final notifications = snapshot.docs
-                .map((doc) => AppNotification.fromFirestore(doc))
+                .map((doc) {
+                  try {
+                    return AppNotification.fromFirestore(doc);
+                  } catch (e) {
+                    print('通知パースエラー (doc: ${doc.id}): $e');
+                    return null;
+                  }
+                })
+                .where((n) => n != null)
+                .cast<AppNotification>()
                 .toList();
+            
             // クライアント側でソート
             notifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            
+            // 最新50件のみ返す
+            if (notifications.length > 50) {
+              return notifications.take(50).toList();
+            }
+            
             return notifications;
-          });
-    }
+          } catch (e) {
+            print('通知処理エラー: $e');
+            return <AppNotification>[];
+          }
+        });
   }
 
   /// 未読通知数を取得
@@ -181,6 +196,20 @@ class NotificationService {
   /// 通知を削除
   Future<bool> deleteNotification(String notificationId) async {
     try {
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) return false;
+
+      // 削除された通知IDを記録
+      await _firestore
+          .collection('deletedNotifications')
+          .doc('${userId}_$notificationId')
+          .set({
+        'userId': userId,
+        'notificationId': notificationId,
+        'deletedAt': FieldValue.serverTimestamp(),
+      });
+
+      // 通知を削除
       await _firestore
           .collection('notifications')
           .doc(notificationId)
@@ -266,4 +295,65 @@ class NotificationService {
       return false;
     }
   }
+
+  /// バージョン通知を作成（削除されたら二度と表示されない）
+  Future<bool> createVersionNotification({
+    required String version,
+    required String title,
+    required String message,
+  }) async {
+    try {
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) return false;
+
+      // 固定のnotificationIdを使用してバージョン通知を特定
+      final notificationId = 'version_${version}_$userId';
+      
+      // 削除済みかチェック
+      final deletedDoc = await _firestore
+          .collection('deletedNotifications')
+          .doc('${userId}_$notificationId')
+          .get();
+      
+      if (deletedDoc.exists) {
+        print('バージョン通知 $version は既に削除済みです');
+        return false;
+      }
+
+      // 既存の通知があるかチェック
+      final existingDoc = await _firestore
+          .collection('notifications')
+          .doc(notificationId)
+          .get();
+      
+      if (existingDoc.exists) {
+        print('バージョン通知 $version は既に存在します');
+        return false;
+      }
+
+      // バージョン通知を作成
+      await _firestore
+          .collection('notifications')
+          .doc(notificationId)
+          .set({
+        'userId': userId,
+        'type': NotificationType.general.toString().split('.').last,
+        'title': title,
+        'message': message,
+        'createdAt': FieldValue.serverTimestamp(),
+        'isRead': false,
+        'metadata': {
+          'version': version,
+          'isVersionNotification': true,
+        },
+      });
+
+      print('バージョン通知 $version を作成しました');
+      return true;
+    } catch (e) {
+      print('バージョン通知作成エラー: $e');
+      return false;
+    }
+  }
+
 }

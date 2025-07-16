@@ -80,11 +80,11 @@ class _HomeScreenState extends State<HomeScreen>
   // HomeScreenのStateにテーマインデックスを追加
   int _selectedThemeIndex = 0;
 
-  // コメント候補リストを追加
-  final List<String> _randomComments = [
-    'こんにちは〜\n今日もがんばってるね！',
-    'おつかれさま\nひと息つこ〜',
-    '今どんなアイディアが\n浮かんでる?',
+  // コメントキーリスト（ローカライゼーション対応）
+  final List<String> _randomCommentKeys = [
+    'home_greeting_1',
+    'home_greeting_2', 
+    'home_greeting_3',
   ];
   late String _selectedComment;
 
@@ -139,7 +139,8 @@ class _HomeScreenState extends State<HomeScreen>
     ));
 
     _rateController.forward();
-    _selectedComment = (_randomComments..shuffle()).first;
+    final shuffledKeys = List<String>.from(_randomCommentKeys)..shuffle();
+    _selectedComment = shuffledKeys.first;
   }
 
   Future<void> _loadUserRating() async {
@@ -610,7 +611,7 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
                 child: Center(
                   child: Text(
-                    _selectedComment,
+                    _localizationService.translate(_selectedComment),
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 8,
@@ -838,7 +839,7 @@ class _HomeScreenState extends State<HomeScreen>
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('アイコンを選択'),
+          title: Text(_localizationService.translate('home_icon_select_title')),
           content: SizedBox(
             width: 300,
             height: 200,
@@ -953,27 +954,27 @@ class _HomeScreenState extends State<HomeScreen>
 
   String _getWarningMessage() {
     if (_userRating <= 550) {
-      return 'レート550以下のため、AI救済モード（レベル3）が発動中です';
+      return _localizationService.translate('home_ai_rescue_warning_550');
     } else if (_userRating <= 580) {
-      return 'AI救済モード中（レベル3）継続中です';
+      return _localizationService.translate('home_ai_rescue_ongoing_580');
     } else if (_userRating <= 700) {
-      return 'レート700以下のため、AI救済モード（レベル2）が発動中です';
+      return _localizationService.translate('home_ai_rescue_warning_700');
     } else if (_userRating <= 730) {
-      return 'AI救済モード中（レベル2）継続中です';
+      return _localizationService.translate('home_ai_rescue_ongoing_730');
     } else if (_userRating <= 850) {
-      return 'レート850以下のため、AI救済モード（レベル1）が発動中です';
+      return _localizationService.translate('home_ai_rescue_warning_850');
     } else {
-      return 'AI救済モード中（レベル1）継続中です';
+      return _localizationService.translate('home_ai_rescue_ongoing_880');
     }
   }
 
   String _getTargetMessage() {
     if (_userRating <= 580) {
-      return 'レート580を超えると次の段階に進みます';
+      return _localizationService.translate('home_target_580');
     } else if (_userRating <= 730) {
-      return 'レート730を超えると次の段階に進みます';
+      return _localizationService.translate('home_target_730');
     } else {
-      return 'レート880を超えると人間との通話に戻ります';
+      return _localizationService.translate('home_target_880');
     }
   }
 

@@ -1,0 +1,16 @@
+Improve notification system with debugging and dummy data support
+
+- Add createDummyNotifications() method to generate test data  
+- Enhance error handling with detailed error messages
+- Add dummy data creation button in notification screen
+- Implement robust stream error handling with fallback
+- Add comprehensive logging for debugging Firestore queries
+- Remove complex index requirements, use client-side sorting
+- Display 5 different types of dummy notifications for testing
+
+This helps App Store reviewers test the notification system even if
+there are no real notifications available.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>

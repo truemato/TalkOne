@@ -6,6 +6,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/user_profile_service.dart';
 import '../services/auth_service.dart';
+import '../services/localization_service.dart';
 import '../utils/validation_util.dart';
 import 'login_screen.dart';
 
@@ -20,6 +21,7 @@ class ProfileSettingScreen extends StatefulWidget {
 class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
   final UserProfileService _userProfileService = UserProfileService();
   final AuthService _authService = AuthService();
+  final LocalizationService _localizationService = LocalizationService();
   final TextEditingController _nicknameController = TextEditingController();
   final TextEditingController _commentController = TextEditingController();
   final TextEditingController _aiMemoController = TextEditingController();
@@ -29,7 +31,11 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
   int _selectedThemeIndex = 0;
   bool _isLoading = false;
   
-  final List<String> _genders = ['男性', '女性', '回答しない'];
+  List<String> get _genders => [
+    _localizationService.translate('profile_gender_male'),
+    _localizationService.translate('profile_gender_female'),
+    _localizationService.translate('profile_gender_not_specified'),
+  ];
 
   // テーマカラー配列
   final List<Color> _themeColors = [
@@ -133,8 +139,8 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('保存しました'),
+          SnackBar(
+            content: Text(_localizationService.translate('profile_save_success')),
             backgroundColor: Colors.green,
           ),
         );
@@ -143,8 +149,8 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('保存に失敗しました。しばらく経ってから再度お試しください。'),
+          SnackBar(
+            content: Text(_localizationService.translate('profile_save_failed')),
             backgroundColor: Colors.red,
           ),
         );
@@ -186,11 +192,11 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
               icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () => Navigator.pop(context),
             ),
-            const Expanded(
+            Expanded(
               child: Center(
                 child: Text(
-                  'プロフィール設定',
-                  style: TextStyle(
+                  _localizationService.translate('profile_title'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -212,8 +218,8 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                   _buildAccountSection(),
                   const SizedBox(height: 32),
                   
-                  const Text(
-                    'あなたのプロフィール',
+                  Text(
+                    _localizationService.translate('profile_title'),
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 22,
@@ -224,34 +230,36 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                   // ニックネーム
                   _ProfileInputField(
                     controller: _nicknameController,
-                    hintText: 'ニックネーム',
+                    hintText: _localizationService.translate('profile_nickname'),
                     inputType: TextInputType.text,
                     inputFormatters: ValidationUtil.getNicknameFormatters(),
                   ),
                   const SizedBox(height: 20),
                   // 性別（選択式の丸みを帯びた四角）
                   _ProfileSelectBox(
-                    hintText: '性別',
+                    hintText: _localizationService.translate('profile_gender'),
                     child: _GenderDropdown(
                       selectedGender: _selectedGender,
                       genders: _genders,
                       onChanged: (value) => setState(() => _selectedGender = value),
+                      localizationService: _localizationService,
                     ),
                   ),
                   const SizedBox(height: 20),
                   // 誕生日
                   _ProfileSelectBox(
-                    hintText: '誕生日(他の人には公開されません)',
+                    hintText: _localizationService.translate('profile_birthday'),
                     child: _BirthdayField(
                       selectedDate: _selectedDate,
                       onDateSelected: (date) => setState(() => _selectedDate = date),
+                      localizationService: _localizationService,
                     ),
                   ),
                   const SizedBox(height: 20),
                   // 自己紹介（マッチング用の一言コメント・20文字制限）
                   _ProfileInputField(
                     controller: _commentController,
-                    hintText: 'みんなに一言（20文字以内）',
+                    hintText: _localizationService.translate('profile_comment'),
                     inputType: TextInputType.text,
                     maxLines: 1,
                     maxLength: 20,
@@ -261,7 +269,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                   // AIに伝えたいこと（400文字制限）
                   _ProfileInputField(
                     controller: _aiMemoController,
-                    hintText: 'AIに伝えたいこと',
+                    hintText: _localizationService.translate('profile_ai_memory'),
                     inputType: TextInputType.multiline,
                     maxLines: 4,
                     maxLength: 400,
@@ -287,8 +295,8 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                               height: 20,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Text(
-                              '保存',
+                          : Text(
+                              _localizationService.translate('save'),
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -312,8 +320,8 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'アカウント情報',
+        Text(
+          _localizationService.translate('profile_account_info'),
           style: TextStyle(
             color: Colors.white,
             fontSize: 22,
@@ -343,7 +351,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Appleアカウント',
+                            _localizationService.translate('profile_apple_account'),
                             style: GoogleFonts.notoSans(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -352,7 +360,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            user?.email ?? 'Apple IDでサインイン中',
+                            user?.email ?? _localizationService.translate('profile_sign_in_with_apple'),
                             style: GoogleFonts.notoSans(
                               fontSize: 14,
                               color: Colors.grey[600],
@@ -365,7 +373,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'AIとの会話履歴が機種変更時も引き継がれます',
+                  _localizationService.translate('profile_data_transfer_message'),
                   style: GoogleFonts.notoSans(
                     fontSize: 12,
                     color: Colors.black,
@@ -384,7 +392,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Googleアカウント',
+                            _localizationService.translate('profile_google_account'),
                             style: GoogleFonts.notoSans(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -425,7 +433,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'ゲストアカウント',
+                            _localizationService.translate('profile_guest_account'),
                             style: GoogleFonts.notoSans(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -434,7 +442,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '機種変更時にデータが失われる可能性があります',
+                            _localizationService.translate('profile_data_loss_warning'),
                             style: GoogleFonts.notoSans(
                               fontSize: 12,
                               color: Colors.orange[700],
@@ -454,7 +462,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
               ] else ...[
                 // サインインしていない（通常は発生しない）
                 Text(
-                  'サインインが必要です',
+                  _localizationService.translate('profile_sign_in_required'),
                   style: GoogleFonts.notoSans(
                     fontSize: 16,
                     color: Colors.red,
@@ -484,7 +492,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
         onPressed: _isLoading ? null : _handleUpgradeToGoogle,
         icon: const Icon(Icons.upgrade, size: 20),
         label: Text(
-          'Googleアカウントにアップグレード',
+          _localizationService.translate('profile_upgrade_to_google'),
           style: GoogleFonts.notoSans(
             fontSize: 14,
             fontWeight: FontWeight.w600,
@@ -510,7 +518,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
         onPressed: _isLoading ? null : _handleSignOut,
         icon: const Icon(Icons.logout, size: 18),
         label: Text(
-          'サインアウト',
+          _localizationService.translate('profile_sign_out'),
           style: GoogleFonts.notoSans(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -668,7 +676,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Apple IDでのアップグレードは準備中です',
+            _localizationService.translate('profile_apple_upgrade_preparing'),
             style: GoogleFonts.notoSans(color: Colors.white),
           ),
           backgroundColor: Colors.blue,
@@ -690,18 +698,18 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
-          'サインアウト',
+          _localizationService.translate('profile_sign_out_title'),
           style: GoogleFonts.notoSans(fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'サインアウトしますか？\n${_authService.isAnonymous ? 'ゲストアカウントのデータは失われます。' : ''}',
+          '${_localizationService.translate('profile_sign_out_message')}\n${_authService.isAnonymous ? _localizationService.translate('profile_sign_out_guest_warning') : ''}',
           style: GoogleFonts.notoSans(),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
-              'キャンセル',
+              _localizationService.translate('cancel'),
               style: GoogleFonts.notoSans(color: Colors.grey),
             ),
           ),
@@ -712,7 +720,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
             ),
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(
-              'サインアウト',
+              _localizationService.translate('profile_sign_out'),
               style: GoogleFonts.notoSans(fontWeight: FontWeight.bold),
             ),
           ),
@@ -738,7 +746,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'サインアウトに失敗しました: $e',
+                '${_localizationService.translate('profile_sign_out_failed')}$e',
                 style: GoogleFonts.notoSans(color: Colors.white),
               ),
               backgroundColor: Colors.red,
@@ -847,11 +855,13 @@ class _GenderDropdown extends StatelessWidget {
   final String? selectedGender;
   final List<String> genders;
   final ValueChanged<String?> onChanged;
+  final LocalizationService localizationService;
 
   const _GenderDropdown({
     required this.selectedGender,
     required this.genders,
     required this.onChanged,
+    required this.localizationService,
   });
 
   @override
@@ -865,9 +875,9 @@ class _GenderDropdown extends StatelessWidget {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: selectedGender,
-          hint: const Text(
-            '選択してください',
-            style: TextStyle(
+          hint: Text(
+            localizationService.translate('profile_gender_select_hint'),
+            style: const TextStyle(
               color: Color(0xFF4E3B7A),
               fontWeight: FontWeight.bold,
             ),
@@ -896,10 +906,12 @@ class _GenderDropdown extends StatelessWidget {
 class _BirthdayField extends StatelessWidget {
   final DateTime? selectedDate;
   final ValueChanged<DateTime?> onDateSelected;
+  final LocalizationService localizationService;
 
   const _BirthdayField({
     required this.selectedDate,
     required this.onDateSelected,
+    required this.localizationService,
   });
 
   @override
@@ -938,8 +950,8 @@ class _BirthdayField extends StatelessWidget {
         ),
         child: Text(
           selectedDate == null
-              ? '選択してください'
-              : '${selectedDate!.year}年${selectedDate!.month}月${selectedDate!.day}日',
+              ? localizationService.translate('profile_birthday_select_hint')
+              : '${selectedDate!.year}/${selectedDate!.month}/${selectedDate!.day}',
           style: const TextStyle(color: Color(0xFF5A64ED), fontSize: 16),
         ),
       ),

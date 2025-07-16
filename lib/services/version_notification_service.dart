@@ -58,24 +58,39 @@ class VersionNotificationService {
         message = 'バージョン $oldVersion から $newVersion にアップデートされました。新機能をお楽しみください！';
       }
       
-      // Firestoreに通知を作成
-      await _firestore.collection('notifications').add({
-        'userId': userId,
-        'type': 'general',
-        'title': title,
-        'message': message,
-        'createdAt': FieldValue.serverTimestamp(),
-        'isRead': false,
-        'metadata': {
-          'notificationType': 'version_update',
-          'newVersion': newVersion,
-          'oldVersion': oldVersion,
-        },
-      });
+      // NotificationServiceのバージョン通知作成メソッドを使用
+      await _notificationService.createVersionNotification(
+        version: newVersion,
+        title: title,
+        message: message,
+      );
       
       print('バージョン通知送信完了: $newVersion');
     } catch (e) {
       print('バージョン通知送信エラー: $e');
+    }
+  }
+
+  /// 手動でバージョン通知を作成（デバッグ用）
+  Future<bool> createManualVersionNotification() async {
+    try {
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) return false;
+      
+      // 1.0.1バージョン通知を作成
+      final success = await _notificationService.createVersionNotification(
+        version: '1.0.1',
+        title: 'Ver 1.0.1にアップデートしました',
+        message: '1.0.1にアップデートしました。新機能をお楽しみください！',
+      );
+      
+      if (success) {
+        print('手動バージョン通知作成完了: 1.0.1');
+      }
+      return success;
+    } catch (e) {
+      print('手動バージョン通知作成エラー: $e');
+      return false;
     }
   }
   

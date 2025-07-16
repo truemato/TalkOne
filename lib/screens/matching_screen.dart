@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/call_matching_service.dart';
 import '../services/user_profile_service.dart';
 import '../services/block_service.dart';
+import '../services/localization_service.dart';
 import 'pre_call_profile_screen.dart';
 import 'ai_pre_call_screen.dart';
 import '../utils/theme_utils.dart';
@@ -228,6 +229,7 @@ class _MatchingScreenState extends State<MatchingScreen>
   final CallMatchingService _matchingService = CallMatchingService();
   final UserProfileService _userProfileService = UserProfileService();
   final BlockService _blockService = BlockService();
+  final LocalizationService _localizationService = LocalizationService();
   
   // シュリンクアニメーション用
   late AnimationController _shrinkController;
@@ -603,7 +605,7 @@ class _MatchingScreenState extends State<MatchingScreen>
                                 RateCounter(targetRate: _userRating),
                                 if (_userRating == 0)
                                   Text(
-                                    '読み込み中...',
+                                    _localizationService.translate('loading'),
                                     style: FontSizeUtils.catamaran(
                                       fontSize: 12,
                                       color: Colors.white.withOpacity(0.6),
@@ -680,7 +682,7 @@ class _MatchingScreenState extends State<MatchingScreen>
                                 RateCounter(targetRate: _userRating),
                                 if (_userRating == 0)
                                   Text(
-                                    '読み込み中...',
+                                    _localizationService.translate('loading'),
                                     style: FontSizeUtils.catamaran(
                                       fontSize: 12,
                                       color: Colors.white.withOpacity(0.6),
@@ -760,7 +762,7 @@ class _MatchingScreenState extends State<MatchingScreen>
 
   Widget _buildOnlineUsers() {
     return Text(
-      'マッチング待ちのユーザー：$_onlineUsers人',
+      _localizationService.translate('matching_waiting_users').replaceAll('{count}', '$_onlineUsers'),
       style: FontSizeUtils.catamaran(
         fontSize: 15,
         fontWeight: FontWeight.w800,
@@ -774,7 +776,7 @@ class _MatchingScreenState extends State<MatchingScreen>
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'マッチング中',
+          _localizationService.translate('matching_in_progress'),
           style: FontSizeUtils.catamaran(
             fontSize: 32,
             fontWeight: FontWeight.w800,
@@ -837,7 +839,7 @@ class _MatchingScreenState extends State<MatchingScreen>
           const Icon(Icons.smart_toy, size: 20),
           const SizedBox(width: 8),
           Text(
-            '${_aiAssistantName}と会話',
+            _localizationService.translate('ai_conversation_button').replaceAll('{aiName}', _aiAssistantName),
             style: FontSizeUtils.notoSans(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -858,7 +860,7 @@ class _MatchingScreenState extends State<MatchingScreen>
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
       ),
       child: Text(
-        'キャンセル',
+        _localizationService.translate('cancel'),
         style: FontSizeUtils.catamaran(
           fontSize: 20,
           fontWeight: FontWeight.w800,
@@ -896,17 +898,17 @@ class _MatchingScreenState extends State<MatchingScreen>
 
   String _getAINotificationMessage() {
     if (_userRating <= 550) {
-      return 'AI救済モード（レベル3）- ずんだもんとマッチング';
+      return _localizationService.translate('ai_rescue_level_3');
     } else if (_userRating <= 580) {
-      return 'AI救済継続中（レベル3）- ずんだもんとマッチング';
+      return _localizationService.translate('ai_rescue_level_3_ongoing');
     } else if (_userRating <= 700) {
-      return 'AI救済モード（レベル2）- ずんだもんとマッチング';
+      return _localizationService.translate('ai_rescue_level_2');
     } else if (_userRating <= 730) {
-      return 'AI救済継続中（レベル2）- ずんだもんとマッチング';
+      return _localizationService.translate('ai_rescue_level_2_ongoing');
     } else if (_userRating <= 850) {
-      return 'AI救済モード（レベル1）- ずんだもんとマッチング';
+      return _localizationService.translate('ai_rescue_level_1');
     } else {
-      return 'AI救済継続中（レベル1）- ずんだもんとマッチング';
+      return _localizationService.translate('ai_rescue_level_1_ongoing');
     }
   }
 }

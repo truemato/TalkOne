@@ -7,6 +7,7 @@ import '../services/call_history_service.dart';
 import '../services/agora_call_service.dart';
 import '../services/evaluation_service.dart';
 import '../services/rating_service.dart';
+import '../services/localization_service.dart';
 import 'evaluation_screen.dart';
 import 'partner_profile_screen.dart';
 import '../utils/theme_utils.dart';
@@ -42,6 +43,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   final AgoraCallService _agoraService = AgoraCallService();
   final EvaluationService _evaluationService = EvaluationService();
   final RatingService _ratingService = RatingService();
+  final LocalizationService _localizationService = LocalizationService();
   String? _selectedIconPath = 'aseets/icons/Woman 1.svg';
   String _partnerNickname = 'Unknown';
   
@@ -67,41 +69,12 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   // 緊急通報関連
   bool _isReporting = false;
   
-  // 会話テーマリスト
-  final List<String> _conversationThemes = [
-    '🎯 自己紹介・自己理解系',
-    '最近ハマってること',
-    '好きな食べ物／嫌いな食べ物',
-    '休日の過ごし方',
-    '朝型？夜型？',
-    '自分の性格を一言で言うと？',
-    '今までで一番頑張ったこと',
-    '最近ちょっと変わったこと',
-    '尊敬している人',
-    '自分の中のマイルール',
-    '子どもの頃の夢',
-    '💬 日常会話・雑談系',
-    '最近観た映画／ドラマ',
-    '今日の天気、好き？',
-    '通勤・通学時間の過ごし方',
-    '最近びっくりしたこと',
-    '今、部屋にあるものでお気に入りは？',
-    '最近の「ちょっと嬉しかったこと」',
-    '毎日欠かさずやってること',
-    '今食べたいもの',
-    'おすすめのアプリ／ツール',
-    '今のスマホの待ち受け画面、どんなの？',
-    '💭 意見交換・感情表現系',
-    '幸せだなと思う瞬間は？',
-    'イライラしたとき、どうする？',
-    '自分って変わってるなと思うとき',
-    '友達ってどんな存在？',
-    'プレゼントするなら何を選ぶ？',
-    'あえて「何もしない時間」って必要？',
-    '人から言われて嬉しかった言葉',
-    '自分の中の「こだわり」って何？',
-    '落ち込んだときの立ち直り方',
-    'やってみたいけど、ちょっと怖いこと',
+  // 会話テーマキーリスト（ローカライゼーション対応）
+  final List<String> _conversationThemeKeys = [
+    'theme_1', 'theme_2', 'theme_3', 'theme_4', 'theme_5', 'theme_6', 'theme_7', 'theme_8', 'theme_9', 'theme_10',
+    'theme_11', 'theme_12', 'theme_13', 'theme_14', 'theme_15', 'theme_16', 'theme_17', 'theme_18', 'theme_19', 'theme_20',
+    'theme_21', 'theme_22', 'theme_23', 'theme_24', 'theme_25', 'theme_26', 'theme_27', 'theme_28', 'theme_29', 'theme_30',
+    'theme_31', 'theme_32', 'theme_33'
   ];
   late String _currentTheme;
 
@@ -116,8 +89,12 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     _startCallTimer();
     
     // 共有テーマまたはランダムでテーマを選択
-    _currentTheme = widget.conversationTheme ?? 
-                   _conversationThemes[(DateTime.now().millisecondsSinceEpoch % _conversationThemes.length)];
+    if (widget.conversationTheme != null) {
+      _currentTheme = widget.conversationTheme!;
+    } else {
+      final themeIndex = DateTime.now().millisecondsSinceEpoch % _conversationThemeKeys.length;
+      _currentTheme = _localizationService.translate(_conversationThemeKeys[themeIndex]);
+    }
   }
 
   @override
@@ -561,20 +538,20 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     
     switch (_connectionState) {
       case AgoraConnectionState.connecting:
-        statusText = '接続中...';
+        statusText = _localizationService.translate('call_connection_status_connecting');
         statusColor = Colors.orange;
         break;
       case AgoraConnectionState.connected:
-        statusText = _partnerJoined ? '通話中' : '相手を待機中';
+        statusText = _partnerJoined ? _localizationService.translate('call_connection_status_connected') : _localizationService.translate('call_connection_status_waiting');
         statusColor = _partnerJoined ? Colors.green : Colors.blue;
         break;
       case AgoraConnectionState.failed:
-        statusText = '接続エラー';
+        statusText = _localizationService.translate('call_connection_status_error');
         statusColor = Colors.red;
         break;
       case AgoraConnectionState.disconnected:
       default:
-        statusText = '未接続';
+        statusText = _localizationService.translate('call_connection_status_disconnected');
         statusColor = Colors.grey;
         break;
     }
@@ -754,7 +731,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
             const Icon(Icons.warning, color: Colors.red, size: 28),
             const SizedBox(width: 12),
             Text(
-              '緊急通報',
+              _localizationService.translate('call_emergency_report_title'),
               style: FontSizeUtils.notoSans(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -764,14 +741,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           ],
         ),
         content: Text(
-          'この相手を通報しますか？\n\n通報すると即座に通話が終了し、相手のプロフィール画面に移動します。',
+          _localizationService.translate('call_emergency_report_message'),
           style: FontSizeUtils.notoSans(fontSize: 16),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
-              'キャンセル',
+              _localizationService.translate('cancel'),
               style: FontSizeUtils.notoSans(
                 fontSize: 16,
                 color: Colors.grey[600],
@@ -789,7 +766,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
               ),
             ),
             child: Text(
-              '通報する',
+              _localizationService.translate('call_emergency_report_submit'),
               style: FontSizeUtils.notoSans(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,

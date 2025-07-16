@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'dart:io' show Platform;
 import '../services/call_history_service.dart';
 import '../services/user_profile_service.dart';
 import '../services/block_service.dart';
+import '../services/localization_service.dart';
 import '../utils/theme_utils.dart';
+import '../utils/font_size_utils.dart';
 import 'partner_profile_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -22,6 +23,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   final CallHistoryService _callHistoryService = CallHistoryService();
   final UserProfileService _userProfileService = UserProfileService();
   final BlockService _blockService = BlockService();
+  final LocalizationService _localizationService = LocalizationService();
   
   int _selectedThemeIndex = 0;
   Set<String> _blockedUserIds = {};
@@ -62,9 +64,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
     if (diff.inDays == 0) {
       return DateFormat('HH:mm').format(dateTime);
     } else if (diff.inDays == 1) {
-      return '昨日 ${DateFormat('HH:mm').format(dateTime)}';
+      return '${_localizationService.translate('history_yesterday')} ${DateFormat('HH:mm').format(dateTime)}';
     } else if (diff.inDays < 7) {
-      return '${diff.inDays}日前 ${DateFormat('HH:mm').format(dateTime)}';
+      return '${diff.inDays}${_localizationService.translate('history_days_ago')} ${DateFormat('HH:mm').format(dateTime)}';
     } else {
       return DateFormat('M/d HH:mm').format(dateTime);
     }
@@ -77,7 +79,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildStarRating(int? rating) {
-    if (rating == null) return const Text('未評価');
+    if (rating == null) {
+      return Text(
+        _localizationService.translate('history_no_rating_text'),
+        style: FontSizeUtils.notoSans(
+          fontSize: 12,
+          color: Colors.grey.shade600,
+        ),
+      );
+    }
     
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -115,8 +125,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
           borderRadius: BorderRadius.circular(20),
         ),
         title: Text(
-          '${history.partnerNickname}との通話評価',
-          style: GoogleFonts.notoSans(
+          _localizationService.translate('history_evaluation_dialog_title').replaceAll('{partnerName}', history.partnerNickname),
+          style: FontSizeUtils.notoSans(
+            fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -145,8 +156,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'あなたの評価:',
-                  style: GoogleFonts.notoSans(
+                  _localizationService.translate('history_your_rating_label'),
+                  style: FontSizeUtils.notoSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
@@ -171,15 +182,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '通話時間:',
-                        style: GoogleFonts.notoSans(
+                        _localizationService.translate('history_call_duration_label'),
+                        style: FontSizeUtils.notoSans(
                           fontSize: 12,
                           color: Colors.grey[600],
                         ),
                       ),
                       Text(
                         _formatDuration(history.callDuration),
-                        style: GoogleFonts.notoSans(
+                        style: FontSizeUtils.notoSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -191,15 +202,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '通話日時:',
-                        style: GoogleFonts.notoSans(
+                        _localizationService.translate('history_call_datetime_label'),
+                        style: FontSizeUtils.notoSans(
                           fontSize: 12,
                           color: Colors.grey[600],
                         ),
                       ),
                       Text(
                         _formatDateTime(history.callDateTime),
-                        style: GoogleFonts.notoSans(
+                        style: FontSizeUtils.notoSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -215,8 +226,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(
-              '閉じる',
-              style: GoogleFonts.notoSans(
+              _localizationService.translate('common_close'),
+              style: FontSizeUtils.notoSans(
+                fontSize: 16,
                 color: Theme.of(context).primaryColor,
                 fontWeight: FontWeight.bold,
               ),
@@ -244,8 +256,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
           backgroundColor: _currentThemeColor,
           appBar: AppBar(
             title: Text(
-              '通話履歴',
-              style: GoogleFonts.notoSans(
+              _localizationService.translate('history_screen_title'),
+              style: FontSizeUtils.notoSans(
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
@@ -283,8 +296,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
         if (snapshot.hasError) {
           return Center(
             child: Text(
-              'エラーが発生しました',
-              style: GoogleFonts.notoSans(
+              _localizationService.translate('error_occurred'),
+              style: FontSizeUtils.notoSans(
                 fontSize: 16,
                 color: Colors.white,
               ),
@@ -306,16 +319,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  '通話履歴がありません',
-                  style: GoogleFonts.notoSans(
+                  _localizationService.translate('history_empty_message'),
+                  style: FontSizeUtils.notoSans(
                     fontSize: 18,
                     color: Colors.white.withOpacity(0.8),
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '最初の通話を始めてみましょう！',
-                  style: GoogleFonts.notoSans(
+                  _localizationService.translate('history_empty_subtitle'),
+                  style: FontSizeUtils.notoSans(
                     fontSize: 14,
                     color: Colors.white.withOpacity(0.6),
                   ),
@@ -367,8 +380,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ),
               ),
               child: Text(
-                'ブロック中',
-                style: GoogleFonts.notoSans(
+                _localizationService.translate('history_blocked_status_text'),
+                style: FontSizeUtils.notoSans(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                   color: Colors.purple,
@@ -426,7 +439,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             Expanded(
                               child: Text(
                                 history.partnerNickname,
-                                style: GoogleFonts.notoSans(
+                                style: FontSizeUtils.notoSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.black87,
@@ -442,8 +455,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  'AI',
-                                  style: GoogleFonts.notoSans(
+                                  _localizationService.translate('history_ai_label_text'),
+                                  style: FontSizeUtils.notoSans(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.blue.shade700,
@@ -464,7 +477,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             const SizedBox(width: 4),
                             Text(
                               _formatDateTime(history.callDateTime),
-                              style: GoogleFonts.notoSans(
+                              style: FontSizeUtils.notoSans(
                                 fontSize: 12,
                                 color: Colors.grey.shade600,
                               ),
@@ -478,7 +491,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             const SizedBox(width: 4),
                             Text(
                               _formatDuration(history.callDuration),
-                              style: GoogleFonts.notoSans(
+                              style: FontSizeUtils.notoSans(
                                 fontSize: 12,
                                 color: Colors.grey.shade600,
                               ),
@@ -491,8 +504,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         Row(
                           children: [
                             Text(
-                              '私の評価: ',
-                              style: GoogleFonts.notoSans(
+                              _localizationService.translate('history_my_rating_prefix'),
+                              style: FontSizeUtils.notoSans(
                                 fontSize: 12,
                                 color: Colors.grey.shade600,
                               ),
