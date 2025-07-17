@@ -345,6 +345,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
   
+  // 現在のレベルとレーティングを1行で表示
+  Widget _buildCurrentStatusRow() {
+    final achievement = _achievementInfo;
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Card(
+        color: Colors.white.withOpacity(0.1),
+        elevation: 4,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // 現在のレベル
+              Row(
+                children: [
+                  Icon(
+                    Icons.emoji_events,
+                    color: achievement['color'],
+                    size: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '${_localizationService.translate('settings_current_level').split('\n')[0]}${achievement['level']}',
+                    style: FontSizeUtils.notoSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: achievement['color'],
+                    ),
+                  ),
+                ],
+              ),
+              // レーティング
+              Text(
+                '${_localizationService.translate('settings_current_rating').split('\n')[0]}$_currentRating',
+                style: FontSizeUtils.notoSans(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  
   // 実績セクションを構築
   Widget _buildAchievementSection() {
     final achievement = _achievementInfo;
@@ -361,48 +410,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.emoji_events,
-                      color: achievement['color'],
-                      size: 24,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      _localizationService.translate('settings_achievement_section'),
-                      style: FontSizeUtils.notoSans(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
+                Text(
+                  _localizationService.translate('settings_achievement_section'),
+                  style: FontSizeUtils.notoSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               const SizedBox(height: 16),
-              
-              // 現在のレベル表示
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _localizationService.translate('settings_current_level').replaceAll('{level}', achievement['level']),
-                    style: FontSizeUtils.notoSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: achievement['color'],
-                    ),
-                  ),
-                  Text(
-                    _localizationService.translate('settings_current_rating').replaceAll('{rating}', '$_currentRating'),
-                    style: FontSizeUtils.notoSans(
-                      fontSize: 14,
-                      color: Colors.white70,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
               
               // プログレスバー
               Column(
@@ -805,6 +821,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   );
                 },
               ),
+              // 現在のレベルとレーティング表示（1行）
+              _buildCurrentStatusRow(),
+              
               // 実績セクション
               _buildAchievementSection(),
               

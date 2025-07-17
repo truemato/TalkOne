@@ -11,6 +11,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../services/user_profile_service.dart';
 import '../services/voicevox_service.dart';
 import '../services/conversation_data_service.dart';
+import '../services/localization_service.dart';
 import '../utils/theme_utils.dart';
 import 'home_screen.dart';
 
@@ -47,6 +48,7 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
 
   // サービス
   final UserProfileService _userProfileService = UserProfileService();
+  final LocalizationService _localizationService = LocalizationService();
   final ConversationDataService _conversationService =
       ConversationDataService();
 
@@ -914,10 +916,11 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
           _currentThemeColor, // 動的テーマカラー（talk_to_ai_screen.dartから統合）
       appBar: AppBar(
         title: Text(
-          '${_getPersonalityName(_aiPersonalityId)} AI チャット',
+          _localizationService.translate('ai_chat_title'),
           style: GoogleFonts.notoSans(
             color: Colors.white,
             fontWeight: FontWeight.bold,
+            fontSize: 18,
           ),
         ),
         backgroundColor: Colors.transparent,
@@ -1116,8 +1119,8 @@ class _ZundamonChatScreenState extends State<ZundamonChatScreen>
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: _isInitialized
-                    ? (_isListening ? '音声認識中...' : 'AIとチャットしてみよう...')
-                    : '初期化中...',
+                    ? (_isListening ? _localizationService.translate('ai_chat_listening') : _localizationService.translate('ai_chat_input_hint'))
+                    : _localizationService.translate('ai_chat_initializing'),
                 hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
                 filled: true,
                 fillColor: Colors.white.withOpacity(0.1),

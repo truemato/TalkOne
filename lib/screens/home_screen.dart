@@ -280,14 +280,14 @@ class _HomeScreenState extends State<HomeScreen>
             Positioned(
               left: 0,
               right: 0,
-              bottom: 65, // メニューバーが5px上に移動したため65に調整
+              bottom: 60, // メニューバーが下端に接続されたため調整
               child: _buildUserIdDisplay(),
             ),
             // 下部バー（iOS風統一レイアウト）
             Positioned(
               left: 0,
               right: 0,
-              bottom: 5, // 5px上に移動
+              bottom: 0, // iPadでも下端に接続
               child: Platform.isAndroid
                   ? SafeArea(
                       top: false,
@@ -677,15 +677,15 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildRateCounter() {
     return SizedBox(
-      width: 130, // 幅を100から130に拡大
-      height: 100, // 90から100に増やしてオーバーフローを解消
+      width: 150, // iPad対応のため幅を拡大
+      height: 110, // iPad対応のため高さを拡大
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             'RATE',
             style: GoogleFonts.catamaran(
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: FontWeight.w800,
               color: Colors.white,
             ),
@@ -707,7 +707,7 @@ class _HomeScreenState extends State<HomeScreen>
     
     if (rating >= 4000) {
       // 金色 (4000以上)
-      fontSize = 44; // 38 + 3 + 3
+      fontSize = 36; // iPad対応のためサイズを減らす
       gradientColors = [
         const Color(0xFFFFD700), // ゴールド
         const Color(0xFFFFA500), // オレンジゴールド
@@ -720,7 +720,7 @@ class _HomeScreenState extends State<HomeScreen>
       ];
     } else if (rating >= 3000) {
       // 銀色 (3000以上)
-      fontSize = 41; // 38 + 1 + 2
+      fontSize = 34; // iPad対応のためサイズを減らす
       gradientColors = [
         const Color(0xFFC0C0C0), // シルバー
         const Color(0xFFE5E5E5), // ライトシルバー
@@ -733,7 +733,7 @@ class _HomeScreenState extends State<HomeScreen>
       ];
     } else if (rating >= 2000) {
       // 銅色 (2000以上)
-      fontSize = 39; // 38 + 1
+      fontSize = 32; // iPad対応のためサイズを減らす
       gradientColors = [
         const Color(0xFFB87333), // ブロンズ
         const Color(0xFFCD7F32), // ライトブロンズ
@@ -746,7 +746,7 @@ class _HomeScreenState extends State<HomeScreen>
       ];
     } else {
       // 通常 (2000未満)
-      fontSize = 38;
+      fontSize = 30; // iPad対応のためサイズを減らす
       return Text(
         '$rating',
         style: GoogleFonts.notoSans(

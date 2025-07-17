@@ -302,8 +302,8 @@ class LocalizationService extends ChangeNotifier {
       'settings_voicevox_unlocked': 'VOICEVOX機能が解禁されています',
       'settings_voicevox_requirement': 'レーティング1500以上でVOICEVOX解禁',
       'settings_basic_features_only': '基本機能のみ',
-      'settings_current_level': '現在のレベル: {level}',
-      'settings_current_rating': 'レーティング: {rating}',
+      'settings_current_level': '現在の\nレベル: {level}',
+      'settings_current_rating': 'レーティング:\n{rating}',
       'settings_next_target': '次の目標: {target}',
       'settings_points_remaining': '残り{points}ポイント',
       'settings_unlocked_features': '解禁機能: {features}',
@@ -335,7 +335,6 @@ class LocalizationService extends ChangeNotifier {
       'partner_profile_default_unset': '未設定',
       'partner_profile_default_greeting': 'よろしくお願いします！',
       'partner_profile_report_button': 'この相手を通報する',
-      'partner_profile_block_button': 'このユーザーをブロック',
       'partner_profile_report_submitting': '通報送信中...',
       'partner_profile_report_title': '相手を通報',
       'partner_profile_report_reason': '通報理由を選択してください',
@@ -345,12 +344,19 @@ class LocalizationService extends ChangeNotifier {
       'partner_profile_report_other': 'その他',
       'partner_profile_report_details': '詳細（任意）',
       'partner_profile_report_details_hint': '具体的な内容を記入してください',
+      'partner_profile_report_hint': '具体的な内容を記入してください',
+      'partner_profile_report_cancel': 'キャンセル',
       'partner_profile_report_submit': '通報する',
+      'partner_profile_report_sending': '通報送信中...',
       'partner_profile_block_title': 'ユーザーをブロック',
       'partner_profile_block_message': 'このユーザーをブロックすると、今後マッチングされなくなります。\nブロックしますか？',
+      'partner_profile_block_cancel': 'キャンセル',
       'partner_profile_block_confirm': 'ブロックする',
+      'partner_profile_block_button': 'ユーザーをブロック',
       'partner_profile_report_success': '通報を送信しました。24時間以内にサポートからのメールをお送りいたします。',
+      'partner_profile_report_error': '通報の送信に失敗しました。しばらく経ってから再度お試しください。',
       'partner_profile_block_success': 'ユーザーをブロックしました。今後このユーザーとマッチングされることはありません。',
+      'partner_profile_block_error': 'ブロックに失敗しました。再度お試しください。',
       
       // EULA画面
       'eula_title': 'エンドユーザーライセンス契約',
@@ -359,6 +365,12 @@ class LocalizationService extends ChangeNotifier {
       'eula_agreement_checkbox': '上記の利用規約に同意します',
       'eula_disagree_button': '同意しない',
       'eula_agree_button': '同意してアプリを開始',
+      
+      // AI移行画面
+      'ai_pre_call_practice_mode': 'AI練習モード',
+      'ai_pre_call_assistant': 'AI アシスタント',
+      'ai_pre_call_countdown_text': '音声チャット開始まで...',
+      'ai_pre_call_skip': 'スキップ',
       
       // アチーブメント
       'achievement_bronze': 'ブロンズ',
@@ -705,8 +717,8 @@ class LocalizationService extends ChangeNotifier {
       'settings_voicevox_unlocked': 'VOICEVOX features unlocked',
       'settings_voicevox_requirement': 'VOICEVOX unlocks at rating 1500+',
       'settings_basic_features_only': 'Basic features only',
-      'settings_current_level': 'Current Level: {level}',
-      'settings_current_rating': 'Rating: {rating}',
+      'settings_current_level': 'Current\nLevel: {level}',
+      'settings_current_rating': 'Rating:\n{rating}',
       'settings_next_target': 'Next Target: {target}',
       'settings_points_remaining': '{points} points remaining',
       'settings_unlocked_features': 'Unlocked Features: {features}',
@@ -738,7 +750,6 @@ class LocalizationService extends ChangeNotifier {
       'partner_profile_default_unset': 'Not set',
       'partner_profile_default_greeting': 'Nice to meet you!',
       'partner_profile_report_button': 'Report this user',
-      'partner_profile_block_button': 'Block this user',
       'partner_profile_report_submitting': 'Submitting report...',
       'partner_profile_report_title': 'Report User',
       'partner_profile_report_reason': 'Select report reason',
@@ -748,12 +759,19 @@ class LocalizationService extends ChangeNotifier {
       'partner_profile_report_other': 'Other',
       'partner_profile_report_details': 'Details (optional)',
       'partner_profile_report_details_hint': 'Please describe the specific issue',
+      'partner_profile_report_hint': 'Please describe the specific issue',
+      'partner_profile_report_cancel': 'Cancel',
       'partner_profile_report_submit': 'Submit Report',
+      'partner_profile_report_sending': 'Sending report...',
       'partner_profile_block_title': 'Block User',
       'partner_profile_block_message': 'Blocking this user will prevent future matches.\nProceed with blocking?',
+      'partner_profile_block_cancel': 'Cancel',
       'partner_profile_block_confirm': 'Block',
+      'partner_profile_block_button': 'Block User',
       'partner_profile_report_success': 'Report submitted. You will receive a support email within 24 hours.',
+      'partner_profile_report_error': 'Failed to submit report. Please try again later.',
       'partner_profile_block_success': 'User has been blocked. You will no longer be matched with this user.',
+      'partner_profile_block_error': 'Failed to block user. Please try again.',
       
       // EULA Screen
       'eula_title': 'End User License Agreement',
@@ -762,6 +780,12 @@ class LocalizationService extends ChangeNotifier {
       'eula_agreement_checkbox': 'I agree to the above terms of service',
       'eula_disagree_button': 'Disagree',
       'eula_agree_button': 'Agree and Start App',
+      
+      // AI Pre-Call Screen
+      'ai_pre_call_practice_mode': 'AI Practice Mode',
+      'ai_pre_call_assistant': 'AI Assistant',
+      'ai_pre_call_countdown_text': 'Starting voice chat in...',
+      'ai_pre_call_skip': 'Skip',
       
       // Common Elements
       'common_close': 'Close',

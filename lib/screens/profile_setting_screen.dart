@@ -198,7 +198,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                   _localizationService.translate('profile_title'),
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -222,7 +222,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                     _localizationService.translate('profile_title'),
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 22,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -257,6 +257,15 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                   ),
                   const SizedBox(height: 20),
                   // 自己紹介（マッチング用の一言コメント・20文字制限）
+                  Text(
+                    _localizationService.translate('profile_comment'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   _ProfileInputField(
                     controller: _commentController,
                     hintText: _localizationService.translate('profile_comment'),
@@ -267,6 +276,15 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                   ),
                   const SizedBox(height: 20),
                   // AIに伝えたいこと（400文字制限）
+                  Text(
+                    _localizationService.translate('profile_ai_memory'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   _ProfileInputField(
                     controller: _aiMemoController,
                     hintText: _localizationService.translate('profile_ai_memory'),
@@ -414,7 +432,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'AIとの会話履歴が機種変更時も引き継がれます',
+                  _localizationService.translate('profile_data_transfer_message'),
                   style: GoogleFonts.notoSans(
                     fontSize: 12,
                     color: Colors.green[700],

@@ -45,9 +45,6 @@ Future<void> main() async {
     // 初回起動時の権限処理
     print('main: 権限処理を開始します');
 
-    // デバッグ：初回起動フラグをリセット（権限を再表示するため）
-    await PermissionUtil.resetFirstLaunchFlag();
-
     final permissionGranted =
         await PermissionUtil.handleFirstLaunchPermissions();
     print('main: 権限処理結果 - permissionGranted: $permissionGranted');

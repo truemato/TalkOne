@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:async';
 import 'zundamon_chat_screen.dart';
+import '../services/localization_service.dart';
 
 /// AI専用プリコール画面（5種類のペルソナ対応）
 /// レート880以下のユーザーがAIとマッチングしたときに表示される
@@ -34,6 +35,9 @@ class _AiPreCallScreenState extends State<AiPreCallScreen>
   late String _aiIcon;
   late String _aiName;
   late Color _aiBackgroundColor;
+  
+  // ローカライゼーションサービス
+  final LocalizationService _localizationService = LocalizationService();
   
   // テーマカラー（AppThemePalette準拠）
   final List<Color> _themeColors = [
@@ -185,7 +189,7 @@ class _AiPreCallScreenState extends State<AiPreCallScreen>
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'AI練習モード',
+                          _localizationService.translate('ai_pre_call_practice_mode'),
                           style: GoogleFonts.notoSans(
                             fontSize: 16,
                             color: Colors.white,
@@ -234,7 +238,7 @@ class _AiPreCallScreenState extends State<AiPreCallScreen>
                   
                   // AI アシスタント（2倍の大きさ）
                   Text(
-                    'AI アシスタント',
+                    _localizationService.translate('ai_pre_call_assistant'),
                     style: GoogleFonts.notoSans(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -273,7 +277,7 @@ class _AiPreCallScreenState extends State<AiPreCallScreen>
                   const SizedBox(height: 16),
                   
                   Text(
-                    '音声チャット開始まで...',
+                    _localizationService.translate('ai_pre_call_countdown_text'),
                     style: GoogleFonts.notoSans(
                       fontSize: 14,
                       color: Colors.white.withOpacity(0.8),
@@ -292,7 +296,7 @@ class _AiPreCallScreenState extends State<AiPreCallScreen>
                 child: Row(
                   children: [
                     Text(
-                      'スキップ',
+                      _localizationService.translate('ai_pre_call_skip'),
                       style: GoogleFonts.notoSans(
                         fontSize: 14,
                         color: Colors.white,

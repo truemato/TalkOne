@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:io' show Platform;
 import '../services/user_profile_service.dart';
+import '../services/localization_service.dart';
 import '../utils/theme_utils.dart';
 import '../services/rating_service.dart';
 import '../services/evaluation_service.dart';
@@ -31,6 +32,7 @@ class PartnerProfileScreen extends StatefulWidget {
 
 class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
   final UserProfileService _userProfileService = UserProfileService();
+  final LocalizationService _localizationService = LocalizationService();
   final RatingService _ratingService = RatingService();
   final EvaluationService _evaluationService = EvaluationService();
   final BlockService _blockService = BlockService();
@@ -98,11 +100,10 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
     }
   }
 
-  Color get _currentThemeColor => getAppTheme(_partnerThemeIndex).backgroundColor;
 
   // 通報機能
   Future<void> _showReportDialog() async {
-    String selectedReason = '不適切な発言';
+    String selectedReason = _localizationService.translate('partner_profile_report_inappropriate');
     String details = '';
     
     final result = await showDialog<bool>(
@@ -113,7 +114,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
             borderRadius: BorderRadius.circular(20),
           ),
           title: Text(
-            '相手を通報',
+            _localizationService.translate('partner_profile_report_title'),
             style: GoogleFonts.notoSans(
               fontWeight: FontWeight.bold,
             ),
@@ -123,20 +124,20 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '通報理由を選択してください',
+                _localizationService.translate('partner_profile_report_reason'),
                 style: GoogleFonts.notoSans(
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 12),
               
               // 通報理由選択
-              ...['不適切な発言', '嫌がらせ', 'スパム行為', 'その他'].map((reason) =>
+              ...[_localizationService.translate('partner_profile_report_inappropriate'), _localizationService.translate('partner_profile_report_harassment'), _localizationService.translate('partner_profile_report_spam'), _localizationService.translate('partner_profile_report_other')].map((reason) =>
                 RadioListTile<String>(
                   title: Text(
                     reason,
-                    style: GoogleFonts.notoSans(fontSize: 14),
+                    style: GoogleFonts.notoSans(fontSize: 12),
                   ),
                   value: reason,
                   groupValue: selectedReason,
@@ -147,16 +148,16 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
               
               const SizedBox(height: 16),
               Text(
-                '詳細（任意）',
+                _localizationService.translate('partner_profile_report_details'),
                 style: GoogleFonts.notoSans(
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 8),
               TextField(
                 decoration: InputDecoration(
-                  hintText: '具体的な内容を記入してください',
+                  hintText: _localizationService.translate('partner_profile_report_hint'),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -171,7 +172,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
               child: Text(
-                'キャンセル',
+                _localizationService.translate('partner_profile_block_cancel'),
                 style: GoogleFonts.notoSans(
                   color: Colors.grey[600],
                 ),
@@ -180,7 +181,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
               child: Text(
-                '通報する',
+                _localizationService.translate('partner_profile_report_submit'),
                 style: GoogleFonts.notoSans(
                   color: Colors.red,
                   fontWeight: FontWeight.bold,
@@ -233,7 +234,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '通報を送信しました。24時間以内にサポートからのメールをお送りいたします。',
+              _localizationService.translate('partner_profile_report_success'),
               style: GoogleFonts.notoSans(),
             ),
             backgroundColor: Colors.green,
@@ -255,7 +256,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '通報の送信に失敗しました。しばらく経ってから再度お試しください。',
+              _localizationService.translate('partner_profile_report_error'),
               style: GoogleFonts.notoSans(),
             ),
             backgroundColor: Colors.red,
@@ -311,15 +312,15 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
                 const SizedBox(height: 32),
                 
                 // ニックネーム
-                _buildInfoField('ニックネーム', _partnerNickname ?? 'ユーザー'),
+                _buildInfoField(_localizationService.translate('partner_profile_nickname'), _partnerNickname ?? _localizationService.translate('partner_profile_default_user')),
                 const SizedBox(height: 20),
                 
                 // 性別
-                _buildInfoField('性別', _partnerGender ?? '未設定'),
+                _buildInfoField(_localizationService.translate('partner_profile_gender'), _partnerGender ?? _localizationService.translate('partner_profile_default_unset')),
                 const SizedBox(height: 20),
                 
                 // 一言コメント
-                _buildInfoField('一言コメント', _partnerComment ?? 'よろしくお願いします！'),
+                _buildInfoField(_localizationService.translate('partner_profile_comment'), _partnerComment ?? _localizationService.translate('partner_profile_default_greeting')),
                 const SizedBox(height: 40),
                 
                 // 通報ボタン（評価画面からの遷移時のみ表示）
@@ -354,10 +355,10 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
             Expanded(
               child: Center(
                 child: Text(
-                  '相手のプロフィール',
+                  _localizationService.translate('partner_profile_title'),
                   style: GoogleFonts.notoSans(
                     color: Colors.white,
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -400,7 +401,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
             _partnerNickname ?? 'ユーザー',
             style: GoogleFonts.notoSans(
               color: Colors.white,
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -418,7 +419,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
           label,
           style: GoogleFonts.notoSans(
             color: Colors.white,
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -434,7 +435,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
             value,
             style: GoogleFonts.notoSans(
               color: Colors.black,
-              fontSize: 16,
+              fontSize: 14,
             ),
           ),
         ),
@@ -471,9 +472,9 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    '通報送信中...',
+                    _localizationService.translate('partner_profile_report_sending'),
                     style: GoogleFonts.notoSans(
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -485,9 +486,9 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
                   const Icon(Icons.report, size: 20),
                   const SizedBox(width: 8),
                   Text(
-                    'この相手を通報する',
+                    _localizationService.translate('partner_profile_report_button'),
                     style: GoogleFonts.notoSans(
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -506,20 +507,20 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
           borderRadius: BorderRadius.circular(20),
         ),
         title: Text(
-          'ユーザーをブロック',
+          _localizationService.translate('partner_profile_block_title'),
           style: GoogleFonts.notoSans(
             fontWeight: FontWeight.bold,
           ),
         ),
         content: Text(
-          'このユーザーをブロックすると、今後マッチングされなくなります。\nブロックしますか？',
-          style: GoogleFonts.notoSans(fontSize: 14),
+          _localizationService.translate('partner_profile_block_message'),
+          style: GoogleFonts.notoSans(fontSize: 12),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
-              'キャンセル',
+              _localizationService.translate('partner_profile_report_cancel'),
               style: GoogleFonts.notoSans(
                 color: Colors.grey[600],
               ),
@@ -528,7 +529,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(
-              'ブロックする',
+              _localizationService.translate('partner_profile_block_confirm'),
               style: GoogleFonts.notoSans(
                 color: Colors.red,
                 fontWeight: FontWeight.bold,
@@ -553,7 +554,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'ユーザーをブロックしました。今後このユーザーとマッチングされることはありません。',
+                _localizationService.translate('partner_profile_block_success'),
                 style: GoogleFonts.notoSans(),
               ),
               backgroundColor: Colors.green,
@@ -564,7 +565,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'ブロックに失敗しました。再度お試しください。',
+                _localizationService.translate('partner_profile_block_error'),
                 style: GoogleFonts.notoSans(),
               ),
               backgroundColor: Colors.red,
@@ -609,7 +610,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
             const Icon(Icons.block, size: 20),
             const SizedBox(width: 8),
             Text(
-              'このユーザーをブロック',
+              _localizationService.translate('partner_profile_block_button'),
               style: GoogleFonts.notoSans(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
