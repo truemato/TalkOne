@@ -369,7 +369,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    '${_localizationService.translate('settings_current_level').split('\n')[0]}${achievement['level']}',
+                    achievement['level'],
                     style: FontSizeUtils.notoSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -380,7 +380,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               // レーティング
               Text(
-                '${_localizationService.translate('settings_current_rating').split('\n')[0]}$_currentRating',
+                _localizationService.translate('settings_current_rating').replaceAll('{rating}', '$_currentRating'),
                 style: FontSizeUtils.notoSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,

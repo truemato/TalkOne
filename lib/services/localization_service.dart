@@ -302,7 +302,7 @@ class LocalizationService extends ChangeNotifier {
       'settings_voicevox_unlocked': 'VOICEVOX機能が解禁されています',
       'settings_voicevox_requirement': 'レーティング1500以上でVOICEVOX解禁',
       'settings_basic_features_only': '基本機能のみ',
-      'settings_current_level': '現在の\nレベル: {level}',
+      'settings_current_level': '{level}',
       'settings_current_rating': 'レーティング:\n{rating}',
       'settings_next_target': '次の目標: {target}',
       'settings_points_remaining': '残り{points}ポイント',
@@ -359,12 +359,19 @@ class LocalizationService extends ChangeNotifier {
       'partner_profile_block_error': 'ブロックに失敗しました。再度お試しください。',
       
       // EULA画面
-      'eula_title': 'エンドユーザーライセンス契約',
-      'eula_content_title': 'TalkOne エンドユーザーライセンス契約',
+      'eula_title': 'エンドユーザーライセンス契約（EULA）',
+      'eula_content_title': 'TalkOne エンドユーザーライセンス契約（EULA）',
       'eula_scroll_instruction': '利用規約を最後まで読んでください',
       'eula_agreement_checkbox': '上記の利用規約に同意します',
       'eula_disagree_button': '同意しない',
       'eula_agree_button': '同意してアプリを開始',
+      'eula_language_switch': '言語切り替え',
+      'eula_japanese': '日本語',
+      'eula_english': 'English',
+      'eula_exit_dialog_title': 'アプリを終了しますか？',
+      'eula_exit_dialog_message': '利用規約に同意しない場合、アプリを使用できません。',
+      'eula_exit_dialog_cancel': 'キャンセル',
+      'eula_exit_dialog_exit': '終了',
       
       // AI移行画面
       'ai_pre_call_practice_mode': 'AI練習モード',
@@ -717,7 +724,7 @@ class LocalizationService extends ChangeNotifier {
       'settings_voicevox_unlocked': 'VOICEVOX features unlocked',
       'settings_voicevox_requirement': 'VOICEVOX unlocks at rating 1500+',
       'settings_basic_features_only': 'Basic features only',
-      'settings_current_level': 'Current\nLevel: {level}',
+      'settings_current_level': '{level}',
       'settings_current_rating': 'Rating:\n{rating}',
       'settings_next_target': 'Next Target: {target}',
       'settings_points_remaining': '{points} points remaining',
@@ -774,12 +781,19 @@ class LocalizationService extends ChangeNotifier {
       'partner_profile_block_error': 'Failed to block user. Please try again.',
       
       // EULA Screen
-      'eula_title': 'End User License Agreement',
-      'eula_content_title': 'TalkOne End User License Agreement',
+      'eula_title': 'End User License Agreement (EULA)',
+      'eula_content_title': 'TalkOne End User License Agreement (EULA)',
       'eula_scroll_instruction': 'Please scroll to the end of the terms',
       'eula_agreement_checkbox': 'I agree to the above terms of service',
       'eula_disagree_button': 'Disagree',
       'eula_agree_button': 'Agree and Start App',
+      'eula_language_switch': 'Language',
+      'eula_japanese': '日本語',
+      'eula_english': 'English',
+      'eula_exit_dialog_title': 'Exit App?',
+      'eula_exit_dialog_message': 'You cannot use the app without agreeing to the terms of service.',
+      'eula_exit_dialog_cancel': 'Cancel',
+      'eula_exit_dialog_exit': 'Exit',
       
       // AI Pre-Call Screen
       'ai_pre_call_practice_mode': 'AI Practice Mode',
