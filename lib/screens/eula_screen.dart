@@ -296,6 +296,9 @@ class _EulaScreenState extends State<EulaScreen> {
 第10条（準拠法）
 本EULAは日本法に準拠します。
 
+第11条（ゼロトレランスポリシー）
+当社は不快なコンテンツおよび不適切なユーザーを一切許容いたしません。違反が確認された場合、即座にアカウント停止等の措置を実施いたします。
+
 最終更新：2025年7月''',
         style: FontSizeUtils.notoSans(
           fontSize: 14,
@@ -342,6 +345,9 @@ This EULA may be changed with prior notice.
 
 Article 10 (Governing Law)
 This EULA is governed by Japanese law.
+
+Article 11 (Zero Tolerance Policy)
+We have zero tolerance for offensive content and inappropriate users. Any confirmed violations will result in immediate account suspension and other appropriate measures.
 
 Last Updated: July 2025''',
         style: FontSizeUtils.notoSans(
