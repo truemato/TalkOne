@@ -168,7 +168,7 @@ class _EvaluationScreenState extends State<EvaluationScreen>
             Text(
               _localizationService.translate('evaluation_tap_to_view_profile'),
               style: FontSizeUtils.catamaran(
-                fontSize: 14,
+                fontSize: 12,
                 color: Colors.white.withOpacity(0.8),
               ),
             ),
@@ -187,7 +187,7 @@ class _EvaluationScreenState extends State<EvaluationScreen>
             Text(
               _localizationService.translate('evaluation_submitting'),
               style: FontSizeUtils.catamaran(
-                fontSize: 14,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: Colors.white,
               ),
@@ -272,7 +272,7 @@ class _EvaluationScreenState extends State<EvaluationScreen>
     return Text(
       _localizationService.translate('evaluation_rate_conversation'),
       style: FontSizeUtils.catamaran(
-        fontSize: 28,
+        fontSize: 20,
         fontWeight: FontWeight.bold,
         color: Colors.white,
       ),
@@ -340,7 +340,7 @@ class _EvaluationScreenState extends State<EvaluationScreen>
       child: Text(
         descriptions[_selectedRating],
         style: FontSizeUtils.catamaran(
-          fontSize: 18,
+          fontSize: 16,
           fontWeight: FontWeight.w600,
           color: const Color(0xFF4E3B7A),
         ),

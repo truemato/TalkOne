@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/font_size_utils.dart';
 import '../services/localization_service.dart';
-import 'home_screen.dart';
+import '../main.dart';
 
 class EulaScreen extends StatefulWidget {
   const EulaScreen({super.key});
@@ -58,10 +58,12 @@ class _EulaScreenState extends State<EulaScreen> {
       await prefs.setBool('eula_accepted', true);
       
       if (mounted) {
-        Navigator.of(context).pushReplacement(
+        // AuthWrapperに戻って認証フローを通す
+        Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
-            builder: (context) => const HomeScreen(),
+            builder: (context) => const AuthWrapper(),
           ),
+          (route) => false,
         );
       }
     }

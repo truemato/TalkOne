@@ -524,7 +524,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       child: Text(
         _formatTime(_remainingSeconds),
         style: FontSizeUtils.notoSans(
-          fontSize: 48,
+          fontSize: 32,
           fontWeight: FontWeight.bold,
           color: getAppTheme(_selectedThemeIndex).backgroundColor,
         ),
@@ -584,7 +584,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           Text(
             statusText,
             style: FontSizeUtils.notoSans(
-              fontSize: 14,
+              fontSize: 12,
               fontWeight: FontWeight.w500,
               color: Colors.black87,
             ),
@@ -613,7 +613,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         _currentTheme,
         style: const TextStyle(
           color: Color(0xFF4E3B7A),
-          fontSize: 16,
+          fontSize: 14,
           fontWeight: FontWeight.w600,
         ),
         textAlign: TextAlign.center,
@@ -733,7 +733,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
             Text(
               _localizationService.translate('call_emergency_report_title'),
               style: FontSizeUtils.notoSans(
-                fontSize: 16,
+                fontSize: 14,
                 fontWeight: FontWeight.bold,
                 color: Colors.red,
               ),
@@ -750,7 +750,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
             child: Text(
               _localizationService.translate('cancel'),
               style: FontSizeUtils.notoSans(
-                fontSize: 16,
+                fontSize: 14,
                 color: Colors.grey[600],
                 fontWeight: FontWeight.w500,
               ),
@@ -768,7 +768,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
             child: Text(
               _localizationService.translate('call_emergency_report_submit'),
               style: FontSizeUtils.notoSans(
-                fontSize: 16,
+                fontSize: 14,
                 fontWeight: FontWeight.bold,
               ),
             ),

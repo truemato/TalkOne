@@ -165,7 +165,7 @@ class _RematchOrHomeScreenState extends State<RematchOrHomeScreen>
     return Text(
       '通話が終了しました',
       style: GoogleFonts.catamaran(
-        fontSize: 28,
+        fontSize: 20,
         fontWeight: FontWeight.bold,
         color: Colors.white,
       ),
@@ -183,7 +183,7 @@ class _RematchOrHomeScreenState extends State<RematchOrHomeScreen>
       child: Text(
         'お疲れさまでした！\n次は何をしますか？',
         style: GoogleFonts.catamaran(
-          fontSize: 16,
+          fontSize: 14,
           fontWeight: FontWeight.w500,
           color: const Color(0xFF4E3B7A),
         ),
@@ -228,7 +228,7 @@ class _RematchOrHomeScreenState extends State<RematchOrHomeScreen>
             Text(
               'もう一度マッチング',
               style: GoogleFonts.catamaran(
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -261,7 +261,7 @@ class _RematchOrHomeScreenState extends State<RematchOrHomeScreen>
             Text(
               'ホームに戻る',
               style: GoogleFonts.catamaran(
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
             ),

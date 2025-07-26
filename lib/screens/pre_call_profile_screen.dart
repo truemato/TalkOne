@@ -397,7 +397,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
         Text(
           'Talk One',
           style: FontSizeUtils.caveat(
-            fontSize: 40,
+            fontSize: 28,
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
@@ -431,8 +431,8 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
           return Transform.scale(
             scale: _waveAnimation.value,
             child: Container(
-              width: 200,
-              height: 200,
+              width: 150,
+              height: 150,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
@@ -450,11 +450,11 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
               ),
               child: ClipOval(
                 child: Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(15),
                   child: SvgPicture.asset(
                     _partnerProfile?.iconPath ?? 'aseets/icons/Guy 1.svg',
-                    width: 160,
-                    height: 160,
+                    width: 120,
+                    height: 120,
                     fit: BoxFit.contain,
                   ),
                 ),
@@ -487,7 +487,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
       children: [
         // ニックネーム
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.2),
             borderRadius: BorderRadius.circular(25),
@@ -499,16 +499,16 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
                 'ニックネーム',
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.8),
-                  fontSize: 14,
+                  fontSize: 10,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Text(
                 _partnerProfile?.nickname ?? '名前をください',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 24,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -519,7 +519,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
         
         // 性別
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.2),
             borderRadius: BorderRadius.circular(25),
@@ -531,16 +531,16 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
                 '性別',
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.8),
-                  fontSize: 14,
+                  fontSize: 10,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Text(
                 _partnerProfile?.gender ?? '回答しない',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 20,
+                  fontSize: 10,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -575,21 +575,19 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
     return Column(
       children: [
         // レートカウンター
-        SizedBox(
-          width: 100,
-          height: 100, // 90から100に増やしてオーバーフローを解消
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 'RATE',
                 style: FontSizeUtils.catamaran(
-                  fontSize: 20,
+                  fontSize: 14,
                   fontWeight: FontWeight.w800,
                   color: Colors.white,
                 ),
               ),
-              const SizedBox(height: 4),
               AnimatedBuilder(
                 animation: _rateAnimation,
                 builder: (context, child) => _buildMetallicRatingText(_rateAnimation.value),
@@ -597,7 +595,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
             ],
           ),
         ),
-        const SizedBox(height: 30),
+        const SizedBox(height: 40),
         // 承認/拒否/スキップボタン
         _buildActionButtons(),
       ],
@@ -608,26 +606,6 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        // 拒否ボタン
-        ElevatedButton.icon(
-          onPressed: _handleReject,
-          icon: const Icon(Icons.close, color: Colors.white),
-          label: Text(
-            '拒否',
-            style: FontSizeUtils.notoSans(
-              fontSize: 16,
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red.withOpacity(0.8),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(25),
-            ),
-          ),
-        ),
         // 承認ボタン
         ElevatedButton.icon(
           onPressed: _handleApprove,
@@ -635,14 +613,14 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
           label: Text(
             '承認',
             style: FontSizeUtils.notoSans(
-              fontSize: 16,
+              fontSize: 14,
               color: Colors.white,
               fontWeight: FontWeight.bold,
             ),
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.green.withOpacity(0.8),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(25),
             ),
@@ -655,14 +633,14 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
           label: Text(
             'スキップ',
             style: FontSizeUtils.notoSans(
-              fontSize: 16,
+              fontSize: 14,
               color: Colors.white,
               fontWeight: FontWeight.bold,
             ),
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.orange.withOpacity(0.8),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(25),
             ),
@@ -673,25 +651,6 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
   }
 
   // ハンドラメソッドを追加
-  void _handleReject() async {
-    // マッチングを拒否してホーム画面に戻る
-    try {
-      // マッチングを削除
-      await FirebaseFirestore.instance
-          .collection('callRequests')
-          .doc(widget.match.callId)
-          .delete();
-      
-      if (mounted) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      }
-    } catch (e) {
-      print('マッチング拒否エラー: $e');
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
-    }
-  }
 
   void _handleApprove() {
     // 承認して通話画面へ遷移
@@ -743,7 +702,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
     
     if (rating >= 4000) {
       // 金色 (4000以上)
-      fontSize = 44; // 40 + 4
+      fontSize = 28;
       gradientColors = [
         const Color(0xFFFFD700), // ゴールド
         const Color(0xFFFFA500), // オレンジゴールド
@@ -756,7 +715,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
       ];
     } else if (rating >= 3000) {
       // 銀色 (3000以上)
-      fontSize = 42; // 40 + 2
+      fontSize = 28;
       gradientColors = [
         const Color(0xFFC0C0C0), // シルバー
         const Color(0xFFE5E5E5), // ライトシルバー
@@ -769,7 +728,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
       ];
     } else if (rating >= 2000) {
       // 銅色 (2000以上)
-      fontSize = 41; // 40 + 1
+      fontSize = 28;
       gradientColors = [
         const Color(0xFFB87333), // ブロンズ
         const Color(0xFFCD7F32), // ライトブロンズ
@@ -782,7 +741,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
       ];
     } else {
       // 通常 (2000未満)
-      fontSize = 40;
+      fontSize = 28;
       return Text(
         '$rating',
         style: FontSizeUtils.notoSans(

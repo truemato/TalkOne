@@ -19,6 +19,25 @@ class _LoginScreenState extends State<LoginScreen> {
   int _selectedThemeIndex = 0;
 
   Color get _currentThemeColor => getAppTheme(_selectedThemeIndex).backgroundColor;
+  
+  // レスポンシブ対応のためのヘルパーメソッド
+  double _getResponsiveFontSize(BuildContext context, double baseSize) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    
+    // iPadの判定（画面幅が600px以上）
+    if (screenWidth >= 600) {
+      // iPadの場合は基準サイズの70-80%に縮小
+      return baseSize * 0.75;
+    }
+    
+    // 画面の高さが小さい場合も調整
+    if (screenHeight < 700) {
+      return baseSize * 0.9;
+    }
+    
+    return baseSize;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,8 +62,8 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 // アプリアイコン
                 Container(
-                  width: 120,
-                  height: 120,
+                  width: MediaQuery.of(context).size.width >= 600 ? 90 : 120,
+                  height: MediaQuery.of(context).size.width >= 600 ? 90 : 120,
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.9),
                     shape: BoxShape.circle,
@@ -70,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   'TalkOne',
                   style: GoogleFonts.notoSans(
                     color: Colors.white,
-                    fontSize: 48,
+                    fontSize: _getResponsiveFontSize(context, 48),
                     fontWeight: FontWeight.bold,
                     letterSpacing: 2,
                   ),
@@ -84,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   textAlign: TextAlign.center,
                   style: GoogleFonts.notoSans(
                     color: Colors.white.withOpacity(0.9),
-                    fontSize: 16,
+                    fontSize: _getResponsiveFontSize(context, 16),
                     height: 1.5,
                   ),
                 ),
@@ -116,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   textAlign: TextAlign.center,
                   style: GoogleFonts.notoSans(
                     color: Colors.white.withOpacity(0.7),
-                    fontSize: 14,
+                    fontSize: _getResponsiveFontSize(context, 14),
                     height: 1.4,
                   ),
                 ),
@@ -163,7 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     'Googleアカウントでサインイン',
                     style: GoogleFonts.notoSans(
-                      fontSize: 16,
+                      fontSize: _getResponsiveFontSize(context, 16),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -204,7 +223,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     'Apple IDでサインイン',
                     style: GoogleFonts.notoSans(
-                      fontSize: 16,
+                      fontSize: _getResponsiveFontSize(context, 16),
                       fontWeight: FontWeight.w500,
                     ),
                   ),

@@ -16,12 +16,22 @@ class _PageViewContainerState extends State<PageViewContainer> {
   final PageController _horizontalPageController = PageController(initialPage: 1);
   final PageController _verticalPageController = PageController(initialPage: 1);
   final VersionNotificationService _versionService = VersionNotificationService();
+  int _currentHorizontalPage = 1;
   
   @override
   void initState() {
     super.initState();
     // アプリ起動時にバージョンチェックを実行
     _checkVersionOnStartup();
+    
+    // 横方向のページ変更を監視
+    _horizontalPageController.addListener(() {
+      if (_horizontalPageController.page != null) {
+        setState(() {
+          _currentHorizontalPage = _horizontalPageController.page!.round();
+        });
+      }
+    });
   }
   
   @override
@@ -66,6 +76,10 @@ class _PageViewContainerState extends State<PageViewContainer> {
       body: PageView(
         controller: _verticalPageController,
         scrollDirection: Axis.vertical,
+        // 履歴画面（index 0）の時は縦スクロールを無効化
+        physics: _currentHorizontalPage == 0 
+            ? const NeverScrollableScrollPhysics() 
+            : const AlwaysScrollableScrollPhysics(),
         children: [
           // 上にスワイプで表示される通知画面
           NotificationScreenWrapper(onNavigateToHome: _navigateToHome),
