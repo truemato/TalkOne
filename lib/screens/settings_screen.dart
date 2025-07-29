@@ -7,6 +7,7 @@ import '../services/localization_service.dart';
 import 'profile_setting_screen.dart';
 import 'credit_screen.dart';
 import 'login_screen.dart';
+import 'privacy_settings_screen.dart';
 import '../utils/theme_utils.dart';
 import '../utils/font_size_utils.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';

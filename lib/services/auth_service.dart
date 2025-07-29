@@ -417,6 +417,30 @@ class AuthService {
           print('既存レーティング: ${ratingData['rating'] ?? 1000}');
         }
         
+        // App Store Guideline 4.8準拠：既存ユーザーにプライバシー設定を追加
+        if (!existingData.containsKey('privacySettings')) {
+          print('🔐 既存ユーザーにプライバシー設定を追加します');
+          await userDoc.update({
+            // メールアドレスをFirestoreから完全削除（プライバシー保護）
+            'email': FieldValue.delete(),
+            
+            // プライバシー設定を追加
+            'privacySettings': {
+              'emailVisible': false, // 強制的に非公開（メール収集なし）
+              'dataProcessingConsent': true, // 既存ユーザーは暗黙的同意
+              'advertisingConsent': false, // デフォルトで広告拒否
+              'advertisingTrackingBlocked': true, // 広告トラッキング明示的ブロック
+              'consentTimestamp': FieldValue.serverTimestamp(),
+              'consentVersion': '1.0',
+              'migrationFromLegacy': true, // レガシーからの移行フラグ
+              'authProvider': user.providerData.isNotEmpty 
+                  ? user.providerData.first.providerId 
+                  : 'unknown',
+            },
+          });
+          print('✅ プライバシー設定追加完了');
+        }
+        
         print('既存データを使用します');
         return;
       }
@@ -455,11 +479,11 @@ class AuthService {
     try {
       print('🎯 新規プロフィール作成: ${user.uid}');
       
-      // プロフィール作成
+      // プロフィール作成（App Store Guideline 4.8準拠）
       final userDoc = _firestore.collection('userProfiles').doc(user.uid);
       await userDoc.set({
-        'nickname': null,
-        'email': null,
+        'nickname': user.displayName, // 名前のみ収集
+        'email': null, // メールアドレスは一切収集しない（プライバシー保護）
         'iconPath': 'aseets/icons/Woman 1.svg',
         'gender': null,
         'birthday': null,
@@ -470,6 +494,19 @@ class AuthService {
         'lastUpdated': FieldValue.serverTimestamp(),
         'isAnonymous': user.isAnonymous,
         'migratedFromGuest': false, // 移行フラグ
+        
+        // App Store Guideline 4.8準拠のプライバシー設定
+        'privacySettings': {
+          'emailVisible': false, // 強制的に非公開（メール収集しないため）
+          'dataProcessingConsent': true, // ログイン時点で暗黙的同意
+          'advertisingConsent': false, // デフォルトで広告拒否（同意なしでは収集しない）
+          'advertisingTrackingBlocked': true, // 広告トラッキングを明示的にブロック
+          'consentTimestamp': FieldValue.serverTimestamp(),
+          'consentVersion': '1.0',
+          'authProvider': user.providerData.isNotEmpty 
+              ? user.providerData.first.providerId 
+              : 'anonymous',
+        },
       });
 
       // レーティング初期化
