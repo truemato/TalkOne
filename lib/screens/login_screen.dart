@@ -187,7 +187,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     'Googleアカウントでサインイン',
                     style: GoogleFonts.notoSans(
-                      fontSize: _getResponsiveFontSize(context, 16),
+                      fontSize: _getResponsiveFontSize(context, 12),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -228,7 +228,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     'Apple IDでサインイン',
                     style: GoogleFonts.notoSans(
-                      fontSize: _getResponsiveFontSize(context, 16),
+                      fontSize: _getResponsiveFontSize(context, 12),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -269,7 +269,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     'プライバシー保護ログイン',
                     style: GoogleFonts.notoSans(
-                      fontSize: _getResponsiveFontSize(context, 16),
+                      fontSize: _getResponsiveFontSize(context, 12),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -300,7 +300,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Text(
               'ゲストでプレイ',
               style: GoogleFonts.notoSans(
-                fontSize: 16,
+                fontSize: _getResponsiveFontSize(context, 12),
                 fontWeight: FontWeight.w500,
               ),
             ),

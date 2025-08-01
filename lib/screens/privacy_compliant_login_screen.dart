@@ -49,6 +49,14 @@ class _PrivacyCompliantLoginScreenState extends State<PrivacyCompliantLoginScree
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _currentThemeColor,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: Platform.isAndroid 
           ? SafeArea(child: _buildContent())
           : _buildContent(),
@@ -99,7 +107,7 @@ class _PrivacyCompliantLoginScreenState extends State<PrivacyCompliantLoginScree
           'プライバシー保護ログイン',
           style: GoogleFonts.notoSans(
             color: Colors.white,
-            fontSize: 20,
+            fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -109,7 +117,7 @@ class _PrivacyCompliantLoginScreenState extends State<PrivacyCompliantLoginScree
           textAlign: TextAlign.center,
           style: GoogleFonts.notoSans(
             color: Colors.white.withOpacity(0.8),
-            fontSize: 12,
+            fontSize: 10,
             height: 1.5,
           ),
         ),
@@ -140,7 +148,7 @@ class _PrivacyCompliantLoginScreenState extends State<PrivacyCompliantLoginScree
                   style: GoogleFonts.notoSans(
                     color: _isSignUpMode ? _currentThemeColor : Colors.white,
                     fontWeight: FontWeight.w600,
-                    fontSize: 14,
+                    fontSize: 12,
                   ),
                 ),
               ),
@@ -161,7 +169,7 @@ class _PrivacyCompliantLoginScreenState extends State<PrivacyCompliantLoginScree
                   style: GoogleFonts.notoSans(
                     color: !_isSignUpMode ? _currentThemeColor : Colors.white,
                     fontWeight: FontWeight.w600,
-                    fontSize: 14,
+                    fontSize: 12,
                   ),
                 ),
               ),
@@ -304,7 +312,7 @@ class _PrivacyCompliantLoginScreenState extends State<PrivacyCompliantLoginScree
             'プライバシー設定（App Store準拠）',
             style: GoogleFonts.notoSans(
               color: Colors.white,
-              fontSize: 14,
+              fontSize: 12,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -389,7 +397,7 @@ class _PrivacyCompliantLoginScreenState extends State<PrivacyCompliantLoginScree
                           title,
                           style: GoogleFonts.notoSans(
                             color: Colors.white,
-                            fontSize: 12,
+                            fontSize: 10,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -417,7 +425,7 @@ class _PrivacyCompliantLoginScreenState extends State<PrivacyCompliantLoginScree
                     subtitle,
                     style: GoogleFonts.notoSans(
                       color: Colors.white.withOpacity(0.8),
-                      fontSize: 11,
+                      fontSize: 9,
                       height: 1.3,
                     ),
                   ),
@@ -453,7 +461,7 @@ class _PrivacyCompliantLoginScreenState extends State<PrivacyCompliantLoginScree
             : Text(
                 _isSignUpMode ? 'プライバシー保護アカウント作成' : 'サインイン',
                 style: GoogleFonts.notoSans(
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
               ),
