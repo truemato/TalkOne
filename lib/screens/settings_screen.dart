@@ -830,6 +830,118 @@ class _SettingsScreenState extends State<SettingsScreen> {
               
               const Divider(color: Colors.white24, height: 32),
               
+              // ゲストユーザー向けログイン機能
+              if (_authService.isAnonymous) ...[
+                Container(
+                  margin: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.cloud_upload, color: Colors.blue, size: 20),
+                          const SizedBox(width: 12),
+                          Text(
+                            _localizationService.translate('settings_link_account_title'),
+                            style: FontSizeUtils.notoSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _localizationService.translate('settings_link_account_description'),
+                        style: FontSizeUtils.notoSans(
+                          fontSize: 12,
+                          color: Colors.white70,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          // Apple IDでログイン
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.black,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onPressed: _handleLinkWithApple,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.apple, size: 16),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _localizationService.translate('settings_link_apple'),
+                                    style: FontSizeUtils.notoSans(fontSize: 10),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Googleでログイン
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: Colors.black87,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onPressed: _handleLinkWithGoogle,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.account_circle, size: 16),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _localizationService.translate('settings_link_google'),
+                                    style: FontSizeUtils.notoSans(fontSize: 10),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              
+              // プライバシー設定（全ユーザー向け）
+              ListTile(
+                leading: const Icon(Icons.privacy_tip, color: Colors.white),
+                title: Text(
+                  _localizationService.translate('settings_privacy'),
+                  style: const TextStyle(color: Colors.white),
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const PrivacySettingsScreen(),
+                    ),
+                  );
+                },
+              ),
+              
               // アカウント削除
               ListTile(
                 leading: const Icon(Icons.delete_forever, color: Colors.red),
@@ -894,6 +1006,74 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
   
+  Future<void> _handleLinkWithApple() async {
+    try {
+      final userCredential = await _authService.linkAnonymousWithApple();
+      
+      if (userCredential != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _localizationService.translate('settings_link_success_apple'),
+              style: FontSizeUtils.notoSans(fontSize: 14, color: Colors.white),
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        // 画面を更新
+        setState(() {});
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _localizationService.translate('settings_link_error').replaceAll('{error}', e.toString()),
+              style: FontSizeUtils.notoSans(fontSize: 14, color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleLinkWithGoogle() async {
+    try {
+      final userCredential = await _authService.linkAnonymousWithGoogle();
+      
+      if (userCredential != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _localizationService.translate('settings_link_success_google'),
+              style: FontSizeUtils.notoSans(fontSize: 14, color: Colors.white),
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        // 画面を更新
+        setState(() {});
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _localizationService.translate('settings_link_error').replaceAll('{error}', e.toString()),
+              style: FontSizeUtils.notoSans(fontSize: 14, color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _deleteAccount() async {
     setState(() {
       _isDeleting = true;

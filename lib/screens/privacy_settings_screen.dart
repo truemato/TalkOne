@@ -160,7 +160,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
               Text(
                 'App Store準拠プライバシー',
                 style: FontSizeUtils.notoSans(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
@@ -188,7 +188,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
             child: Text(
               label,
               style: FontSizeUtils.notoSans(
-                fontSize: 14,
+                fontSize: 12,
                 color: Colors.white.withOpacity(0.8),
               ),
             ),
@@ -198,7 +198,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
             child: Text(
               value,
               style: FontSizeUtils.notoSans(
-                fontSize: 14,
+                fontSize: 12,
                 color: Colors.white,
                 fontWeight: FontWeight.w500,
               ),
@@ -223,7 +223,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
           Text(
             'プライバシー制御',
             style: FontSizeUtils.notoSans(
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
@@ -272,7 +272,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
       ),
       child: Row(
         children: [
-          Icon(icon, color: isCompliant ? Colors.green : Colors.orange, size: 24),
+          Icon(icon, color: isCompliant ? Colors.green : Colors.orange, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -284,7 +284,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                       child: Text(
                         title,
                         style: FontSizeUtils.notoSans(
-                          fontSize: 14,
+                          fontSize: 10,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
@@ -299,7 +299,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                       child: Text(
                         isCompliant ? '準拠' : '要確認',
                         style: FontSizeUtils.notoSans(
-                          fontSize: 10,
+                          fontSize: 9,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
@@ -311,7 +311,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                 Text(
                   subtitle,
                   style: FontSizeUtils.notoSans(
-                    fontSize: 12,
+                    fontSize: 10,
                     color: Colors.white.withOpacity(0.8),
                     height: 1.3,
                   ),
@@ -340,7 +340,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
       ),
       child: Row(
         children: [
-          Icon(icon, color: Colors.white.withOpacity(0.8), size: 24),
+          Icon(icon, color: Colors.white.withOpacity(0.8), size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -352,7 +352,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                       child: Text(
                         title,
                         style: FontSizeUtils.notoSans(
-                          fontSize: 14,
+                          fontSize: 10,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
@@ -368,7 +368,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                         child: Text(
                           'オプション',
                           style: FontSizeUtils.notoSans(
-                            fontSize: 10,
+                            fontSize: 9,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
@@ -380,7 +380,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                 Text(
                   subtitle,
                   style: FontSizeUtils.notoSans(
-                    fontSize: 12,
+                    fontSize: 10,
                     color: Colors.white.withOpacity(0.8),
                     height: 1.3,
                   ),
@@ -415,12 +415,12 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.data_usage, color: Colors.white, size: 24),
+              const Icon(Icons.data_usage, color: Colors.white, size: 20),
               const SizedBox(width: 12),
               Text(
                 '収集データの制限',
                 style: FontSizeUtils.notoSans(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
@@ -448,8 +448,8 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
       child: Row(
         children: [
           Container(
-            width: 20,
-            height: 20,
+            width: 18,
+            height: 18,
             decoration: BoxDecoration(
               color: isCollected ? Colors.green.withOpacity(0.7) : Colors.red.withOpacity(0.7),
               shape: BoxShape.circle,
@@ -458,7 +458,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
               child: Text(
                 status,
                 style: FontSizeUtils.notoSans(
-                  fontSize: 12,
+                  fontSize: 10,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
@@ -473,7 +473,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                 Text(
                   item,
                   style: FontSizeUtils.notoSans(
-                    fontSize: 14,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
@@ -481,7 +481,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                 Text(
                   description,
                   style: FontSizeUtils.notoSans(
-                    fontSize: 12,
+                    fontSize: 10,
                     color: Colors.white.withOpacity(0.8),
                   ),
                 ),
@@ -506,12 +506,12 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.history, color: Colors.white, size: 24),
+              const Icon(Icons.history, color: Colors.white, size: 20),
               const SizedBox(width: 12),
               Text(
                 '同意履歴',
                 style: FontSizeUtils.notoSans(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
@@ -530,7 +530,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
             Text(
               '同意履歴がありません',
               style: FontSizeUtils.notoSans(
-                fontSize: 14,
+                fontSize: 12,
                 color: Colors.white.withOpacity(0.8),
               ),
             ),
@@ -547,11 +547,11 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            width: 110,
             child: Text(
               label,
               style: FontSizeUtils.notoSans(
-                fontSize: 14,
+                fontSize: 12,
                 color: Colors.white.withOpacity(0.8),
               ),
             ),
@@ -561,7 +561,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
             child: Text(
               value,
               style: FontSizeUtils.notoSans(
-                fontSize: 14,
+                fontSize: 10,
                 color: Colors.white,
                 fontWeight: FontWeight.w500,
               ),
