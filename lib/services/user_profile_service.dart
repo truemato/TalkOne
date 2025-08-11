@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'content_filter_service.dart';
 
 class UserProfile {
   final String? nickname;
@@ -95,6 +96,7 @@ class UserProfile {
 class UserProfileService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final ContentFilterService _filterService = ContentFilterService();
   
   String? get _userId => _auth.currentUser?.uid;
   
@@ -167,11 +169,40 @@ class UserProfileService {
     try {
       final Map<String, dynamic> updateData = {};
       
-      if (nickname != null) updateData['nickname'] = nickname;
+      // コンテンツフィルタリングを適用
+      if (nickname != null) {
+        final filteredNickname = _filterService.filterText(nickname);
+        if (_filterService.containsInappropriateContent(nickname)) {
+          // 不適切な内容が含まれている場合はデフォルト値に
+          updateData['nickname'] = 'My Name';
+        } else {
+          updateData['nickname'] = filteredNickname;
+        }
+      }
+      
       if (gender != null) updateData['gender'] = gender;
       if (birthday != null) updateData['birthday'] = birthday.millisecondsSinceEpoch;
-      if (comment != null) updateData['comment'] = comment;
-      if (aiMemory != null) updateData['aiMemory'] = aiMemory;
+      
+      if (comment != null) {
+        final filteredComment = _filterService.filterText(comment);
+        if (_filterService.containsInappropriateContent(comment)) {
+          // 不適切な内容が含まれている場合は空に
+          updateData['comment'] = '';
+        } else {
+          updateData['comment'] = filteredComment;
+        }
+      }
+      
+      if (aiMemory != null) {
+        final filteredAiMemory = _filterService.filterText(aiMemory);
+        if (_filterService.containsInappropriateContent(aiMemory)) {
+          // 不適切な内容が含まれている場合は空に
+          updateData['aiMemory'] = '';
+        } else {
+          updateData['aiMemory'] = filteredAiMemory;
+        }
+      }
+      
       if (iconPath != null) updateData['iconPath'] = iconPath;
       if (themeIndex != null) updateData['themeIndex'] = themeIndex;
       if (useVoicevox != null) updateData['useVoicevox'] = useVoicevox;
@@ -184,7 +215,7 @@ class UserProfileService {
         SetOptions(merge: true),
       );
       
-      print('プロフィール一括更新成功');
+      print('プロフィール一括更新成功（フィルタリング適用済み）');
     } catch (e) {
       print('プロフィール一括更新エラー: $e');
       rethrow;

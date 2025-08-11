@@ -305,7 +305,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
           );
         }
         
-        final histories = snapshot.data ?? [];
+        final allHistories = snapshot.data ?? [];
+        
+        // ブロックしたユーザーを除外
+        final histories = allHistories
+            .where((history) => !_blockedUserIds.contains(history.partnerId))
+            .toList();
         
         if (histories.isEmpty) {
           return Center(

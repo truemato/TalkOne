@@ -5,7 +5,6 @@ import 'dart:io' show Platform;
 import '../services/auth_service.dart';
 import '../utils/theme_utils.dart';
 import 'page_view_container.dart';
-import 'privacy_compliant_login_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -126,17 +125,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 _buildAppleSignInButton(),
                 const SizedBox(height: 16),
                 
-                // プライバシー準拠ログインボタン（App Store Guideline 4.8 対応）
-                _buildPrivacyCompliantSignInButton(),
-                const SizedBox(height: 16),
-                
                 // ゲストでプレイボタン
                 _buildAnonymousSignInButton(),
                 const SizedBox(height: 24),
                 
                 // 説明テキスト
                 Text(
-                  'Apple ID、プライバシー保護ログイン、\nまたはGoogleでサインインすると、\n機種変更時もAIとの会話履歴が引き継がれます\n\n※メールアドレスは一切収集しません（App Store準拠）',
+                  'Apple IDまたはGoogleでサインインすると、\n機種変更時もAIとの会話履歴が引き継がれます\n\n※メールアドレスは一切収集しません（App Store準拠）',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.notoSans(
                     color: Colors.white.withOpacity(0.7),
@@ -238,47 +233,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildPrivacyCompliantSignInButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF6C5CE7), // プライバシー保護を表す紫色
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-          ),
-          elevation: 4,
-        ),
-        onPressed: _isLoading ? null : _handlePrivacyCompliantSignIn,
-        child: _isLoading
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.privacy_tip_outlined, size: 24),
-                  const SizedBox(width: 12),
-                  Text(
-                    'プライバシー保護ログイン',
-                    style: GoogleFonts.notoSans(
-                      fontSize: _getResponsiveFontSize(context, 12),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-      ),
-    );
-  }
-
   Widget _buildAnonymousSignInButton() {
     return SizedBox(
       width: double.infinity,
@@ -360,21 +314,6 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() {
           _isLoading = false;
         });
-      }
-    }
-  }
-
-  Future<void> _handlePrivacyCompliantSignIn() async {
-    try {
-      // プライバシー準拠ログイン画面に遷移
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => const PrivacyCompliantLoginScreen(),
-        ),
-      );
-    } catch (e) {
-      if (mounted) {
-        _showErrorMessage('プライバシー保護ログイン画面の表示に失敗しました: $e');
       }
     }
   }

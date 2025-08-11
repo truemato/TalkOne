@@ -265,8 +265,9 @@ class _EulaScreenState extends State<EulaScreen> {
 第1条（目的）
 本エンドユーザーライセンス契約（以下「本EULA」）は、TalkOne（以下「本アプリ」）の利用に関する条件を定めるものです。
 
-第2条（利用条件）
-本アプリは13歳以上の方のみご利用いただけます。未成年者は保護者の同意が必要です。
+第2条（利用条件・年齢制限）
+本アプリは18歳以上の方のみご利用いただけます。18歳未満の方はご利用になれません。
+本アプリの利用により、あなたが18歳以上であることを確認・同意したものとみなします。
 
 第3条（禁止事項）
 本アプリの利用において、以下の行為を禁止します：
@@ -301,6 +302,10 @@ class _EulaScreenState extends State<EulaScreen> {
 第11条（ゼロトレランスポリシー）
 当社は不快なコンテンツおよび不適切なユーザーを一切許容いたしません。違反が確認された場合、即座にアカウント停止等の措置を実施いたします。
 
+第12条（お問い合わせ）
+本EULAおよび本アプリに関するご質問・ご意見は下記までお問い合わせください：
+メール：mail@yoshida.com
+
 最終更新：2025年7月''',
         style: FontSizeUtils.notoSans(
           fontSize: 14,
@@ -315,8 +320,9 @@ class _EulaScreenState extends State<EulaScreen> {
 Article 1 (Purpose)
 This End User License Agreement (hereinafter referred to as "this EULA") defines the terms and conditions for using TalkOne (hereinafter referred to as "this App").
 
-Article 2 (Terms of Use)
-This App is available only to users aged 13 and above. Minors require parental consent.
+Article 2 (Terms of Use & Age Restriction)
+This App is available only to users aged 18 and above. Users under 18 are not permitted to use this App.
+By using this App, you confirm and agree that you are 18 years of age or older.
 
 Article 3 (Prohibited Activities)
 The following activities are prohibited when using this App:
@@ -350,6 +356,10 @@ This EULA is governed by Japanese law.
 
 Article 11 (Zero Tolerance Policy)
 We have zero tolerance for offensive content and inappropriate users. Any confirmed violations will result in immediate account suspension and other appropriate measures.
+
+Article 12 (Contact Information)
+For any questions or concerns regarding this EULA or the App, please contact us at:
+Email: mail@yoshida.com
 
 Last Updated: July 2025''',
         style: FontSizeUtils.notoSans(

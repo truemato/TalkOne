@@ -1,358 +1,313 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_ai/firebase_ai.dart';
 
-/// コンテンツフィルタリングの結果
-enum FilterResult {
-  safe,           // 安全
-  warning,        // 警告レベル
-  blocked,        // ブロック
-  severe,         // 重篤な違反
-}
-
-/// フィルタリング詳細結果
-class ContentFilterResult {
-  final FilterResult result;
-  final String reason;
-  final double confidence;
-  final List<String> categories;
-
-  ContentFilterResult({
-    required this.result,
-    required this.reason,
-    required this.confidence,
-    required this.categories,
-  });
-}
-
-/// 不適切コンテンツフィルタリングサービス
 class ContentFilterService {
+  static final ContentFilterService _instance = ContentFilterService._internal();
+  factory ContentFilterService() => _instance;
+  ContentFilterService._internal();
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  /// テキストコンテンツをフィルタリング
-  Future<ContentFilterResult> filterText(String text) async {
-    try {
-      // 基本的なキーワードフィルタリング
-      final basicResult = _basicKeywordFilter(text);
-      if (basicResult.result != FilterResult.safe) {
-        await _logFilterResult(text, basicResult);
-        return basicResult;
-      }
-
-      // AIによる高度フィルタリング
-      final aiResult = await _aiContentFilter(text);
-      await _logFilterResult(text, aiResult);
-      
-      return aiResult;
-    } catch (e) {
-      print('コンテンツフィルタリングエラー: $e');
-      // エラー時は安全側に倒してフィルタリング
-      return ContentFilterResult(
-        result: FilterResult.warning,
-        reason: 'フィルタリングエラーが発生しました',
-        confidence: 0.5,
-        categories: ['error'],
-      );
-    }
-  }
-
-  /// 基本的なキーワードベースフィルタリング
-  ContentFilterResult _basicKeywordFilter(String text) {
-    final normalizedText = text.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+  // 日本語と英語の不適切な単語リスト（基本的なもの）
+  final List<String> _profanityList = [
+    // 日本語の不適切な表現
+    '死ね', '殺す', 'バカ', 'アホ', 'クソ', 'ブス', 'デブ', 
+    'キモい', 'ウザい', 'ゴミ', 'クズ', '消えろ', 'きもい',
+    'うざい', 'しね', 'ころす', 'ばか', 'あほ', 'くそ',
+    'うんち', 'うんこ', 'ウンチ', 'ウンコ', 'うんk',
+    '池沼', 'いけぬま', 'ガイジ', 'がいじ', 'キチガイ', 'きちがい',
+    '知恵遅れ', 'ちえおくれ', '障害者', 'しょうがいしゃ', 'カタワ', 'かたわ',
+    '土人', 'どじん', 'チョン', 'ちょん', 'シナ', 'しな',
+    '朝鮮人', 'ちょうせんじん', '韓国人', '中国人', '外人', 'がいじん',
+    'ニガー', 'にがー', 'イエロー', 'いえろー', 
+    '部落', 'ぶらく', '同和', 'どうわ', 'エタ', 'えた', 'ヒニン', 'ひにん',
+    '在日', 'ざいにち', 'Bチク', 'bちく', '朝鮮', 'ちょうせん',
+    'メクラ', 'めくら', 'ツンボ', 'つんぼ', 'オシ', 'おし',
+    'ビッチ', 'びっち', 'ヤリマン', 'やりまん', '売春婦', 'ばいしゅんふ',
+    '手押し', 'ておし', 'テオシ',
     
-    // 重篤な違反キーワード
-    final severeKeywords = [
-      'kill', 'die', 'death', 'suicide', 'murder',
-      '殺', '死', '自殺', '殺人', '暴力',
-      '薬物', 'ドラッグ', '麻薬',
-    ];
+    // 英語の不適切な表現
+    'fuck', 'shit', 'damn', 'hell', 'bitch', 'ass', 'dick',
+    'pussy', 'cock', 'bastard', 'idiot', 'stupid', 'moron',
+    'cunt', 'racist', 'rasist', 'nazi', 'nachi',
+    'faggot', 'retard', 'dumb', 'rape', 'raping', 'rapist',
+    'nigger', 'nigga', 'chink', 'gook', 'jap', 'kike',
+    'spic', 'wetback', 'towelhead', 'camel jockey', 'sand nigger',
+    'white trash', 'cracker', 'honky', 'yellow', 'oriental',
+    'midget', 'dwarf', 'cripple', 'gimp', 'lunatic', 'psycho',
+    'whore', 'slut', 'prostitute', 'hooker', 'escort', 'thot',
+    'blind', 'deaf', 'mute', 'spastic', 'mongoloid', 'imbecile',
+    'savage', 'barbarian', 'primitive', 'tribal', 'heathen',
+    'communist', 'commie', 'fascist', 'nazi', 'hitler', 'stalin',
+    'isis', 'jihad', 'infidel', 'kafir', 'goyim',
     
-    // ブロック対象キーワード
-    final blockedKeywords = [
-      'sex', 'porn', 'nude', 'naked',
-      'セックス', 'エッチ', 'えっち', 'アダルト',
-      '住所', '電話番号', 'line', 'ライン',
-      'money', 'お金', '金', 'ビットコイン',
-    ];
+    // 性的な内容
+    'セックス', 'sex', 'porn', 'エロ', 'えろ', 'ポルノ',
+    '野獣', '淫夢', '4545', '1919', '女装', 'アナル', 'あなる',
+    'anal', '尻穴', 'けつあな', 'ケツアナ',
+    'まんこ', 'マンコ', 'ちんぽ', 'チンポ', 'ちんかす', 'チンカス',
+    '恥丘', '恥垢', '性器', 'マラ', 'まら', '巨乳', 'フェラ', 'ふぇら',
+    'うんぽこ', 'ウンポコ', 'penis', 'vagina', 'fellatio',
     
-    // 警告キーワード
-    final warningKeywords = [
-      'stupid', 'idiot', 'hate', 'ugly',
-      'バカ', 'あほ', '馬鹿', 'クズ', 'ブス',
-      '嫌い', 'うざい', 'きもい',
-    ];
+    // 暴力的な内容
+    '暴力', '虐待', '自殺', 'violence', 'abuse', 'suicide',
+    '殺害', '殺人', 'さつじん', '爆弾', 'ばくだん', 'テロ', 'てろ',
+    '麻薬', 'まやく', '覚醒剤', 'かくせいざい', '大麻', 'たいま',
+    'ヘロイン', 'へろいん', 'コカイン', 'こかいん', '薬物', 'やくぶつ',
+    'murder', 'kill', 'bomb', 'terrorist', 'terrorism', 'torture',
+    'kidnap', 'assault', 'death threat', 'shooting', 'stabbing',
+    'drugs', 'cocaine', 'heroin', 'meth', 'marijuana', 'weed',
+    'crack', 'ecstasy', 'lsd', 'mdma', 'dealer', 'trafficking',
+    
+    // 差別的な内容（LGBT差別用語）
+    'ゲイ', 'レズ', 'ホモ', 'オカマ', 'gay', 'lesbian', 'homo',
+    'GAY', 'おかま', 'おなべ', 'オナベ', 'ニューハーフ', 
+    'トランス', 'レズビアン', 'faggot', 'fag', 'dyke',
+    'tranny', 'shemale', 'ネカマ', 'オトコノコ', 'おとこのこ',
+    'ホモ', 'HOMO', 'homo',
+    
+    // ハラスメント
+    'セクハラ', 'パワハラ', 'いじめ', 'harassment', 'bully',
+    
+    // 外部サービス誘導防止（個人情報保護・プライバシー保護）
+    'line', 'LINE', 'ライン', 'らいん', 
+    'twitter', 'TWITTER', 'ツイッター', 'つい', 'ツイ',
+    'facebook', 'FACEBOOK', 'フェイスブック', 'ふぇいすぶっく', 'fb', 'FB',
+    'instagram', 'INSTAGRAM', 'インスタ', 'いんすた', 'インスタグラム',
+    'tiktok', 'TIKTOK', 'ティックトック', 'てぃっくとっく',
+    'discord', 'DISCORD', 'ディスコード', 'でぃすこーど',
+    'skype', 'SKYPE', 'スカイプ', 'すかいぷ',
+    'telegram', 'TELEGRAM', 'テレグラム', 'てれぐらむ',
+    'whatsapp', 'WHATSAPP', 'ワッツアップ', 'わっつあっぷ',
+    'snapchat', 'SNAPCHAT', 'スナップチャット', 'すなっぷちゃっと',
+    'youtube', 'YOUTUBE', 'ユーチューブ', 'ゆーちゅーぶ', 'ようつべ',
+    'gmail', 'GMAIL', 'ジーメール', 'じーめーる',
+    'yahoo', 'YAHOO', 'ヤフー', 'やふー',
+    'zoom', 'ZOOM', 'ズーム', 'ずーむ',
+    'teams', 'TEAMS', 'チームズ', 'ちーむず',
+    'slack', 'SLACK', 'スラック', 'すらっく',
+  ];
 
-    for (final keyword in severeKeywords) {
-      if (normalizedText.contains(keyword)) {
-        return ContentFilterResult(
-          result: FilterResult.severe,
-          reason: '重篤な不適切コンテンツが検出されました',
-          confidence: 1.0,
-          categories: ['violence', 'self_harm'],
-        );
-      }
+  // メッセージレート制限（1分間に10メッセージまで）
+  final Map<String, List<DateTime>> _messageTimestamps = {};
+  final int _maxMessagesPerMinute = 10;
+
+  /// テキストをフィルタリング
+  String filterText(String text) {
+    if (text.isEmpty) return text;
+    
+    String filtered = text;
+    
+    // 不適切な単語を***に置換
+    for (String word in _profanityList) {
+      // 大文字小文字を区別せずに置換
+      RegExp regex = RegExp(word, caseSensitive: false);
+      filtered = filtered.replaceAll(regex, '*' * word.length);
     }
-
-    for (final keyword in blockedKeywords) {
-      if (normalizedText.contains(keyword)) {
-        return ContentFilterResult(
-          result: FilterResult.blocked,
-          reason: '不適切なコンテンツが検出されました',
-          confidence: 0.9,
-          categories: ['adult', 'personal_info'],
-        );
-      }
-    }
-
-    for (final keyword in warningKeywords) {
-      if (normalizedText.contains(keyword)) {
-        return ContentFilterResult(
-          result: FilterResult.warning,
-          reason: '不適切な表現が含まれています',
-          confidence: 0.7,
-          categories: ['harassment'],
-        );
-      }
-    }
-
-    return ContentFilterResult(
-      result: FilterResult.safe,
-      reason: '問題ありません',
-      confidence: 0.8,
-      categories: [],
+    
+    // 過度な記号の繰り返しを制限（3回まで）
+    filtered = filtered.replaceAllMapped(
+      RegExp(r'([!?！？。、,.])\1{3,}'),
+      (match) => match.group(1)! * 3,
     );
+    
+    // 過度な改行を制限（2回まで）
+    filtered = filtered.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+    
+    return filtered;
   }
 
-  /// AIによる高度なコンテンツフィルタリング
-  Future<ContentFilterResult> _aiContentFilter(String text) async {
-    try {
-      final prompt = '''
-以下のテキストが不適切なコンテンツを含んでいるかを判定してください。
-
-判定基準：
-1. 暴力的な内容
-2. 性的な内容
-3. 個人情報（住所、電話番号、SNSアカウント等）
-4. ヘイトスピーチ・差別的発言
-5. 自傷・自殺に関する内容
-6. 薬物・違法行為
-7. 嫌がらせ・誹謗中傷
-
-テキスト: "$text"
-
-以下の形式で回答してください：
-結果: [SAFE/WARNING/BLOCKED/SEVERE]
-理由: [具体的な理由]
-信頼度: [0.0-1.0]
-カテゴリ: [該当するカテゴリをカンマ区切り]
-''';
-
-      final model = FirebaseAI.googleAI().generativeModel(model: 'gemini-2.0-flash-exp');
-      final response = await model.generateContent([Content.text(prompt)]);
-      
-      if (response.text != null) {
-        return _parseAIResponse(response.text!);
+  /// テキストに不適切な内容が含まれているかチェック
+  bool containsInappropriateContent(String text) {
+    if (text.isEmpty) return false;
+    
+    String lowerText = text.toLowerCase();
+    
+    for (String word in _profanityList) {
+      if (lowerText.contains(word.toLowerCase())) {
+        return true;
       }
+    }
+    
+    // URLやメールアドレス、@マークの検出（個人情報保護・外部誘導防止）
+    RegExp urlRegex = RegExp(
+      r'https?://[^\s]+|www\.[^\s]+|\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b|@',
+      caseSensitive: false,
+    );
+    if (urlRegex.hasMatch(text)) {
+      return true;
+    }
+    
+    // 電話番号の検出（個人情報保護）
+    RegExp phoneRegex = RegExp(
+      r'(\+?\d{1,4}[\s-]?)?\(?\d{1,4}\)?[\s-]?\d{1,4}[\s-]?\d{1,4}',
+    );
+    if (phoneRegex.hasMatch(text)) {
+      return true;
+    }
+    
+    return false;
+  }
+
+  /// メッセージレート制限チェック
+  bool isRateLimited(String userId) {
+    final now = DateTime.now();
+    final oneMinuteAgo = now.subtract(const Duration(minutes: 1));
+    
+    // ユーザーのタイムスタンプリストを取得または作成
+    if (!_messageTimestamps.containsKey(userId)) {
+      _messageTimestamps[userId] = [];
+    }
+    
+    // 1分以内のメッセージをフィルタリング
+    _messageTimestamps[userId] = _messageTimestamps[userId]!
+        .where((timestamp) => timestamp.isAfter(oneMinuteAgo))
+        .toList();
+    
+    // レート制限チェック
+    if (_messageTimestamps[userId]!.length >= _maxMessagesPerMinute) {
+      return true;
+    }
+    
+    // 新しいタイムスタンプを追加
+    _messageTimestamps[userId]!.add(now);
+    return false;
+  }
+
+  /// プロフィール内容をフィルタリング
+  Map<String, dynamic> filterProfile(Map<String, dynamic> profile) {
+    Map<String, dynamic> filtered = Map.from(profile);
+    
+    // ニックネームをフィルタリング
+    if (filtered['nickname'] != null) {
+      filtered['nickname'] = filterText(filtered['nickname']);
       
-      return ContentFilterResult(
-        result: FilterResult.safe,
-        reason: 'AI判定完了',
-        confidence: 0.8,
-        categories: [],
-      );
+      // 不適切な内容が含まれている場合はデフォルト値に
+      if (containsInappropriateContent(filtered['nickname'])) {
+        filtered['nickname'] = 'ユーザー';
+      }
+    }
+    
+    // コメントをフィルタリング
+    if (filtered['comment'] != null) {
+      filtered['comment'] = filterText(filtered['comment']);
+      
+      // 不適切な内容が含まれている場合は空に
+      if (containsInappropriateContent(filtered['comment'])) {
+        filtered['comment'] = '';
+      }
+    }
+    
+    // AIメモリーをフィルタリング
+    if (filtered['aiMemory'] != null) {
+      filtered['aiMemory'] = filterText(filtered['aiMemory']);
+      
+      // 不適切な内容が含まれている場合は空に
+      if (containsInappropriateContent(filtered['aiMemory'])) {
+        filtered['aiMemory'] = '';
+      }
+    }
+    
+    return filtered;
+  }
+
+  /// 不適切なコンテンツを報告
+  Future<void> reportInappropriateContent({
+    required String reporterId,
+    required String reportedUserId,
+    required String contentType,
+    required String content,
+    String? reason,
+  }) async {
+    try {
+      await _firestore.collection('content_reports').add({
+        'reporterId': reporterId,
+        'reportedUserId': reportedUserId,
+        'contentType': contentType,
+        'content': content,
+        'reason': reason,
+        'timestamp': FieldValue.serverTimestamp(),
+        'status': 'pending',
+        'reviewedAt': null,
+        'reviewedBy': null,
+        'action': null,
+      });
     } catch (e) {
-      print('AI フィルタリングエラー: $e');
-      return ContentFilterResult(
-        result: FilterResult.safe,
-        reason: 'AI判定スキップ',
-        confidence: 0.5,
-        categories: [],
-      );
+      print('Error reporting content: $e');
     }
   }
 
-  /// AI応答をパース
-  ContentFilterResult _parseAIResponse(String response) {
+  /// フィルタリング辞書を更新（管理者用）
+  Future<void> updateProfanityList(List<String> newWords) async {
     try {
-      final lines = response.split('\n');
-      FilterResult result = FilterResult.safe;
-      String reason = '問題ありません';
-      double confidence = 0.8;
-      List<String> categories = [];
-
-      for (final line in lines) {
-        if (line.startsWith('結果:')) {
-          final resultStr = line.substring(3).trim();
-          switch (resultStr) {
-            case 'WARNING':
-              result = FilterResult.warning;
-              break;
-            case 'BLOCKED':
-              result = FilterResult.blocked;
-              break;
-            case 'SEVERE':
-              result = FilterResult.severe;
-              break;
-            default:
-              result = FilterResult.safe;
-          }
-        } else if (line.startsWith('理由:')) {
-          reason = line.substring(3).trim();
-        } else if (line.startsWith('信頼度:')) {
-          final confidenceStr = line.substring(4).trim();
-          confidence = double.tryParse(confidenceStr) ?? 0.8;
-        } else if (line.startsWith('カテゴリ:')) {
-          final categoryStr = line.substring(5).trim();
-          categories = categoryStr.split(',').map((e) => e.trim()).toList();
+      // Firestoreから最新の禁止ワードリストを取得
+      final doc = await _firestore.collection('settings').doc('profanity_filter').get();
+      
+      if (doc.exists) {
+        final data = doc.data();
+        if (data != null && data['words'] != null) {
+          _profanityList.clear();
+          _profanityList.addAll(List<String>.from(data['words']));
         }
       }
-
-      return ContentFilterResult(
-        result: result,
-        reason: reason,
-        confidence: confidence,
-        categories: categories,
-      );
-    } catch (e) {
-      print('AI応答パースエラー: $e');
-      return ContentFilterResult(
-        result: FilterResult.warning,
-        reason: 'AI応答の解析に失敗しました',
-        confidence: 0.5,
-        categories: ['parse_error'],
-      );
-    }
-  }
-
-  /// フィルタリング結果をログに記録
-  Future<void> _logFilterResult(String text, ContentFilterResult result) async {
-    try {
-      final userId = _auth.currentUser?.uid;
-      if (userId == null) return;
-
-      await _firestore.collection('contentFilterLogs').add({
-        'userId': userId,
-        'text': text,
-        'result': result.result.toString(),
-        'reason': result.reason,
-        'confidence': result.confidence,
-        'categories': result.categories,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-
-      // 重篤な違反の場合は管理者通知
-      if (result.result == FilterResult.severe) {
-        await _sendAdminAlert(userId, text, result);
-      }
-    } catch (e) {
-      print('フィルターログ記録エラー: $e');
-    }
-  }
-
-  /// 管理者アラート送信
-  Future<void> _sendAdminAlert(String userId, String text, ContentFilterResult result) async {
-    try {
-      await _firestore.collection('adminAlerts').add({
-        'type': 'severe_content_violation',
-        'userId': userId,
-        'text': text,
-        'filterResult': {
-          'result': result.result.toString(),
-          'reason': result.reason,
-          'confidence': result.confidence,
-          'categories': result.categories,
-        },
-        'timestamp': FieldValue.serverTimestamp(),
-        'resolved': false,
-      });
-    } catch (e) {
-      print('管理者アラート送信エラー: $e');
-    }
-  }
-
-  /// ユーザーの違反履歴を取得
-  Future<List<Map<String, dynamic>>> getUserViolationHistory(String userId) async {
-    try {
-      final query = await _firestore
-          .collection('contentFilterLogs')
-          .where('userId', isEqualTo: userId)
-          .where('result', whereIn: ['blocked', 'severe'])
-          .orderBy('timestamp', descending: true)
-          .limit(50)
-          .get();
-
-      return query.docs.map((doc) => {
-        'id': doc.id,
-        ...doc.data(),
-      }).toList();
-    } catch (e) {
-      print('違反履歴取得エラー: $e');
-      return [];
-    }
-  }
-
-  /// ユーザーの警告回数を取得
-  Future<int> getUserWarningCount(String userId, {Duration? period}) async {
-    try {
-      DateTime? startTime;
-      if (period != null) {
-        startTime = DateTime.now().subtract(period);
-      }
-
-      Query query = _firestore
-          .collection('contentFilterLogs')
-          .where('userId', isEqualTo: userId)
-          .where('result', whereIn: ['warning', 'blocked', 'severe']);
-
-      if (startTime != null) {
-        query = query.where('timestamp', isGreaterThan: Timestamp.fromDate(startTime));
-      }
-
-      final result = await query.get();
-      return result.docs.length;
-    } catch (e) {
-      print('警告回数取得エラー: $e');
-      return 0;
-    }
-  }
-
-  /// コンテンツフィルタリングの統計を取得
-  Future<Map<String, dynamic>> getFilteringStats() async {
-    try {
-      final oneDay = DateTime.now().subtract(const Duration(days: 1));
-      final oneWeek = DateTime.now().subtract(const Duration(days: 7));
-
-      final todayQuery = await _firestore
-          .collection('contentFilterLogs')
-          .where('timestamp', isGreaterThan: Timestamp.fromDate(oneDay))
-          .get();
-
-      final weekQuery = await _firestore
-          .collection('contentFilterLogs')
-          .where('timestamp', isGreaterThan: Timestamp.fromDate(oneWeek))
-          .get();
-
-      final todayBlocked = todayQuery.docs.where((doc) => 
-        ['blocked', 'severe'].contains(doc.data()['result'])).length;
       
-      final weekBlocked = weekQuery.docs.where((doc) => 
-        ['blocked', 'severe'].contains(doc.data()['result'])).length;
-
-      return {
-        'todayTotal': todayQuery.docs.length,
-        'todayBlocked': todayBlocked,
-        'weekTotal': weekQuery.docs.length,
-        'weekBlocked': weekBlocked,
-      };
+      // 新しい単語を追加
+      if (newWords.isNotEmpty) {
+        _profanityList.addAll(newWords);
+        
+        // Firestoreに保存
+        await _firestore.collection('settings').doc('profanity_filter').set({
+          'words': _profanityList,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
     } catch (e) {
-      print('統計取得エラー: $e');
-      return {
-        'todayTotal': 0,
-        'todayBlocked': 0,
-        'weekTotal': 0,
-        'weekBlocked': 0,
-      };
+      print('Error updating profanity list: $e');
     }
+  }
+
+  /// コンテンツの安全性スコアを計算（0-100、100が最も安全）
+  int calculateSafetyScore(String text) {
+    if (text.isEmpty) return 100;
+    
+    int score = 100;
+    
+    // 不適切な単語の数に応じてスコアを減少
+    String lowerText = text.toLowerCase();
+    for (String word in _profanityList) {
+      if (lowerText.contains(word.toLowerCase())) {
+        score -= 20;
+      }
+    }
+    
+    // URLやメールアドレスが含まれている場合
+    RegExp urlRegex = RegExp(
+      r'https?://[^\s]+|www\.[^\s]+|\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
+      caseSensitive: false,
+    );
+    if (urlRegex.hasMatch(text)) {
+      score -= 30;
+    }
+    
+    // 電話番号が含まれている場合
+    RegExp phoneRegex = RegExp(
+      r'(\+?\d{1,4}[\s-]?)?\(?\d{1,4}\)?[\s-]?\d{1,4}[\s-]?\d{1,4}',
+    );
+    if (phoneRegex.hasMatch(text)) {
+      score -= 30;
+    }
+    
+    // 過度な大文字の使用
+    int upperCount = text.replaceAll(RegExp(r'[^A-Z]'), '').length;
+    if (text.length > 10 && upperCount / text.length > 0.5) {
+      score -= 10;
+    }
+    
+    // 過度な記号の使用
+    int symbolCount = text.replaceAll(RegExp(r'[a-zA-Z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\s]'), '').length;
+    if (text.length > 10 && symbolCount / text.length > 0.3) {
+      score -= 10;
+    }
+    
+    return score.clamp(0, 100);
   }
 }

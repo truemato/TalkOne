@@ -64,7 +64,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
     final profile = await _userProfileService.getUserProfile();
     if (profile != null && mounted) {
       setState(() {
-        _nicknameController.text = profile.nickname ?? '';
+        _nicknameController.text = profile.nickname ?? 'My Name';
         _selectedGender = profile.gender;
         _selectedDate = profile.birthday;
         _commentController.text = profile.comment ?? '';
@@ -160,6 +160,89 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
         setState(() {
           _isLoading = false;
         });
+      }
+    }
+  }
+
+  Future<void> _deleteProfileContent() async {
+    // 確認ダイアログを表示
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'プロフィール内容を削除',
+          style: GoogleFonts.notoSans(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'プロフィールの内容（ニックネーム、コメント、AIメモリー）を削除しますか？\nこの操作は取り消せません。',
+          style: GoogleFonts.notoSans(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'いいえ',
+              style: GoogleFonts.notoSans(color: Colors.grey),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(
+              'はい、削除します',
+              style: GoogleFonts.notoSans(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        // プロフィール内容を削除（性別と誕生日は残す）
+        await _userProfileService.updateProfile(
+          nickname: 'My Name', // デフォルト値に戻す
+          gender: _selectedGender,
+          birthday: _selectedDate,
+          comment: '',
+          aiMemory: '',
+        );
+
+        // UIも更新
+        _nicknameController.text = 'My Name';
+        _commentController.text = '';
+        _aiMemoController.text = '';
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('プロフィール内容を削除しました'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('削除に失敗しました: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }
@@ -320,6 +403,36 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // プロフィール削除ボタン
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: _isLoading ? null : _deleteProfileContent,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red, width: 2),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.delete_outline, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'プロフィール内容を削除',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],

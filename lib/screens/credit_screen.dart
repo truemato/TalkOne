@@ -160,6 +160,59 @@ class _CreditScreenState extends State<CreditScreen> {
                       textAlign: TextAlign.left,
                     ),
                   ),
+                  const SizedBox(height: 24),
+                  // お問い合わせ情報
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 2,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.mail_outline,
+                          color: _currentThemeColor,
+                          size: 32,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'お問い合わせ',
+                          style: GoogleFonts.notoSans(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SelectableText(
+                          'mail@yoshida.com',
+                          style: GoogleFonts.notoSans(
+                            fontSize: 16,
+                            color: _currentThemeColor,
+                            decoration: TextDecoration.underline,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'ご質問・ご要望・不具合報告など\nお気軽にお問い合わせください',
+                          style: GoogleFonts.notoSans(
+                            fontSize: 13,
+                            color: Colors.black54,
+                            height: 1.5,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),

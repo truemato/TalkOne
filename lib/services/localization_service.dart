@@ -464,6 +464,16 @@ class LocalizationService extends ChangeNotifier {
       'settings_account_delete_failed': 'アカウントの削除に失敗しました。再度お試しください。',
       'credit_title': 'クレジット表記',
       'credit_acknowledgments': '謝辞',
+      
+      // アカウントリンク機能
+      'settings_link_account_title': 'アカウント連携',
+      'settings_link_account_description': 'Apple IDまたはGoogleアカウントと連携すると、機種変更時もデータが引き継がれます',
+      'settings_link_apple': 'Apple IDと連携',
+      'settings_link_google': 'Googleと連携',
+      'settings_link_success_apple': 'Apple IDとの連携が完了しました',
+      'settings_link_success_google': 'Googleアカウントとの連携が完了しました',
+      'settings_link_error': '連携に失敗しました: {error}',
+      'settings_privacy': 'プライバシー設定',
     },
     
     'en': {
@@ -877,6 +887,16 @@ class LocalizationService extends ChangeNotifier {
       'settings_account_delete_failed': 'Failed to delete account. Please try again.',
       'credit_title': 'Credits',
       'credit_acknowledgments': 'Acknowledgments',
+      
+      // Account Linking Feature
+      'settings_link_account_title': 'Link Account',
+      'settings_link_account_description': 'Link with Apple ID or Google Account to preserve data when changing devices',
+      'settings_link_apple': 'Link with Apple ID',
+      'settings_link_google': 'Link with Google',
+      'settings_link_success_apple': 'Successfully linked with Apple ID',
+      'settings_link_success_google': 'Successfully linked with Google Account',
+      'settings_link_error': 'Failed to link: {error}',
+      'settings_privacy': 'Privacy Settings',
       
       // Achievements
       'achievement_bronze': 'Bronze',

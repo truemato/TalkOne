@@ -38,7 +38,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
   final BlockService _blockService = BlockService();
   
   // パートナー情報
-  String? _partnerNickname = 'ずんだもん';
+  String? _partnerNickname = 'My Name';
   String? _partnerGender = '回答しない';
   String? _partnerComment = 'よろしくお願いします！'; // ダミー
   String? _partnerIconPath = 'aseets/icons/Woman 1.svg';
@@ -59,7 +59,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
       
       if (profile != null && mounted) {
         setState(() {
-          _partnerNickname = profile.nickname ?? 'ユーザー';
+          _partnerNickname = profile.nickname ?? 'My Name';
           _partnerGender = profile.gender ?? '未設定';
           _partnerComment = profile.comment ?? 'よろしくお願いします！';
           _partnerIconPath = profile.iconPath ?? 'aseets/icons/Woman 1.svg';
@@ -75,7 +75,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
         // プロフィールが見つからない場合はデフォルト値を設定
         if (mounted) {
           setState(() {
-            _partnerNickname = 'ユーザー';
+            _partnerNickname = 'My Name';
             _partnerGender = '未設定';
             _partnerComment = 'よろしくお願いします！';
             _partnerIconPath = 'aseets/icons/Woman 1.svg';
@@ -89,7 +89,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
       print('パートナープロフィール読み込みエラー: $e');
       if (mounted) {
         setState(() {
-          _partnerNickname = 'ユーザー';
+          _partnerNickname = 'My Name';
           _partnerGender = '未設定';
           _partnerComment = 'よろしくお願いします！';
           _partnerIconPath = 'aseets/icons/Woman 1.svg';
@@ -398,7 +398,7 @@ class _PartnerProfileScreenState extends State<PartnerProfileScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            _partnerNickname ?? 'ユーザー',
+            _partnerNickname ?? 'My Name',
             style: GoogleFonts.notoSans(
               color: Colors.white,
               fontSize: 16,

@@ -8,6 +8,7 @@ import '../services/agora_call_service.dart';
 import '../services/evaluation_service.dart';
 import '../services/rating_service.dart';
 import '../services/localization_service.dart';
+import '../services/report_service.dart';
 import 'evaluation_screen.dart';
 import 'partner_profile_screen.dart';
 import '../utils/theme_utils.dart';
@@ -44,8 +45,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   final EvaluationService _evaluationService = EvaluationService();
   final RatingService _ratingService = RatingService();
   final LocalizationService _localizationService = LocalizationService();
+  final ReportService _reportService = ReportService();
   String? _selectedIconPath = 'aseets/icons/Woman 1.svg';
-  String _partnerNickname = 'Unknown';
+  String _partnerNickname = 'My Name';
   
   // Agora関連の状態
   bool _isConnected = false;
@@ -625,6 +627,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
+        // 通報ボタン
+        _buildReportButton(),
+        
         // ミュートボタン
         Container(
           width: 60,
@@ -715,6 +720,110 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         ),
       ),
     );
+  }
+
+  /// 通報ボタン
+  Widget _buildReportButton() {
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.9),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(30),
+          onTap: _isReporting ? null : _showReportDialog,
+          child: const Icon(
+            Icons.flag,
+            color: Colors.white,
+            size: 28,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 通報ダイアログを表示
+  Future<void> _showReportDialog() async {
+    final result = await showDialog<ReportCategory>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => _ReportDialog(
+        partnerId: widget.partnerId,
+        partnerNickname: _partnerNickname,
+      ),
+    );
+
+    if (result != null) {
+      await _reportUser(result);
+    }
+  }
+
+  /// ユーザーを通報
+  Future<void> _reportUser(ReportCategory category) async {
+    setState(() {
+      _isReporting = true;
+    });
+
+    try {
+      // 通話時間を計算
+      final callDuration = _callStartTime != null 
+          ? DateTime.now().difference(_callStartTime!).inSeconds 
+          : 0;
+
+      // 通報を送信（自動ブロック含む）
+      final success = await _reportService.reportCall(
+        partnerId: widget.partnerId,
+        callId: widget.callId,
+        category: category,
+        timestamp: callDuration,
+      );
+
+      if (success && mounted) {
+        // 成功メッセージを表示
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '通報しました。相手をブロックしました。',
+              style: FontSizeUtils.notoSans(fontSize: 14, color: Colors.white),
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // 通話を終了
+        _endCall();
+      }
+    } catch (e) {
+      print('通報エラー: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '通報に失敗しました',
+              style: FontSizeUtils.notoSans(fontSize: 14, color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isReporting = false;
+        });
+      }
+    }
   }
 
   /// 緊急通報確認ダイアログ
@@ -862,6 +971,118 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           _isReporting = false;
         });
       }
+    }
+  }
+}
+
+/// 通報ダイアログ
+class _ReportDialog extends StatelessWidget {
+  final String partnerId;
+  final String partnerNickname;
+
+  const _ReportDialog({
+    required this.partnerId,
+    required this.partnerNickname,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      title: Row(
+        children: [
+          const Icon(Icons.flag, color: Colors.red, size: 28),
+          const SizedBox(width: 12),
+          Text(
+            '$partnerNickname を通報',
+            style: FontSizeUtils.notoSans(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '不適切な行為の理由を選択してください：',
+            style: FontSizeUtils.notoSans(fontSize: 14),
+          ),
+          const SizedBox(height: 16),
+          ...ReportCategory.values.map((category) => 
+            _buildCategoryTile(context, category)
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '⚠️ 通報すると相手を自動的にブロックし、今後マッチングしなくなります。',
+              style: FontSizeUtils.notoSans(
+                fontSize: 12,
+                color: Colors.orange[800],
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(
+            'キャンセル',
+            style: FontSizeUtils.notoSans(fontSize: 14, color: Colors.grey[600]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCategoryTile(BuildContext context, ReportCategory category) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(
+        _getCategoryIcon(category),
+        color: Colors.red,
+        size: 20,
+      ),
+      title: Text(
+        category.displayName,
+        style: FontSizeUtils.notoSans(fontSize: 14, fontWeight: FontWeight.w500),
+      ),
+      subtitle: Text(
+        category.description,
+        style: FontSizeUtils.notoSans(fontSize: 12, color: Colors.grey[600]),
+      ),
+      onTap: () => Navigator.of(context).pop(category),
+    );
+  }
+
+  IconData _getCategoryIcon(ReportCategory category) {
+    switch (category) {
+      case ReportCategory.harassment:
+        return Icons.person_off;
+      case ReportCategory.inappropriateContent:
+        return Icons.block;
+      case ReportCategory.spam:
+        return Icons.report;
+      case ReportCategory.impersonation:
+        return Icons.face;
+      case ReportCategory.violence:
+        return Icons.dangerous;
+      case ReportCategory.hateSpeech:
+        return Icons.speaker_notes_off;
+      case ReportCategory.sexualContent:
+        return Icons.warning;
+      case ReportCategory.other:
+        return Icons.help_outline;
     }
   }
 }

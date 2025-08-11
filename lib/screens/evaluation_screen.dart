@@ -8,6 +8,7 @@ import '../services/evaluation_service.dart';
 import '../services/user_profile_service.dart';
 import '../services/call_history_service.dart';
 import '../services/localization_service.dart';
+import '../services/block_service.dart';
 import 'rematch_or_home_screen.dart';
 import 'partner_profile_screen.dart';
 import '../utils/theme_utils.dart';
@@ -41,6 +42,7 @@ class _EvaluationScreenState extends State<EvaluationScreen>
   final UserProfileService _userProfileService = UserProfileService();
   final CallHistoryService _callHistoryService = CallHistoryService();
   final LocalizationService _localizationService = LocalizationService();
+  final BlockService _blockService = BlockService();
 
   // 相手のアイコンとテーマ
   String? _selectedIconPath = 'aseets/icons/Woman 1.svg';

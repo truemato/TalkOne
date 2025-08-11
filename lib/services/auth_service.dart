@@ -195,6 +195,88 @@ class AuthService {
     }
   }
 
+  // 匿名アカウントをApple IDにリンク（データ保持）
+  Future<UserCredential?> linkAnonymousWithApple() async {
+    try {
+      if (currentUser == null || !currentUser!.isAnonymous) {
+        print('匿名ユーザーではありません');
+        return null;
+      }
+
+      print('=== 匿名アカウントからApple IDアカウントへの移行開始 ===');
+      final String anonymousUid = currentUser!.uid;
+      print('匿名UID: $anonymousUid');
+      
+      // 匿名ユーザーのデータをバックアップ
+      print('📦 匿名ユーザーデータのバックアップ中...');
+      final guestData = await _backupAnonymousUserData(anonymousUid);
+
+      // Apple認証が利用可能かチェック
+      final isAvailable = await SignInWithApple.isAvailable();
+      print('Apple Sign In可用性: $isAvailable');
+      if (!isAvailable) {
+        print('❌ Apple Sign Inが利用できません');
+        throw Exception('Apple Sign Inがサポートされていません');
+      }
+
+      // Apple認証フローを開始
+      print('🔑 Apple認証ダイアログを表示中...');
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+      
+      print('✅ Apple認証成功: ${appleCredential.userIdentifier}');
+
+      // Firebase認証用のクレデンシャルを作成
+      final oauthCredential = OAuthProvider("apple.com").credential(
+        idToken: appleCredential.identityToken,
+        accessToken: appleCredential.authorizationCode,
+      );
+
+      // 匿名アカウントにApple IDをリンク
+      final UserCredential userCredential = await currentUser!.linkWithCredential(oauthCredential);
+      
+      print('✅ アカウントリンク成功: ${userCredential.user?.uid}');
+      
+      // データが保持されているか確認（UIDは変わらないはず）
+      if (guestData != null) {
+        print('✅ ゲストデータが保持されました');
+        await _markDataAsMigrated(userCredential.user!.uid);
+      }
+      
+      return userCredential;
+    } catch (e) {
+      print('❌ Apple IDアカウントリンクエラー: $e');
+      
+      // 既に同じApple IDでアカウントが存在する場合の処理
+      if (e is FirebaseAuthException && e.code == 'credential-already-in-use') {
+        print('🔄 既存のApple IDアカウントに移行します');
+        
+        // 現在の匿名データをバックアップ
+        final anonymousUid = currentUser?.uid;
+        Map<String, dynamic>? guestData;
+        if (anonymousUid != null) {
+          guestData = await _backupAnonymousUserData(anonymousUid);
+        }
+        
+        // 既存アカウントでサインイン
+        final existingUserCredential = await signInWithApple();
+        
+        // ゲストデータがあれば、既存ユーザーデータと統合
+        if (existingUserCredential != null && guestData != null) {
+          await _mergeGuestDataToExistingUser(existingUserCredential.user!.uid, guestData);
+        }
+        
+        return existingUserCredential;
+      }
+      
+      return null;
+    }
+  }
+
   // 匿名アカウントをGoogleアカウントにリンク（データ保持）- シンプル版に復元
   Future<UserCredential?> linkAnonymousWithGoogle() async {
     try {
@@ -482,7 +564,7 @@ class AuthService {
       // プロフィール作成（App Store Guideline 4.8準拠）
       final userDoc = _firestore.collection('userProfiles').doc(user.uid);
       await userDoc.set({
-        'nickname': user.displayName, // 名前のみ収集
+        'nickname': 'My Name', // プライバシー保護のためデフォルト匿名名
         'email': null, // メールアドレスは一切収集しない（プライバシー保護）
         'iconPath': 'aseets/icons/Woman 1.svg',
         'gender': null,
