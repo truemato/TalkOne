@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../utils/font_size_utils.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -7,9 +8,12 @@ import 'dart:io' show Platform;
 import '../services/user_profile_service.dart';
 import '../services/call_matching_service.dart';
 import '../services/evaluation_service.dart';
+import '../services/localization_service.dart';
 import 'voice_call_screen.dart';
 import 'matching_screen.dart';
+import 'evaluation_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PreCallProfileScreen extends StatefulWidget {
   final CallMatch match;
@@ -33,6 +37,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
   late Animation<int> _rateAnimation;
   
   final UserProfileService _profileService = UserProfileService();
+  final LocalizationService _localizationService = LocalizationService();
   UserProfile? _partnerProfile;
   UserProfile? _myProfile;
   bool _isLoading = true;
@@ -61,14 +66,37 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
   int _selectedThemeIndex = 0;
 
   // ユーザーの一言コメント用
-  String _userComment = 'よろしくお願いします！';
+  String _userComment = '';
+  
+  // 相手の行動監視システム
+  StreamSubscription? _partnerActionSubscription;
+  Timer? _timeoutTimer;
+  bool _hasNavigated = false;
 
   @override
   void initState() {
     super.initState();
+    _initializeScreen();
     _initializeAnimations();
     _loadPartnerProfile();
     _loadMyProfile();
+    _startPartnerActionMonitoring();
+    _startTimeoutTimer();
+  }
+
+  Future<void> _initializeScreen() async {
+    await _localizationService.loadLanguagePreference();
+    _localizationService.addListener(_onLanguageChanged);
+    // デフォルトコメントを設定
+    setState(() {
+      _userComment = _localizationService.translate('precall_greeting_comment');
+    });
+  }
+
+  void _onLanguageChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _initializeAnimations() {
@@ -125,8 +153,8 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
         }
         
         final defaultProfile = UserProfile(
-          nickname: '名前をください',
-          gender: '回答しない',
+          nickname: 'My Name',
+          gender: _localizationService.translate('profile_gender_not_specified'),
           themeIndex: 0,
           rating: actualRating,
         );
@@ -148,8 +176,8 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
       } else {
         // プロフィールが存在する場合、不足している値にデフォルト値を設定
         final updatedProfile = UserProfile(
-          nickname: profile.nickname ?? '名前をください',
-          gender: profile.gender ?? '回答しない',
+          nickname: profile.nickname ?? 'My Name',
+          gender: profile.gender ?? _localizationService.translate('profile_gender_not_specified'),
           birthday: profile.birthday,
           aiMemory: profile.aiMemory,
           iconPath: profile.iconPath,
@@ -186,8 +214,8 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
       
       setState(() {
         _partnerProfile = UserProfile(
-          nickname: '名前をください',
-          gender: '回答しない',
+          nickname: 'My Name',
+          gender: _localizationService.translate('profile_gender_not_specified'),
           themeIndex: 0,
           rating: actualRating,
         );
@@ -241,7 +269,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
           _myProfile = profile;
           _myIconPath = profile.iconPath ?? 'aseets/icons/Woman 1.svg';
           // マッチング時の表示コメントは固定
-          _userComment = 'よろしくお願いします！';
+          _userComment = _localizationService.translate('precall_greeting_comment');
           // _userComment = profile.comment?.isNotEmpty == true 
           //     ? (profile.comment!.length > 20 
           //         ? profile.comment!.substring(0, 20) + '...' 
@@ -268,6 +296,9 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
 
   @override
   void dispose() {
+    _localizationService.removeListener(_onLanguageChanged);
+    _partnerActionSubscription?.cancel();
+    _timeoutTimer?.cancel();
     _waveController.dispose();
     _bubbleController.dispose();
     _rateController.dispose();
@@ -496,7 +527,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
           child: Column(
             children: [
               Text(
-                'ニックネーム',
+                _localizationService.translate('precall_nickname_label'),
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.8),
                   fontSize: 10,
@@ -505,7 +536,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
               ),
               const SizedBox(height: 4),
               Text(
-                _partnerProfile?.nickname ?? '名前をください',
+                _partnerProfile?.nickname ?? 'My Name',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -528,7 +559,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
           child: Column(
             children: [
               Text(
-                '性別',
+                _localizationService.translate('precall_gender_label'),
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.8),
                   fontSize: 10,
@@ -537,7 +568,7 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
               ),
               const SizedBox(height: 4),
               Text(
-                _partnerProfile?.gender ?? '回答しない',
+                _getLocalizedGender(_partnerProfile?.gender),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 10,
@@ -606,12 +637,12 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        // 承認ボタン
+        // 承認ボタン（通話画面に直接遷移）
         ElevatedButton.icon(
           onPressed: _handleApprove,
           icon: const Icon(Icons.check, color: Colors.white),
           label: Text(
-            '承認',
+            _localizationService.translate('precall_approve'),
             style: FontSizeUtils.notoSans(
               fontSize: 14,
               color: Colors.white,
@@ -626,12 +657,12 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
             ),
           ),
         ),
-        // スキップボタン
+        // スキップボタン（マッチング画面に戻る）
         ElevatedButton.icon(
           onPressed: _handleSkip,
           icon: const Icon(Icons.skip_next, color: Colors.white),
           label: Text(
-            'スキップ',
+            _localizationService.translate('precall_skip'),
             style: FontSizeUtils.notoSans(
               fontSize: 14,
               color: Colors.white,
@@ -652,9 +683,36 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
 
   // ハンドラメソッドを追加
 
-  void _handleApprove() {
-    // 承認して通話画面へ遷移
+  void _handleApprove() async {
+    print('承認ボタンが押されました - 直接通話画面に遷移');
+    
+    if (_hasNavigated) return;
+    _hasNavigated = true;
+    
+    // 監視・タイマーを停止
+    _partnerActionSubscription?.cancel();
+    _timeoutTimer?.cancel();
+    
+    // 自分の行動をFirestoreに記録
+    try {
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+      if (currentUserId != null) {
+        await FirebaseFirestore.instance
+            .collection('callRequests')
+            .doc(widget.match.callId)
+            .set({
+          'approvals': {
+            currentUserId: 'approved',
+            'timestamp': FieldValue.serverTimestamp(),
+          }
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      print('承認状態記録エラー: $e');
+    }
+    
     if (mounted) {
+      // 直接通話画面に遷移
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -669,29 +727,123 @@ class _PreCallProfileScreenState extends State<PreCallProfileScreen>
     }
   }
 
+  // 性別の文字列をローカライズ
+  String _getLocalizedGender(String? gender) {
+    if (gender == null || gender.isEmpty) {
+      return _localizationService.translate('profile_gender_not_specified');
+    }
+    
+    // 日本語の性別表記を判定してローカライズキーに変換
+    if (gender == '男性' || gender == 'Male') {
+      return _localizationService.translate('profile_gender_male');
+    } else if (gender == '女性' || gender == 'Female') {
+      return _localizationService.translate('profile_gender_female');
+    } else if (gender == 'その他' || gender == 'Other') {
+      return _localizationService.translate('profile_gender_other');
+    } else {
+      return _localizationService.translate('profile_gender_not_specified');
+    }
+  }
+
   void _handleSkip() async {
-    // 現在のマッチングをスキップして新しいマッチングを探す
+    print('スキップボタンが押されました - マッチング画面に戻る');
+    
+    if (_hasNavigated) return;
+    _hasNavigated = true;
+    
+    // 監視・タイマーを停止
+    _partnerActionSubscription?.cancel();
+    _timeoutTimer?.cancel();
+    
+    // 自分のスキップ状態を記録
     try {
-      // 現在のマッチングを削除
-      await FirebaseFirestore.instance
-          .collection('callRequests')
-          .doc(widget.match.callId)
-          .delete();
-      
-      if (mounted) {
-        // マッチング画面に戻る
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const MatchingScreen(),
-          ),
-        );
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+      if (currentUserId != null) {
+        await FirebaseFirestore.instance
+            .collection('callRequests')
+            .doc(widget.match.callId)
+            .set({
+          'approvals': {
+            currentUserId: 'skipped',
+            'timestamp': FieldValue.serverTimestamp(),
+          }
+        }, SetOptions(merge: true));
       }
     } catch (e) {
-      print('マッチングスキップエラー: $e');
-      if (mounted) {
-        Navigator.of(context).pop();
+      print('スキップ状態記録エラー: $e');
+    }
+    
+    if (mounted) {
+      // マッチング画面に戻る
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const MatchingScreen(),
+        ),
+      );
+    }
+  }
+
+  /// 相手の行動を監視開始
+  void _startPartnerActionMonitoring() {
+    print('相手の行動監視を開始: partnerId=${widget.match.partnerId}');
+    
+    _partnerActionSubscription = FirebaseFirestore.instance
+        .collection('callRequests')
+        .doc(widget.match.callId)
+        .snapshots()
+        .listen((snapshot) {
+      if (!snapshot.exists || _hasNavigated) return;
+      
+      final data = snapshot.data();
+      final approvals = data?['approvals'] as Map<String, dynamic>?;
+      
+      if (approvals != null && approvals.containsKey(widget.match.partnerId)) {
+        final partnerChoice = approvals[widget.match.partnerId];
+        print('相手の選択検出: $partnerChoice');
+        
+        if (partnerChoice == 'skipped' && !_hasNavigated) {
+          print('相手がスキップ → 通話終了画面に遷移');
+          _navigateToCallEnd('相手がスキップしました');
+        }
       }
+    });
+  }
+
+  /// タイムアウトタイマーを開始（40秒）
+  void _startTimeoutTimer() {
+    _timeoutTimer = Timer(const Duration(seconds: 40), () {
+      if (!_hasNavigated) {
+        print('40秒タイムアウト → 通話終了画面に遷移');
+        _navigateToCallEnd('応答がありませんでした');
+      }
+    });
+  }
+
+  /// 通話終了画面に遷移
+  void _navigateToCallEnd(String reason) {
+    if (_hasNavigated) return;
+    _hasNavigated = true;
+    
+    print('通話終了画面に遷移: $reason');
+    
+    // 監視・タイマーを停止
+    _partnerActionSubscription?.cancel();
+    _timeoutTimer?.cancel();
+    
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EvaluationScreen(
+            callId: widget.match.callId,
+            partnerId: widget.match.partnerId,
+            isDummyMatch: false,
+            skipEvaluation: true, // 評価をスキップ
+            endReason: reason, // 終了理由を渡す
+          ),
+        ),
+      );
     }
   }
 

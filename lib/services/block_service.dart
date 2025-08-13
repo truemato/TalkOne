@@ -10,6 +10,8 @@ class BlockService {
   Future<bool> blockUser(String targetUserId) async {
     try {
       final currentUserId = _auth.currentUser?.uid;
+      print('[BlockService] ブロック処理開始: currentUser=$currentUserId, target=$targetUserId');
+      
       if (currentUserId == null) {
         throw Exception('ユーザーが認証されていません');
       }
@@ -20,6 +22,7 @@ class BlockService {
       }
 
       // ブロックリストに追加
+      print('[BlockService] Firestore書き込み: users/$currentUserId/blockedUsers/$targetUserId');
       await _firestore
           .collection('users')
           .doc(currentUserId)
@@ -30,10 +33,24 @@ class BlockService {
         'blockedUserId': targetUserId,
       });
 
-      print('ユーザーブロック完了: $targetUserId');
+      // ブロックが正しく保存されたか確認
+      final doc = await _firestore
+          .collection('users')
+          .doc(currentUserId)
+          .collection('blockedUsers')
+          .doc(targetUserId)
+          .get();
+      
+      if (doc.exists) {
+        print('[BlockService] ユーザーブロック成功確認: $targetUserId がブロックリストに追加されました');
+      } else {
+        print('[BlockService] 警告: ブロック処理後もドキュメントが存在しません');
+      }
+
+      print('[BlockService] ユーザーブロック完了: $targetUserId');
       return true;
     } catch (e) {
-      print('ブロックエラー: $e');
+      print('[BlockService] ブロックエラー: $e');
       return false;
     }
   }
@@ -127,6 +144,8 @@ class BlockService {
   /// 2つのユーザー間でブロック関係があるかチェック（相互ブロック確認）
   Future<bool> isBlockRelationshipExists(String userId1, String userId2) async {
     try {
+      print('[BlockService] ブロック関係確認: $userId1 <-> $userId2');
+      
       // userId1がuserId2をブロックしているかチェック
       final doc1 = await _firestore
           .collection('users')
@@ -143,9 +162,12 @@ class BlockService {
           .doc(userId1)
           .get();
 
-      return doc1.exists || doc2.exists;
+      final hasBlock = doc1.exists || doc2.exists;
+      print('[BlockService] ブロック関係: ${hasBlock ? "あり" : "なし"} (${userId1}→${userId2}: ${doc1.exists}, ${userId2}→${userId1}: ${doc2.exists})');
+      
+      return hasBlock;
     } catch (e) {
-      print('ブロック関係確認エラー: $e');
+      print('[BlockService] ブロック関係確認エラー: $e');
       return false;
     }
   }

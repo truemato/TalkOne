@@ -1,60 +1,53 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'block_service.dart';
+import 'localization_service.dart';
 
-/// 通報理由のカテゴリー
+/// 通報理由のカテゴリー（改善版 - 6種類）
 enum ReportCategory {
-  harassment,          // ハラスメント・嫌がらせ
-  inappropriateContent, // 不適切なコンテンツ
-  spam,               // スパム
+  harassment,          // ハラスメント
+  inappropriateSpeech, // 不適切な発言
+  spam,               // 迷惑行為
+  discrimination,     // 差別・誹謗中傷
   impersonation,      // なりすまし
-  violence,           // 暴力的な内容
-  hateSpeech,         // ヘイトスピーチ
-  sexualContent,      // 性的なコンテンツ
   other,              // その他
 }
 
-/// 通報カテゴリーの日本語表記
+/// 通報カテゴリーの多言語対応表記
 extension ReportCategoryExtension on ReportCategory {
   String get displayName {
+    final localization = LocalizationService();
     switch (this) {
       case ReportCategory.harassment:
-        return 'ハラスメント・嫌がらせ';
-      case ReportCategory.inappropriateContent:
-        return '不適切なコンテンツ';
+        return localization.translate('report_category_harassment');
+      case ReportCategory.inappropriateSpeech:
+        return localization.translate('report_category_inappropriate_speech');
       case ReportCategory.spam:
-        return 'スパム・迷惑行為';
+        return localization.translate('report_category_spam');
+      case ReportCategory.discrimination:
+        return localization.translate('report_category_discrimination');
       case ReportCategory.impersonation:
-        return 'なりすまし';
-      case ReportCategory.violence:
-        return '暴力的な内容';
-      case ReportCategory.hateSpeech:
-        return 'ヘイトスピーチ・差別';
-      case ReportCategory.sexualContent:
-        return '性的なコンテンツ';
+        return localization.translate('report_category_impersonation');
       case ReportCategory.other:
-        return 'その他';
+        return localization.translate('report_category_other');
     }
   }
 
   String get description {
+    final localization = LocalizationService();
     switch (this) {
       case ReportCategory.harassment:
-        return '脅迫、いじめ、個人攻撃など';
-      case ReportCategory.inappropriateContent:
-        return 'アプリの利用規約に違反する内容';
+        return localization.translate('report_category_harassment_desc');
+      case ReportCategory.inappropriateSpeech:
+        return localization.translate('report_category_inappropriate_speech_desc');
       case ReportCategory.spam:
-        return '繰り返しの迷惑メッセージ、広告など';
+        return localization.translate('report_category_spam_desc');
+      case ReportCategory.discrimination:
+        return localization.translate('report_category_discrimination_desc');
       case ReportCategory.impersonation:
-        return '他人になりすました行為';
-      case ReportCategory.violence:
-        return '暴力を助長する内容、自傷行為など';
-      case ReportCategory.hateSpeech:
-        return '人種、宗教、性別などに基づく差別';
-      case ReportCategory.sexualContent:
-        return '露骨な性的コンテンツ、セクハラなど';
+        return localization.translate('report_category_impersonation_desc');
       case ReportCategory.other:
-        return '上記以外の問題';
+        return localization.translate('report_category_other_desc');
     }
   }
 }
@@ -128,6 +121,8 @@ class ReportService {
     int? timestamp, // 通話開始からの秒数
   }) async {
     try {
+      print('[ReportService] 通話通報開始: reporter=$_currentUserId, reported=$partnerId, category=${category.name}');
+      
       if (_currentUserId == null) {
         throw Exception('ユーザーが認証されていません');
       }
@@ -147,15 +142,23 @@ class ReportService {
       };
 
       // 通報を保存
-      await _firestore.collection('reports').add(reportData);
+      print('[ReportService] 通報データをFirestoreに保存中...');
+      final reportRef = await _firestore.collection('reports').add(reportData);
+      print('[ReportService] 通報データ保存完了: ${reportRef.id}');
       
       // 即座にブロック
-      await _blockService.blockUser(partnerId);
+      print('[ReportService] ブロック処理を開始...');
+      final blockSuccess = await _blockService.blockUser(partnerId);
       
-      print('通話を通報し、相手をブロックしました');
-      return true;
+      if (blockSuccess) {
+        print('[ReportService] ✓ 通話を通報し、相手をブロックしました: $partnerId');
+      } else {
+        print('[ReportService] ✗ 通報は成功しましたが、ブロック処理に失敗しました');
+      }
+      
+      return blockSuccess;
     } catch (e) {
-      print('通話通報エラー: $e');
+      print('[ReportService] 通話通報エラー: $e');
       return false;
     }
   }

@@ -18,12 +18,16 @@ class EvaluationScreen extends StatefulWidget {
   final String callId;
   final String partnerId;
   final bool isDummyMatch;
+  final bool skipEvaluation;
+  final String? endReason;
 
   const EvaluationScreen({
     super.key,
     required this.callId,
     required this.partnerId,
     this.isDummyMatch = false,
+    this.skipEvaluation = false,
+    this.endReason,
   });
 
   @override
@@ -56,6 +60,15 @@ class _EvaluationScreenState extends State<EvaluationScreen>
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
+    
+    // 評価をスキップする場合は自動的に次の画面に遷移
+    if (widget.skipEvaluation) {
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          _navigateToNext();
+        }
+      });
+    }
   }
 
   @override
@@ -146,6 +159,18 @@ class _EvaluationScreenState extends State<EvaluationScreen>
     }
   }
 
+  /// 次の画面に遷移
+  void _navigateToNext() {
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const RematchOrHomeScreen(),
+        ),
+      );
+    }
+  }
+
   Color get _currentThemeColor => getAppTheme(_selectedThemeIndex).backgroundColor;
 
   @override
@@ -160,6 +185,46 @@ class _EvaluationScreenState extends State<EvaluationScreen>
   }
 
   Widget _buildContent() {
+    // 評価スキップ時は終了理由を表示
+    if (widget.skipEvaluation) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.info_outline,
+              size: 80,
+              color: Colors.white.withOpacity(0.8),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              widget.endReason ?? '通話が終了しました',
+              style: FontSizeUtils.notoSans(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'ホーム画面に戻ります...',
+              style: FontSizeUtils.notoSans(
+                fontSize: 16,
+                color: Colors.white.withOpacity(0.7),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    // 通常の評価画面
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

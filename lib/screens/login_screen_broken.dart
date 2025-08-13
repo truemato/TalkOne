@@ -135,61 +135,60 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 20),
                 
-                  // アプリ名
-                  Text(
-                    _localizationService.translate('login_app_name'),
-                    style: GoogleFonts.notoSans(
-                      color: Colors.white,
-                      fontSize: _getResponsiveFontSize(context, 36),
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                    ),
+                // アプリ名
+                Text(
+                  _localizationService.translate('login_app_name'),
+                  style: GoogleFonts.notoSans(
+                    color: Colors.white,
+                    fontSize: _getResponsiveFontSize(context, 36),
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
                   ),
-                  const SizedBox(height: 8),
+                ),
+                const SizedBox(height: 8),
                 
-                  // キャッチフレーズ
-                  Text(
-                    _localizationService.translate('login_catchphrase'),
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.notoSans(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: _getResponsiveFontSize(context, 14),
-                      height: 1.3,
-                    ),
+                // キャッチフレーズ
+                Text(
+                  _localizationService.translate('login_catchphrase'),
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.notoSans(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: _getResponsiveFontSize(context, 14),
+                    height: 1.3,
                   ),
-                ],
-              ),
+                ),
+              ],
               
               // サインインボタン
               SizedBox(height: 40),
               Column(
                 children: [
-                  // Googleサインインボタン
-                  _buildGoogleSignInButton(),
-                  const SizedBox(height: 16),
+                // Googleサインインボタン
+                _buildGoogleSignInButton(),
+                const SizedBox(height: 16),
                 
-                  // Apple IDサインインボタン（iOS、Android両方で表示）
-                  _buildAppleSignInButton(),
-                  const SizedBox(height: 16),
+                // Apple IDサインインボタン（iOS、Android両方で表示）
+                _buildAppleSignInButton(),
+                const SizedBox(height: 16),
                 
-                  // ゲストでプレイボタン
-                  _buildAnonymousSignInButton(),
-                  const SizedBox(height: 24),
+                // ゲストでプレイボタン
+                _buildAnonymousSignInButton(),
+                const SizedBox(height: 24),
                 
-                  // 説明テキスト
-                  Text(
-                    _localizationService.translate('login_description'),
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.notoSans(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: _getResponsiveFontSize(context, 11),
-                      height: 1.3,
-                    ),
+                // 説明テキスト
+                Text(
+                  _localizationService.translate('login_description'),
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.notoSans(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: _getResponsiveFontSize(context, 11),
+                    height: 1.3,
                   ),
-                  SizedBox(height: 20),
-                ],
-              ),
-            ],
+                ),
+                SizedBox(height: 20),
+              ],
+            ),
+          ],
           ),
         ),
       ),

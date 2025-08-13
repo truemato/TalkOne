@@ -304,7 +304,7 @@ class _EulaScreenState extends State<EulaScreen> {
 
 第12条（お問い合わせ）
 本EULAおよび本アプリに関するご質問・ご意見は下記までお問い合わせください：
-メール：mail@yoshida.com
+メール：mail@yoshidak.work
 
 最終更新：2025年7月''',
         style: FontSizeUtils.notoSans(
@@ -359,7 +359,7 @@ We have zero tolerance for offensive content and inappropriate users. Any confir
 
 Article 12 (Contact Information)
 For any questions or concerns regarding this EULA or the App, please contact us at:
-Email: mail@yoshida.com
+Email: mail@yoshidak.work
 
 Last Updated: July 2025''',
         style: FontSizeUtils.notoSans(

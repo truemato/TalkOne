@@ -101,8 +101,12 @@ class LocalizationService extends ChangeNotifier {
       
       // 再マッチ画面
       'rematch_title': '通話完了',
+      'rematch_call_ended': '通話が終了しました',
+      'rematch_what_next': 'お疲れさまでした！\n次は何をしますか？',
       'rematch_button': 'もう一度話す',
+      'rematch_match_again': 'もう一度マッチング',
       'rematch_home_button': 'ホームに戻る',
+      'rematch_return_home': 'ホームに戻る',
       
       // 設定画面
       'settings_title': '設定',
@@ -143,6 +147,8 @@ class LocalizationService extends ChangeNotifier {
       'profile_upgrade_success': 'Googleアカウントへのアップグレードが完了しました',
       'profile_upgrade_cancelled': 'アップグレードがキャンセルされました',
       'profile_upgrade_failed': 'アップグレードに失敗しました',
+      'profile_apple_upgrade_success': 'Apple IDへのアップグレードが完了しました',
+      'profile_apple_account_exists': 'このApple IDは既に別の方法で登録されています。',
       'profile_upgrade_timeout': 'ログインがタイムアウトしました。ネットワーク接続を確認して再度お試しください。',
       'profile_upgrade_cancel_message': 'ログインがキャンセルされました',
       'profile_upgrade_network_error': 'ネットワークエラーが発生しました。接続を確認してください。',
@@ -153,6 +159,12 @@ class LocalizationService extends ChangeNotifier {
       'profile_sign_in_required': 'サインインが必要です',
       'profile_gender_select_hint': '選択してください',
       'profile_birthday_select_hint': '選択してください',
+      'profile_delete_title': 'プロフィールメッセージを削除',
+      'profile_delete_message': 'プロフィールメッセージを削除しますか？この操作により、ニックネーム、コメント、AIメモリーがリセットされます。',
+      'profile_delete_confirm': '削除する',
+      'profile_delete_button': 'プロフィールメッセージを削除',
+      'profile_delete_success': 'プロフィールメッセージを削除しました',
+      'profile_delete_failed': 'プロフィールメッセージの削除に失敗しました',
       
       // 履歴画面
       'history_title': '通話履歴',
@@ -186,6 +198,25 @@ class LocalizationService extends ChangeNotifier {
       'report_details': '詳細',
       'report_submit': '通報する',
       'report_success': '通報を受け付けました',
+      
+      // 通報ダイアログ（音声通話画面）
+      'report_dialog_title': '{partnerName} を通報',
+      'report_dialog_message': '不適切な行為の理由を選択してください：',
+      'report_dialog_warning': '通報すると相手を自動ブロックし、今後マッチングしません',
+      'report_category_harassment': 'ハラスメント',
+      'report_category_harassment_desc': '相手からの嫌がらせや脅迫',
+      'report_category_inappropriate_speech': '不適切な発言',
+      'report_category_inappropriate_speech_desc': 'わいせつ・暴力的な内容',
+      'report_category_spam': '迷惑行為',
+      'report_category_spam_desc': '広告・スパム・営業勧誘',
+      'report_category_discrimination': '差別・誹謗中傷',
+      'report_category_discrimination_desc': '差別的発言や人格攻撃',
+      'report_category_impersonation': 'なりすまし',
+      'report_category_impersonation_desc': '偽の身分での利用',
+      'report_category_other': 'その他',
+      'report_category_other_desc': '上記以外の問題',
+      'report_success_message': '通報しました。相手をブロックしました。',
+      'report_failed_message': '通報に失敗しました',
       
       // AI プリコール画面
       'ai_precall_title': 'AI練習モード',
@@ -281,7 +312,7 @@ class LocalizationService extends ChangeNotifier {
       // プリコール画面
       'precall_nickname_label': 'ニックネーム',
       'precall_gender_label': '性別',
-      'precall_default_name': '名前をください',
+      'precall_default_name': 'My Name',
       'precall_default_gender': '回答しない',
       'precall_loading': 'プロフィールを読み込み中...',
       'precall_greeting_comment': 'よろしくお願いします！',
@@ -464,6 +495,8 @@ class LocalizationService extends ChangeNotifier {
       'settings_account_delete_failed': 'アカウントの削除に失敗しました。再度お試しください。',
       'credit_title': 'クレジット表記',
       'credit_acknowledgments': '謝辞',
+      'credit_contact_title': 'お問い合わせ',
+      'credit_contact_description': 'ご質問・ご要望・不具合報告など\nお気軽にお問い合わせください',
       
       // アカウントリンク機能
       'settings_link_account_title': 'アカウント連携',
@@ -474,6 +507,19 @@ class LocalizationService extends ChangeNotifier {
       'settings_link_success_google': 'Googleアカウントとの連携が完了しました',
       'settings_link_error': '連携に失敗しました: {error}',
       'settings_privacy': 'プライバシー設定',
+
+      // ログイン画面
+      'login_app_name': 'TalkOne',
+      'login_catchphrase': '1対1のボイスチャットで\n会話スキルを向上させよう',
+      'login_google_button': 'Googleアカウントでサインイン',
+      'login_apple_button': 'Apple IDでサインイン',
+      'login_guest_button': 'ゲストでプレイ',
+      'login_description': 'Apple IDまたはGoogleでサインインすると、\n機種変更時もAIとの会話履歴が引き継がれます\n\n※メールアドレスは一切収集しません（App Store準拠）',
+      'login_google_success': 'Googleアカウントでサインインしました',
+      'login_apple_success': 'Apple IDでサインインしました',
+      'login_guest_success': 'ゲストとしてサインインしました',
+      'login_cancelled': 'サインインがキャンセルされました',
+      'login_failed': 'サインインに失敗しました',
     },
     
     'en': {
@@ -533,8 +579,12 @@ class LocalizationService extends ChangeNotifier {
       
       // Rematch Screen
       'rematch_title': 'Call Completed',
+      'rematch_call_ended': 'Call has ended',
+      'rematch_what_next': 'Thank you for your time!\nWhat would you like to do next?',
       'rematch_button': 'Talk Again',
+      'rematch_match_again': 'Match Again',
       'rematch_home_button': 'Back to Home',
+      'rematch_return_home': 'Return to Home',
       
       // Settings Screen
       'settings_title': 'Settings',
@@ -575,6 +625,8 @@ class LocalizationService extends ChangeNotifier {
       'profile_upgrade_success': 'Successfully upgraded to Google account',
       'profile_upgrade_cancelled': 'Upgrade cancelled',
       'profile_upgrade_failed': 'Upgrade failed',
+      'profile_apple_upgrade_success': 'Successfully upgraded to Apple ID',
+      'profile_apple_account_exists': 'This Apple ID is already registered with another method.',
       'profile_upgrade_timeout': 'Login timed out. Please check your network connection and try again.',
       'profile_upgrade_cancel_message': 'Login cancelled',
       'profile_upgrade_network_error': 'Network error occurred. Please check your connection.',
@@ -585,6 +637,12 @@ class LocalizationService extends ChangeNotifier {
       'profile_sign_in_required': 'Sign in required',
       'profile_gender_select_hint': 'Select',
       'profile_birthday_select_hint': 'Select',
+      'profile_delete_title': 'Delete Profile Messages',
+      'profile_delete_message': 'Delete profile messages? This will reset your nickname, comment, and AI memory.',
+      'profile_delete_confirm': 'Delete',
+      'profile_delete_button': 'Delete Profile Messages',
+      'profile_delete_success': 'Profile messages deleted',
+      'profile_delete_failed': 'Failed to delete profile messages',
       
       // History Screen
       'history_title': 'Call History',
@@ -618,6 +676,25 @@ class LocalizationService extends ChangeNotifier {
       'report_details': 'Details',
       'report_submit': 'Submit Report',
       'report_success': 'Report submitted successfully',
+      
+      // Report Dialog (Voice Call Screen)
+      'report_dialog_title': 'Report {partnerName}',
+      'report_dialog_message': 'Select the reason for inappropriate behavior:',
+      'report_dialog_warning': 'Reporting will automatically block the user and prevent future matching',
+      'report_category_harassment': 'Harassment',
+      'report_category_harassment_desc': 'Harassment or threats from the user',
+      'report_category_inappropriate_speech': 'Inappropriate Language',
+      'report_category_inappropriate_speech_desc': 'Obscene or violent content',
+      'report_category_spam': 'Spam/Solicitation',
+      'report_category_spam_desc': 'Advertising, spam, or business solicitation',
+      'report_category_discrimination': 'Discrimination',
+      'report_category_discrimination_desc': 'Discriminatory remarks or personal attacks',
+      'report_category_impersonation': 'Impersonation',
+      'report_category_impersonation_desc': 'Using false identity',
+      'report_category_other': 'Other',
+      'report_category_other_desc': 'Issues not listed above',
+      'report_success_message': 'Reported successfully. The user has been blocked.',
+      'report_failed_message': 'Report failed',
       
       // AI Pre-call Screen
       'ai_precall_title': 'AI Practice Mode',
@@ -713,7 +790,7 @@ class LocalizationService extends ChangeNotifier {
       // Pre-call Screen
       'precall_nickname_label': 'Nickname',
       'precall_gender_label': 'Gender',
-      'precall_default_name': 'Please provide name',
+      'precall_default_name': 'My Name',
       'precall_default_gender': 'Prefer not to say',
       'precall_loading': 'Loading profile...',
       'precall_greeting_comment': 'Nice to meet you!',
@@ -887,6 +964,8 @@ class LocalizationService extends ChangeNotifier {
       'settings_account_delete_failed': 'Failed to delete account. Please try again.',
       'credit_title': 'Credits',
       'credit_acknowledgments': 'Acknowledgments',
+      'credit_contact_title': 'Contact Us',
+      'credit_contact_description': 'Questions, requests, bug reports, etc.\nFeel free to contact us',
       
       // Account Linking Feature
       'settings_link_account_title': 'Link Account',
@@ -897,6 +976,19 @@ class LocalizationService extends ChangeNotifier {
       'settings_link_success_google': 'Successfully linked with Google Account',
       'settings_link_error': 'Failed to link: {error}',
       'settings_privacy': 'Privacy Settings',
+
+      // Login Screen
+      'login_app_name': 'TalkOne',
+      'login_catchphrase': 'Improve your conversation skills\nwith 1-on-1 voice chat',
+      'login_google_button': 'Sign in with Google',
+      'login_apple_button': 'Sign in with Apple ID',
+      'login_guest_button': 'Play as Guest',
+      'login_description': 'Sign in with Apple ID or Google to preserve\nAI conversation history when changing devices\n\n*We do not collect email addresses (App Store compliant)',
+      'login_google_success': 'Signed in with Google',
+      'login_apple_success': 'Signed in with Apple ID',
+      'login_guest_success': 'Signed in as guest',
+      'login_cancelled': 'Sign in cancelled',
+      'login_failed': 'Sign in failed',
       
       // Achievements
       'achievement_bronze': 'Bronze',

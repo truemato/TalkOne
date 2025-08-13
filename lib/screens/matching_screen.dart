@@ -235,6 +235,7 @@ class _MatchingScreenState extends State<MatchingScreen>
   late AnimationController _shrinkController;
   late Animation<double> _shrinkAnimation;
   bool _isMatchFound = false;
+  bool _isCancelling = false; // キャンセル処理中フラグ
   
   // プログレスバー用
   late AnimationController _progressController;
@@ -515,12 +516,37 @@ class _MatchingScreenState extends State<MatchingScreen>
   }
 
   Future<void> _cancelMatching() async {
-    if (_callRequestId != null) {
-      await _matchingService.cancelCallRequest(_callRequestId!);
+    // マッチング確定後はキャンセルできない
+    if (_isMatchFound) {
+      print('マッチング確定済みのためキャンセルできません');
+      return;
     }
     
-    if (mounted) {
-      Navigator.pop(context);
+    // 既にキャンセル処理中の場合は重複実行を防ぐ
+    if (_isCancelling) {
+      print('キャンセル処理実行中です');
+      return;
+    }
+    
+    setState(() {
+      _isCancelling = true;
+    });
+    
+    try {
+      if (_callRequestId != null) {
+        await _matchingService.cancelCallRequest(_callRequestId!);
+      }
+      
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      print('キャンセルエラー: $e');
+      if (mounted) {
+        setState(() {
+          _isCancelling = false;
+        });
+      }
     }
   }
   
@@ -557,7 +583,7 @@ class _MatchingScreenState extends State<MatchingScreen>
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) {
+        if (!didPop && !_isMatchFound && !_isCancelling) {
           _cancelMatching();
         }
       },
@@ -852,18 +878,27 @@ class _MatchingScreenState extends State<MatchingScreen>
 
   Widget _buildCancelButton() {
     return ElevatedButton(
-      onPressed: _cancelMatching,
+      onPressed: (_isMatchFound || _isCancelling) ? null : _cancelMatching,
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFFC2CEF7),
-        foregroundColor: Colors.black,
+        backgroundColor: (_isMatchFound || _isCancelling) 
+            ? Colors.grey.withOpacity(0.5) 
+            : const Color(0xFFC2CEF7),
+        foregroundColor: (_isMatchFound || _isCancelling) 
+            ? Colors.white.withOpacity(0.5) 
+            : Colors.black,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
       ),
       child: Text(
-        _localizationService.translate('cancel'),
+        _isCancelling 
+            ? _localizationService.isJapanese ? '処理中...' : 'Processing...'
+            : _localizationService.translate('cancel'),
         style: FontSizeUtils.catamaran(
           fontSize: 20,
           fontWeight: FontWeight.w800,
+          color: (_isMatchFound || _isCancelling) 
+              ? Colors.white.withOpacity(0.5) 
+              : null,
         ),
       ),
     );

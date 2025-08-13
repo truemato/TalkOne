@@ -4,6 +4,7 @@ import 'package:lottie/lottie.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:io' show Platform;
 import '../services/user_profile_service.dart';
+import '../services/localization_service.dart';
 import 'matching_screen.dart';
 import 'home_screen.dart';
 
@@ -20,6 +21,7 @@ class _RematchOrHomeScreenState extends State<RematchOrHomeScreen>
   late Animation<double> _pulseAnimation;
 
   final UserProfileService _userProfileService = UserProfileService();
+  final LocalizationService _localizationService = LocalizationService();
   String? _selectedIconPath = 'aseets/icons/Woman 1.svg';
   
   // テーマカラー
@@ -35,7 +37,7 @@ class _RematchOrHomeScreenState extends State<RematchOrHomeScreen>
   @override
   void initState() {
     super.initState();
-    _loadUserProfile();
+    _initializeScreen();
     _pulseController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
@@ -52,8 +54,21 @@ class _RematchOrHomeScreenState extends State<RematchOrHomeScreen>
 
   @override
   void dispose() {
+    _localizationService.removeListener(_onLanguageChanged);
     _pulseController.dispose();
     super.dispose();
+  }
+
+  Future<void> _initializeScreen() async {
+    await _localizationService.loadLanguagePreference();
+    _localizationService.addListener(_onLanguageChanged);
+    _loadUserProfile();
+  }
+
+  void _onLanguageChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadUserProfile() async {
@@ -163,7 +178,7 @@ class _RematchOrHomeScreenState extends State<RematchOrHomeScreen>
 
   Widget _buildTitle() {
     return Text(
-      '通話が終了しました',
+      _localizationService.translate('rematch_call_ended'),
       style: GoogleFonts.catamaran(
         fontSize: 20,
         fontWeight: FontWeight.bold,
@@ -181,7 +196,7 @@ class _RematchOrHomeScreenState extends State<RematchOrHomeScreen>
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        'お疲れさまでした！\n次は何をしますか？',
+        _localizationService.translate('rematch_what_next'),
         style: GoogleFonts.catamaran(
           fontSize: 14,
           fontWeight: FontWeight.w500,
@@ -226,7 +241,7 @@ class _RematchOrHomeScreenState extends State<RematchOrHomeScreen>
             const Icon(Icons.refresh, size: 24),
             const SizedBox(width: 12),
             Text(
-              'もう一度マッチング',
+              _localizationService.translate('rematch_match_again'),
               style: GoogleFonts.catamaran(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -259,7 +274,7 @@ class _RematchOrHomeScreenState extends State<RematchOrHomeScreen>
             const Icon(Icons.home, size: 24),
             const SizedBox(width: 12),
             Text(
-              'ホームに戻る',
+              _localizationService.translate('rematch_return_home'),
               style: GoogleFonts.catamaran(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,

@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'evaluation_service.dart';
 import 'matching_warmup_service.dart';
 import 'block_service.dart';
+import 'localization_service.dart';
 
 enum CallStatus {
   waiting,      // 待機中
@@ -21,6 +22,7 @@ class CallMatchingService {
   final EvaluationService _evaluationService = EvaluationService();
   final MatchingWarmupService _warmupService = MatchingWarmupService();
   final BlockService _blockService = BlockService();
+  final LocalizationService _localizationService = LocalizationService();
   
   StreamSubscription? _matchingSubscription;
   String? _currentCallId;
@@ -316,11 +318,13 @@ class CallMatchingService {
         final availablePartners = <QueryDocumentSnapshot>[];
         for (final partner in potentialPartners) {
           final partnerId = partner['userId'] as String;
+          print('[Matching] ブロック関係チェック: $_userId vs $partnerId');
           final canMatch = await _blockService.canUsersMatch(_userId, partnerId);
           if (canMatch) {
+            print('[Matching] ✓ マッチング可能: $partnerId');
             availablePartners.add(partner);
           } else {
-            print('ブロック関係のためマッチング除外: $partnerId');
+            print('[Matching] ✗ ブロック関係のためマッチング除外: $partnerId');
           }
         }
         
@@ -371,11 +375,13 @@ class CallMatchingService {
           final availablePartners = <QueryDocumentSnapshot>[];
           for (final partner in potentialPartners) {
             final partnerId = partner['userId'] as String;
+            print('[Matching-拡大] ブロック関係チェック: $_userId vs $partnerId');
             final canMatch = await _blockService.canUsersMatch(_userId, partnerId);
             if (canMatch) {
+              print('[Matching-拡大] ✓ マッチング可能: $partnerId');
               availablePartners.add(partner);
             } else {
-              print('拡大マッチング - ブロック関係のためマッチング除外: $partnerId');
+              print('[Matching-拡大] ✗ ブロック関係のためマッチング除外: $partnerId');
             }
           }
           
@@ -534,44 +540,20 @@ class CallMatchingService {
   
   // ランダムな会話テーマを生成
   String _generateRandomTheme() {
-    final conversationThemes = [
-      '🎯 自己紹介・自己理解系',
-      '最近ハマってること',
-      '好きな食べ物／嫌いな食べ物',
-      '休日の過ごし方',
-      '朝型？夜型？',
-      '自分の性格を一言で言うと？',
-      '今までで一番頑張ったこと',
-      '最近ちょっと変わったこと',
-      '尊敬している人',
-      '自分の中のマイルール',
-      '子どもの頃の夢',
-      '💬 日常会話・雑談系',
-      '最近観た映画／ドラマ',
-      '今日の天気、好き？',
-      '通勤・通学時間の過ごし方',
-      '最近びっくりしたこと',
-      '今、部屋にあるものでお気に入りは？',
-      '最近の「ちょっと嬉しかったこと」',
-      '毎日欠かさずやってること',
-      '今食べたいもの',
-      'おすすめのアプリ／ツール',
-      '今のスマホの待ち受け画面、どんなの？',
-      '💭 意見交換・感情表現系',
-      '幸せだなと思う瞬間は？',
-      'イライラしたとき、どうする？',
-      '自分って変わってるなと思うとき',
-      '友達ってどんな存在？',
-      'プレゼントするなら何を選ぶ？',
-      'あえて「何もしない時間」って必要？',
-      '人から言われて嬉しかった言葉',
-      '自分の中の「こだわり」って何？',
-      '落ち込んだときの立ち直り方',
-      'やってみたいけど、ちょっと怖いこと',
+    // テーマキーのリスト（LocalizationServiceと同じ順序）
+    final themeKeys = [
+      'theme_1', 'theme_2', 'theme_3', 'theme_4', 'theme_5',
+      'theme_6', 'theme_7', 'theme_8', 'theme_9', 'theme_10',
+      'theme_11', 'theme_12', 'theme_13', 'theme_14', 'theme_15',
+      'theme_16', 'theme_17', 'theme_18', 'theme_19', 'theme_20',
+      'theme_21', 'theme_22', 'theme_23', 'theme_24', 'theme_25',
+      'theme_26', 'theme_27', 'theme_28', 'theme_29', 'theme_30',
+      'theme_31', 'theme_32', 'theme_33'
     ];
     
     final random = Random();
-    return conversationThemes[random.nextInt(conversationThemes.length)];
+    final selectedKey = themeKeys[random.nextInt(themeKeys.length)];
+    return _localizationService.translate(selectedKey);
   }
 }
 

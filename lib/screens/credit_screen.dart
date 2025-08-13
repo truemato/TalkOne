@@ -29,7 +29,25 @@ class _CreditScreenState extends State<CreditScreen> {
   @override
   void initState() {
     super.initState();
+    _initializeScreen();
     _loadUserTheme();
+  }
+
+  Future<void> _initializeScreen() async {
+    await _localizationService.loadLanguagePreference();
+    _localizationService.addListener(_onLanguageChanged);
+  }
+
+  void _onLanguageChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _localizationService.removeListener(_onLanguageChanged);
+    super.dispose();
   }
 
   Future<void> _loadUserTheme() async {
@@ -183,7 +201,7 @@ class _CreditScreenState extends State<CreditScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'お問い合わせ',
+                          _localizationService.translate('credit_contact_title'),
                           style: GoogleFonts.notoSans(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -192,7 +210,7 @@ class _CreditScreenState extends State<CreditScreen> {
                         ),
                         const SizedBox(height: 8),
                         SelectableText(
-                          'mail@yoshida.com',
+                          'mail@yoshidak.work',
                           style: GoogleFonts.notoSans(
                             fontSize: 16,
                             color: _currentThemeColor,
@@ -202,7 +220,7 @@ class _CreditScreenState extends State<CreditScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'ご質問・ご要望・不具合報告など\nお気軽にお問い合わせください',
+                          _localizationService.translate('credit_contact_description'),
                           style: GoogleFonts.notoSans(
                             fontSize: 13,
                             color: Colors.black54,

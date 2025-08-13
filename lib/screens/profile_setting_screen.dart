@@ -8,7 +8,6 @@ import '../services/user_profile_service.dart';
 import '../services/auth_service.dart';
 import '../services/localization_service.dart';
 import '../utils/validation_util.dart';
-import 'login_screen.dart';
 
 // プロフィール設定画面（iOS風のUI）
 class ProfileSettingScreen extends StatefulWidget {
@@ -49,11 +48,24 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
   @override
   void initState() {
     super.initState();
+    _initializeScreen();
     _loadUserProfile();
+  }
+
+  Future<void> _initializeScreen() async {
+    await _localizationService.loadLanguagePreference();
+    _localizationService.addListener(_onLanguageChanged);
+  }
+
+  void _onLanguageChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
   void dispose() {
+    _localizationService.removeListener(_onLanguageChanged);
     _nicknameController.dispose();
     _commentController.dispose();
     _aiMemoController.dispose();
@@ -170,18 +182,18 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
-          'プロフィール内容を削除',
+          _localizationService.translate('profile_delete_title'),
           style: GoogleFonts.notoSans(fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'プロフィールの内容（ニックネーム、コメント、AIメモリー）を削除しますか？\nこの操作は取り消せません。',
+          _localizationService.translate('profile_delete_message'),
           style: GoogleFonts.notoSans(),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
-              'いいえ',
+              _localizationService.translate('cancel'),
               style: GoogleFonts.notoSans(color: Colors.grey),
             ),
           ),
@@ -192,7 +204,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
             ),
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(
-              'はい、削除します',
+              _localizationService.translate('profile_delete_confirm'),
               style: GoogleFonts.notoSans(fontWeight: FontWeight.bold),
             ),
           ),
@@ -223,7 +235,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('プロフィール内容を削除しました'),
+              content: Text(_localizationService.translate('profile_delete_success')),
               backgroundColor: Colors.green,
             ),
           );
@@ -232,7 +244,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('削除に失敗しました: $e'),
+              content: Text(_localizationService.translate('profile_delete_failed') + ': $e'),
               backgroundColor: Colors.red,
             ),
           );
@@ -425,7 +437,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                           const Icon(Icons.delete_outline, size: 20),
                           const SizedBox(width: 8),
                           Text(
-                            'プロフィール内容を削除',
+                            _localizationService.translate('profile_delete_button'),
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -510,8 +522,6 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                     color: Colors.black,
                   ),
                 ),
-                const SizedBox(height: 16),
-                _buildSignOutButton(),
               ] else if (_authService.isGoogleSignedIn) ...[
                 // Googleアカウントでサインイン済み
                 Row(
@@ -551,8 +561,6 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                     color: Colors.green[700],
                   ),
                 ),
-                const SizedBox(height: 16),
-                _buildSignOutButton(),
               ] else if (_authService.isAnonymous) ...[
                 // 匿名アカウント
                 Row(
@@ -588,8 +596,6 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
                 _buildUpgradeToGoogleButton(),
                 const SizedBox(height: 8),
                 _buildUpgradeToAppleButton(),
-                const SizedBox(height: 8),
-                _buildSignOutButton(),
               ] else ...[
                 // サインインしていない（通常は発生しない）
                 Text(
@@ -633,31 +639,6 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
     );
   }
 
-  // サインアウトボタン
-  Widget _buildSignOutButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.red[600],
-          side: BorderSide(color: Colors.red[600]!, width: 1),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-        ),
-        onPressed: _isLoading ? null : _handleSignOut,
-        icon: const Icon(Icons.logout, size: 18),
-        label: Text(
-          _localizationService.translate('profile_sign_out'),
-          style: GoogleFonts.notoSans(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
-    );
-  }
 
   // Googleアカウントへのアップグレード処理
   Future<void> _handleUpgradeToGoogle() async {
@@ -698,7 +679,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Googleアカウントへのアップグレードが完了しました',
+                _localizationService.translate('profile_upgrade_success'),
                 style: GoogleFonts.notoSans(color: Colors.white),
               ),
               backgroundColor: Colors.green,
@@ -712,7 +693,7 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'アップグレードがキャンセルされました',
+              _localizationService.translate('profile_upgrade_cancelled'),
               style: GoogleFonts.notoSans(color: Colors.white),
             ),
             backgroundColor: Colors.orange,
@@ -725,26 +706,26 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
       print('📍 スタックトレース: $stackTrace');
       
       if (mounted) {
-        String errorMessage = 'アップグレードに失敗しました';
+        String errorMessage = _localizationService.translate('profile_upgrade_failed');
         
         // エラー種別による詳細メッセージ
         if (e is TimeoutException) {
-          errorMessage = 'ログインがタイムアウトしました。ネットワーク接続を確認して再度お試しください。';
+          errorMessage = _localizationService.translate('profile_upgrade_timeout');
         } else if (e.toString().contains('SIGN_IN_CANCELLED') || 
                    e.toString().contains('cancelled') ||
                    e.toString().contains('canceled')) {
-          errorMessage = 'ログインがキャンセルされました';
+          errorMessage = _localizationService.translate('profile_upgrade_cancel_message');
         } else if (e.toString().contains('network')) {
-          errorMessage = 'ネットワークエラーが発生しました。接続を確認してください。';
+          errorMessage = _localizationService.translate('profile_upgrade_network_error');
         } else if (e.toString().contains('account-exists-with-different-credential')) {
-          errorMessage = 'このGoogleアカウントは既に別の方法で登録されています。';
+          errorMessage = _localizationService.translate('profile_upgrade_account_exists');
         } else if (e.toString().contains('credential-already-in-use')) {
-          errorMessage = 'この認証情報は既に使用されています。';
+          errorMessage = _localizationService.translate('profile_upgrade_credential_in_use');
         } else {
           // 一般的なエラーメッセージ（詳細は開発者のみ表示）
           final shortError = e.toString().length > 50 ? 
             e.toString().substring(0, 50) + '...' : e.toString();
-          errorMessage = 'ログインに失敗しました。しばらく経ってから再度お試しください。';
+          errorMessage = _localizationService.translate('profile_upgrade_general_error');
           print('詳細エラー: $shortError');
         }
         
@@ -775,22 +756,33 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
     return SizedBox(
       width: double.infinity,
       height: 48,
-      child: ElevatedButton.icon(
+      child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.black,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         ),
-        icon: const Icon(Icons.apple),
         onPressed: _isLoading ? null : _handleUpgradeToApple,
-        label: Text(
-          'Apple IDにアップグレード',
-          style: GoogleFonts.notoSans(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            const Icon(Icons.apple, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                _localizationService.translate('profile_upgrade_to_apple'),
+                style: GoogleFonts.notoSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -798,102 +790,115 @@ class _ProfileSettingScreenState extends State<ProfileSettingScreen> {
 
   // Apple IDへのアップグレード処理
   Future<void> _handleUpgradeToApple() async {
+    if (!mounted) return;
+    
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // Apple Sign Inではリンクができないため、データを保持して再サインイン
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _localizationService.translate('profile_apple_upgrade_preparing'),
-            style: GoogleFonts.notoSans(color: Colors.white),
-          ),
-          backgroundColor: Colors.blue,
-          duration: const Duration(seconds: 2),
-        ),
+      print('🍎 Apple IDアップグレード開始');
+      
+      // 現在のユーザー状態確認
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null || !currentUser.isAnonymous) {
+        throw Exception('匿名ユーザーではありません');
+      }
+      
+      print('👤 匿名ユーザー確認: ${currentUser.uid}');
+      
+      final userCredential = await _authService.linkAnonymousWithApple().timeout(
+        const Duration(seconds: 45), // タイムアウト時間を延長
+        onTimeout: () {
+          print('⏰ Apple Sign In タイムアウト');
+          throw TimeoutException('Apple Sign In timeout', const Duration(seconds: 45));
+        },
       );
+      
+      print('🍎 Apple Sign In 結果: ${userCredential != null}');
+      
+      if (userCredential != null && mounted) {
+        print('✅ Apple IDアップグレード成功');
+        
+        // アップグレード成功後、少し待ってからUI更新
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                _localizationService.translate('profile_apple_upgrade_success'),
+                style: GoogleFonts.notoSans(color: Colors.white),
+              ),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+          setState(() {}); // UIを更新
+        }
+      } else if (mounted) {
+        print('⚠️ Apple IDアップグレードキャンセル');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _localizationService.translate('profile_upgrade_cancelled'),
+              style: GoogleFonts.notoSans(color: Colors.white),
+            ),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      print('❌ Apple IDアップグレードエラー: $e');
+      print('📍 スタックトレース: $stackTrace');
+      
+      if (mounted) {
+        String errorMessage = _localizationService.translate('profile_upgrade_failed');
+        
+        // エラー種別による詳細メッセージ
+        if (e is TimeoutException) {
+          errorMessage = _localizationService.translate('profile_upgrade_timeout');
+        } else if (e.toString().contains('SIGN_IN_CANCELLED') || 
+                   e.toString().contains('cancelled') ||
+                   e.toString().contains('canceled')) {
+          errorMessage = _localizationService.translate('profile_upgrade_cancel_message');
+        } else if (e.toString().contains('network')) {
+          errorMessage = _localizationService.translate('profile_upgrade_network_error');
+        } else if (e.toString().contains('account-exists-with-different-credential')) {
+          errorMessage = _localizationService.translate('profile_apple_account_exists');
+        } else if (e.toString().contains('credential-already-in-use')) {
+          errorMessage = _localizationService.translate('profile_upgrade_credential_in_use');
+        } else {
+          // 一般的なエラーメッセージ（詳細は開発者のみ表示）
+          final shortError = e.toString().length > 50 ? 
+            e.toString().substring(0, 50) + '...' : e.toString();
+          errorMessage = _localizationService.translate('profile_upgrade_general_error');
+          print('詳細エラー: $shortError');
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              errorMessage,
+              style: GoogleFonts.notoSans(color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     } finally {
+      // 必ずローディング状態を解除
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
       }
+      print('🔚 Apple IDアップグレード処理完了');
     }
   }
 
-  // サインアウト処理
-  Future<void> _handleSignOut() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          _localizationService.translate('profile_sign_out_title'),
-          style: GoogleFonts.notoSans(fontWeight: FontWeight.bold),
-        ),
-        content: Text(
-          '${_localizationService.translate('profile_sign_out_message')}\n${_authService.isAnonymous ? _localizationService.translate('profile_sign_out_guest_warning') : ''}',
-          style: GoogleFonts.notoSans(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              _localizationService.translate('cancel'),
-              style: GoogleFonts.notoSans(color: Colors.grey),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(
-              _localizationService.translate('profile_sign_out'),
-              style: GoogleFonts.notoSans(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      setState(() {
-        _isLoading = true;
-      });
-
-      try {
-        await _authService.signOut();
-        if (mounted) {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
-            (route) => false,
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                '${_localizationService.translate('profile_sign_out_failed')}$e',
-                style: GoogleFonts.notoSans(color: Colors.white),
-              ),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 3),
-            ),
-          );
-        }
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-      }
-    }
-  }
 }
 
 // 共通：丸みを帯びた四角の入力欄
